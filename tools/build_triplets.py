@@ -1,19 +1,20 @@
-#TODO Decoupling from F.Scrapper
+# TODO Decoupling from F.Scrapper
 
 from random import shuffle
 
 import numpy as np
 import pandas as pd
-from scrapper.brand.asos.consts.parser import (CATEGORIES as ASOS_CATEGORIES, BASE_PATH as ASOS_BASE_PATH)
-from scrapper.brand.asos.helper.database.dbhelper import list_dbs_by_category
-from scrapper.brand.asos.helper.download.AsosPaths import AsosPaths
-from scrapper.brand.asos.webelements.consts.Asos_Selectors import Asos_Selectors
-from scrapper.brand.hm.consts.parser import (CATEGORIES as HM_CATEGORIES, BASE_PATH as HM_BASE_PATH)
-from scrapper.brand.hm.helper.download.HMPaths import HMPaths
-from scrapper.brand.hm.webelements.consts.HM_Selectors import HM_Selectors
-from scrapper.brand.mango.consts.parser import (BASE_PATH as MANGO_BASE_PATH)
-from utils.io import walk_entries, Json_DB
-from utils.list import flatten, idx_self_reference, distinct_list_of_dicts
+from fashionscrapper.brand.asos.consts.parser import (CATEGORIES as ASOS_CATEGORIES, BASE_PATH as ASOS_BASE_PATH)
+from fashionscrapper.brand.asos.helper.database.dbhelper import list_dbs_by_category
+from fashionscrapper.brand.asos.helper.download.AsosPaths import AsosPaths
+from fashionscrapper.brand.asos.webelements.consts.Asos_Selectors import Asos_Selectors
+from fashionscrapper.brand.hm.consts.parser import (CATEGORIES as HM_CATEGORIES, BASE_PATH as HM_BASE_PATH)
+from fashionscrapper.brand.hm.helper.download.HMPaths import HMPaths
+from fashionscrapper.brand.hm.webelements.consts.HM_Selectors import HM_Selectors
+from fashionscrapper.brand.mango.consts.parser import (BASE_PATH as MANGO_BASE_PATH)
+from fashionscrapper.utils.io import walk_entries, Json_DB
+from fashionscrapper.utils.list import flatten, idx_self_reference, distinct_list_of_dicts
+from fashionscrapper.brand.mango.helper.database.filter import filtered_entries
 
 
 def as_df(triplets):
@@ -82,8 +83,6 @@ def build_triplets(entries):
     negative_items = preprocess_negative_entries(entries)
     positive_items = preprocess_positive_entries(entries)
 
-    ##assert len(negative_items) == len(positive_items) # -> Some Articles have only 1 Images - therefore this Assertion doesnt work broadly across all brands
-
     data = []
     for row in positive_items:
         anchor_id, positive_id = row["anchor"]["id"], row["positive"]["id"]
@@ -93,7 +92,7 @@ def build_triplets(entries):
             possible_n_anchor = negative_items.pop()
             if possible_n_anchor["id"] != anchor_id:
                 negative_anchor = possible_n_anchor
-            elif len(negative_items) < 2:  # for the random chance of only the same id beeing left
+            elif len(negative_items) < 2:  # for the random chance of only the same id being left
                 break
             else:
                 negative_items.insert(0, possible_n_anchor)
@@ -101,6 +100,7 @@ def build_triplets(entries):
         data.append({**row, "negative": negative_anchor})
     validate_triplets(data)
     return data
+
 
 def validate_triplets(data):
     """
@@ -120,8 +120,9 @@ def validate_triplets(data):
 if __name__ == "__main__":
     def list_mango_entries_by_cat(category_name):
         entries = walk_entries(rf"{MANGO_BASE_PATH}\{category_name}")
-        anchor_items = (list(filterd_entries(entries)))
+        anchor_items = (list(filtered_entries(entries)))
         return anchor_items
+
 
     def list_asos_entries_by_cat(category_name):
         def clean_entry(entry):
@@ -132,10 +133,12 @@ if __name__ == "__main__":
         brand_path = AsosPaths(ASOS_BASE_PATH)
         entries_db_path = brand_path.get_entries_db_base_path()
         entries = list_dbs_by_category(entries_db_path, ASOS_CATEGORIES)
-        entries_by_cat_distinct = distinct_list_of_dicts(flatten([Json_DB(x).all() for x in entries[category_name]]), key="url")
+        entries_by_cat_distinct = distinct_list_of_dicts(flatten([Json_DB(x).all() for x in entries[category_name]]),
+                                                         key="url")
 
         anchor_items = list(map(clean_entry, entries_by_cat_distinct))
         return anchor_items
+
 
     def list_hm_entries_by_cat(category_name):
         def clean_entry(entry):
@@ -160,4 +163,3 @@ if __name__ == "__main__":
 
     print("Columns", triplets_df.columns)
     print("Len", len(triplets_df))
-

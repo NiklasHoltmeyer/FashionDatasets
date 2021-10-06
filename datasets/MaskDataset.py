@@ -1,7 +1,8 @@
-from tensorflow import keras
-import numpy as np
-from tensorflow.keras.preprocessing.image import load_img
 from pathlib import Path
+
+import numpy as np
+from tensorflow import keras
+from tensorflow.keras.preprocessing.image import load_img
 
 
 class Dataset(keras.utils.Sequence):
@@ -9,7 +10,7 @@ class Dataset(keras.utils.Sequence):
         self.batch_size = batch_size
         self.img_size = img_size
 
-        self.input_img_paths, self.target_img_paths = self._load_paths(Path(base_path) , split + ".txt")
+        self.input_img_paths, self.target_img_paths = self._load_paths(Path(base_path), split + ".txt")
 
     def __len__(self):
         return len(self.target_img_paths) // self.batch_size
@@ -32,18 +33,20 @@ class Dataset(keras.utils.Sequence):
 
         return x, y
 
-    def _load_paths(self, dir, file):
-        with open(dir/file, ) as f:
+    @staticmethod
+    def _load_paths(directory, file):
+        with open(directory / file, ) as f:
             rows = f.readlines()
             rows = map(lambda x: x.strip(), rows)
             rows = map(lambda x: x.split(" "), rows)
             rows = list(rows)
             inputs, outputs = zip(*rows)
 
-            absolute_path = lambda x: dir/x
+            absolute_path = lambda x: directory / x
             inputs, outputs = map(absolute_path, inputs), map(absolute_path, outputs)
 
             return list(inputs), list(outputs)
+
 
 if __name__ == "__main__":
     Dataset(r"F:\workspace\datasets\DeepFashion2 Dataset\train", "train", 1, (256, 256))

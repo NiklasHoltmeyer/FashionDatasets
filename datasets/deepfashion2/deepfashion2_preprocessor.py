@@ -8,8 +8,8 @@ from default_logger.defaultLogger import defaultLogger
 from pycocotools.coco import COCO
 from tqdm.auto import tqdm
 from tqdm.contrib.concurrent import thread_map
-from utils.io import json_load
-from utils.parallel_programming import calc_chunk_size
+from fashionscrapper.utils.io import json_load
+from fashionscrapper.utils.parallel_programming import calc_chunk_size
 
 from datasets.utils.io import load_img, list_dir_abs_path
 
@@ -24,11 +24,12 @@ class DeepFashion2Preprocessor:
         self.settings = settings
         self.logger = defaultLogger("DeepFashion2 Preprocessor")
 
-    def BboxParams(self, min_area=1024, min_visibility=0.1):
+    @staticmethod
+    def BboxParams(min_area=1024, min_visibility=0.1):
         return A.BboxParams(format='albumentations', label_fields=['class_labels', 'class_categories'],  # coco
-                                min_area=min_area, min_visibility=min_visibility, )
+                            min_area=min_area, min_visibility=min_visibility, )
 
-    def bounding_boxes(self, transform, **kwargs):
+    def bounding_boxes(self, transform):
         anno_imgs = self.list_annotations_w_images(IGNORE_CHECK=self.settings.get("IGNORE_CHECK", False))
         len_iterable = len(anno_imgs)
         self.logger.debug(f"{len_iterable} Annotations")  #
@@ -39,7 +40,7 @@ class DeepFashion2Preprocessor:
                        desc=f"Transform Boundingboxes ({self.threads} Threads)")
 
         r_true = filter(lambda x: x[0], r)
-        r_true = map(lambda x: x[1:], r_true)  # removing first list_item per list (Succ.-Flag)
+        r_true = map(lambda x: x[1:], r_true)  # removing first list_item per list (successful-Flag)
         r_true = list(r_true)
         r_false = filter(lambda x: not x[0], r)
         r_false = map(lambda x: x[1:], r_false)
@@ -52,7 +53,7 @@ class DeepFashion2Preprocessor:
 
         return r_true, r_false
 
-    def semantic_segmentation(self, coco_path, **kwargs):
+    def semantic_segmentation(self, coco_path):
         img_mask_dir = self.images_path.parent / "annotations"
         img_mask_dir.mkdir(parents=True, exist_ok=True)
 
@@ -161,10 +162,11 @@ def transform_w_bb(transformer):
 
     return __call__
 
-############ Seg
+
+# Seg
 
 def get_color_map_list(num_classes):
-    ### SRC: https://github.com/PaddlePaddle/PaddleSeg/blob/release/2.2/tools/gray2pseudo_color.py
+    # SRC: https://github.com/PaddlePaddle/PaddleSeg/blob/release/2.2/tools/gray2pseudo_color.py
     """
     Returns the color map for visualizing the segmentation mask,
     which can support arbitrary number of classes.
@@ -188,20 +190,24 @@ def get_color_map_list(num_classes):
     color_map = color_map[3:]
     return color_map
 
+
 color_map = get_color_map_list(14)
 
+
 def save_image_PMODE(data, path):
-    I = Image.fromarray(data).convert("P")
-    I.putpalette(color_map)
-    return I.save(path.replace(".jpg", ".png"))
+    image = Image.fromarray(data).convert("P")
+    image.putpalette(color_map)
+    return image.save(path.replace(".jpg", ".png"))
+
 
 def save_mask(img_mask_dir, img, mask):
     mask_file_path = str((img_mask_dir / img["file_name"]).resolve())
     save_image_PMODE(mask, mask_file_path)
 
 
-def save_segmentation_mask(coco, img_mask_dir):
+def save_segmentation_mask(coco, img_mask_dir, ignore_exceptions=True):
     cat_ids = coco.getCatIds()
+
     def __call__(img):
         try:
             anns_ids = coco.getAnnIds(imgIds=img['id'], catIds=cat_ids, iscrowd=False)
@@ -214,11 +220,14 @@ def save_segmentation_mask(coco, img_mask_dir):
             save_mask(img_mask_dir, img, mask)
             return 1
         except Exception as e:
+            if ignore_exceptions:
+                return 0
             raise e
-            return 0
+
     return __call__
 
-if __name__ =="__main__":
+
+if __name__ == "__main__":
     freeze_support()
 
     annotations_path, images_path = (Path(f'F:/workspace/datasets/DeepFashion2 Dataset/train/annos'),

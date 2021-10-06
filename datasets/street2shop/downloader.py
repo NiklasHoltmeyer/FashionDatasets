@@ -1,17 +1,14 @@
-## Based on: https://github.com/pumpikano/street2shop, adapted for Py3
+# Based on: https://github.com/pumpikano/street2shop, adapted for Py3
 import imghdr
 import os
 import time
 from multiprocessing import Pool
 from multiprocessing.dummy import freeze_support
 from pathlib import Path
-from urllib.parse import urlparse
 
 import requests
-from tqdm import tqdm
-
 from default_logger.defaultLogger import defaultLogger
-from scrapper.util.list import distinct
+from tqdm import tqdm
 
 THREADS = 32
 RETRIES = 36
@@ -30,14 +27,14 @@ def load_id_url(path: str, force=False):
     clean_line = lambda l: l.replace("\n", " ").strip()
     images = os.listdir(image_path) if not force else None
 
-    def split_line(l):
-        first_sep = l.find(",")
-        return l[:first_sep], l[first_sep + 1:]
+    def split_line(line):
+        first_sep = line.find(",")
+        return line[:first_sep], line[first_sep + 1:]
 
-    def pop_filter(l):
+    def pop_filter(line):
         """ images and lines are sorted -> should be close to O(1) """
         try:
-            idx = images.index(l[1])
+            idx = images.index(line[1])
             del images[idx]
             return False
         except ValueError:
@@ -79,10 +76,10 @@ def download(id_url):
                 logger.debug(f"Unknown Type {id_}, {url}")
         else:
             logger.debug(f"{url}: {r.status_code}")
-    except Exception as e:
-        pass
 
-    return id_, url
+        return id_, url
+    except:
+        pass
 
 
 if __name__ == '__main__':
@@ -96,10 +93,10 @@ if __name__ == '__main__':
     last_job_len = len(dl_jobs)
 
     for run_idx in reversed(range(RETRIES)):
-        threads = THREADS + run_idx - RETRIES  #<- Run 1: T Threads, Run 2: T-2 Threads, Run N: T-N
-        threads = max(threads, 2)              # <- Min 2 Threads
+        threads = THREADS + run_idx - RETRIES  # <- Run 1: T Threads, Run 2: T-2 Threads, Run N: T-N
+        threads = max(threads, 2)  # <- Min 2 Threads
         total = len(dl_jobs)
-        logger.debug(f"Prev. len(JOB): {last_job_len}, Current: {total} -> Dif: {last_job_len-total}")
+        logger.debug(f"Prev. len(JOB): {last_job_len}, Current: {total} -> Dif: {last_job_len - total}")
 
         with Pool(threads) as p:
             p_itter = p.imap(download, dl_jobs)
