@@ -1,6 +1,60 @@
+import argparse
 import os
 from pathlib import Path
 from random import shuffle
+
+
+def parse_args():
+    parser = argparse.ArgumentParser(
+        description=
+        'Export Image Annotations Pairs as TXT'
+    )
+
+    parser.add_argument(
+        '--ds_path',
+        dest='dataset_path',
+        help='Base Dataset Path',
+        type=str,
+        required=True)
+
+    parser.add_argument(
+        '--split',
+        dest='split',
+        help='Desired Split [Train, Validate, Test] e.g. default 0.7, 0.15, 0.15',
+        nargs=3,
+        type=float,
+        required=True,
+        default=[0.7, 0.15, 0.15]
+    )
+
+    parser.add_argument(
+        '--image_dir_name',
+        dest='image_dir_name',
+        help='Name of Image (Input) Folder.',
+        type=str,
+        required=False,
+        default="images"
+    )
+
+    parser.add_argument(
+        '--label_dir_name',
+        dest='label_dir_name',
+        help='Name of Image (Input) Folder.',
+        type=str,
+        required=False,
+        default="annotations"
+    )
+
+    parser.add_argument(
+        '--sep',
+        dest='sep',
+        help='Seperator',
+        type=str,
+        required=False,
+        default=" "
+    )
+
+    return parser.parse_args()
 
 
 def list_image_annotations_pairs(ds_path, image_dir_name, label_dir_name):
@@ -50,28 +104,27 @@ def split_pairs(pairs, splits, shuffle_pairs=True):
     return ds
 
 
-if __name__ == "__main__":
-    dataset_path = r"F:\workspace\datasets\DeepFashion2 Dataset\train"
-
+def save_pairings_to_txt(args):
     split = {
-        "train": 0.8,
-        "val": 0.2,
-        "test": 0.0
+        "train": args.split[0],
+        "val": args.split[1],
+        "test": args.split[2]
     }
 
-    image_dir_name = "images"
-    label_dir_name = "annotations"
-
-    sep = " "
-
-    img_annotation_pairs = list_image_annotations_pairs(dataset_path, image_dir_name, label_dir_name)
-    img_annotation_pairs = list(map(lambda x: sep.join(x) + "\n", img_annotation_pairs))
+    img_annotation_pairs = list_image_annotations_pairs(args.dataset_path, args.image_dir_name, args.label_dir_name)
+    img_annotation_pairs = list(map(lambda x: args.sep.join(x) + "\n", img_annotation_pairs))
 
     splitted_data = split_pairs(img_annotation_pairs, split)
 
     for split, pairs in splitted_data.items():
-        with open(Path(dataset_path, split+".txt"), 'w+') as f:
+        with open(Path(args.dataset_path, split + ".txt"), 'w+') as f:
             f.writelines(pairs)
 
-        with open(Path(dataset_path, split+".txt"), 'r') as f:
+        with open(Path(args.dataset_path, split + ".txt"), 'r') as f:
             assert (len(list(f.readlines()))) == len(pairs)
+
+
+if __name__ == "__main__":
+    args = parse_args()
+
+    save_pairings_to_txt(args)

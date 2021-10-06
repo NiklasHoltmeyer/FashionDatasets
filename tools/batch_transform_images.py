@@ -1,3 +1,5 @@
+import argparse
+
 import os
 from multiprocessing.dummy import freeze_support
 from pathlib import Path
@@ -10,6 +12,37 @@ from tqdm.contrib.concurrent import thread_map
 
 from datasets.deepfashion2.deepfashion2_preprocessor import save_image_PMODE
 from datasets.utils.io import load_img, save_image
+
+def parse_args():
+    parser = argparse.ArgumentParser(
+        description=
+        'Batch Transform Images'
+    )
+
+    parser.add_argument(
+        '-i',
+        '--src_path',
+        dest='src_path',
+        help='Base Source Path',
+        type=str,
+        required=True)
+
+    parser.add_argument(
+        '-o',
+        '--dst_path',
+        dest='dst_path',
+        help='Base Destination Path',
+        type=str,
+        required=True)
+
+    parser.add_argument(
+        '--sub_folders',
+        dest='sub_folders',
+        help='Subfolders (e.g. Images, Annotations, ...)',
+        nargs='+',
+        default=["annotations", "images"])
+
+    return parser.parse_args()
 
 
 def filter_dst_not_exists(job):
@@ -37,12 +70,12 @@ def transform_image(transformer, hide_exceptions):
     return __call__
 
 
-def batch_transform(src, dst, folders_to_resize, transform, threads=os.cpu_count() * 2):
-    src, dst = Path(src), Path(dst)
+def batch_transform(args, transform, threads=os.cpu_count() * 2):
+    src, dst = Path(args.src_path), Path(args.dst_path)
     #    logger = defaultLogger("Batch Transform Images")
     assert src.exists()
 
-    assert all(map(lambda x: (src / x).exists(), folders_to_resize)), "At least one Folder doesnt exist"
+    assert all(map(lambda x: (src / x).exists(), args.sub_folders)), "At least one Folder doesnt exist"
 
     def resize_jobs(folders):
         for folder in folders:
@@ -57,7 +90,7 @@ def batch_transform(src, dst, folders_to_resize, transform, threads=os.cpu_count
 
     #    logger.debug("List Images")
     print("List Images")
-    jobs = list(resize_jobs(folders_to_resize))
+    jobs = list(resize_jobs(args.sub_folders))
     jobs = filter(filter_not_dst_exists, tqdm(jobs, desc="Filter DST::Exists", total=len(jobs)))
     jobs = list(jobs)
 
@@ -81,14 +114,14 @@ def batch_transform(src, dst, folders_to_resize, transform, threads=os.cpu_count
 
 
 if __name__ == "__main__":
+    args = parse_args()
+
     freeze_support()
     transform = A.Compose([
         A.Resize(width=256, height=256),
         # A.RandomCrop(width=244, height=244),
     ])
 
-    src_dir = r"F:\workspace\datasets\DeepFashion2 Dataset\train"
-    dst_dir = r"F:\workspace\datasets\DeepFashion2 Dataset\train_256"
-    folders_to_resize = ["annotations", "images"]
+    batch_transform(args, transform)
 
-    batch_transform(src_dir, dst_dir, folders_to_resize, transform)
+
