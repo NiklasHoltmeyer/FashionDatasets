@@ -4,7 +4,6 @@ import numpy as np
 from tensorflow import keras
 from tensorflow.keras.preprocessing.image import load_img
 
-
 class MaskDataset(keras.utils.Sequence):
     def __init__(self, base_path, split, batch_size, img_size, **kwargs):
         self.batch_size = batch_size
