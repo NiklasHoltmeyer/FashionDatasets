@@ -6,7 +6,7 @@ from tensorflow.keras.preprocessing.image import load_img
 
 
 class MaskDataset(keras.utils.Sequence):
-    def __init__(self, base_path, split, batch_size, img_size):
+    def __init__(self, base_path, split, batch_size, img_size, **kwargs):
         self.batch_size = batch_size
         self.img_size = img_size
 
@@ -42,7 +42,7 @@ class MaskDataset(keras.utils.Sequence):
             rows = list(rows)
             inputs, outputs = zip(*rows)
 
-            absolute_path = lambda x: directory / x
+            absolute_path = lambda x: Path(directory, x)
             inputs, outputs = map(absolute_path, inputs), map(absolute_path, outputs)
 
             return list(inputs), list(outputs)
