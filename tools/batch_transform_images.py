@@ -10,7 +10,6 @@ from fashionscrapper.utils.parallel_programming import calc_chunk_size
 from tqdm.auto import tqdm
 from tqdm.contrib.concurrent import thread_map
 
-from fashiondatasets.deepfashion2.deepfashion2_preprocessor import save_image_PMODE
 from fashiondatasets.utils.io import load_img, save_image
 
 def parse_args():
@@ -56,10 +55,11 @@ def transform_image(transformer, hide_exceptions):
             img = np.array(load_img(src))
             img_transformed = transformer(image=img)["image"]
 
-            if is_mask:
-                save_image_PMODE(img_transformed, str(dst))
-            else:
-                save_image(img_transformed, dst)
+#            if is_mask:
+#                save_image_PMODE(img_transformed, str(dst))
+#            else:
+#                save_image(img_transformed, dst)
+            save_image(img_transformed, dst)
 
             return 1
         except Exception as e:
@@ -70,7 +70,7 @@ def transform_image(transformer, hide_exceptions):
     return __call__
 
 
-def batch_transform(args, transform, threads=os.cpu_count() * 2):
+def batch_transform(args, transform, threads=os.cpu_count()):
     src, dst = Path(args.src_path), Path(args.dst_path)
     #    logger = defaultLogger("Batch Transform Images")
     assert src.exists()

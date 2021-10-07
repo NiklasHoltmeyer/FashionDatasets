@@ -11,7 +11,7 @@ from tqdm.contrib.concurrent import thread_map
 from fashionscrapper.utils.io import json_load
 from fashionscrapper.utils.parallel_programming import calc_chunk_size
 
-from fashiondatasets.utils.io import load_img, list_dir_abs_path
+from fashiondatasets.utils.io import load_img, list_dir_abs_path, save_image
 
 tqdm.set_lock(RLock())
 
@@ -165,44 +165,46 @@ def transform_w_bb(transformer):
 
 # Seg
 
-def get_color_map_list(num_classes):
-    # SRC: https://github.com/PaddlePaddle/PaddleSeg/blob/release/2.2/tools/gray2pseudo_color.py
+# def get_color_map_list(num_classes):
+#     # SRC: https://github.com/PaddlePaddle/PaddleSeg/blob/release/2.2/tools/gray2pseudo_color.py
     """
-    Returns the color map for visualizing the segmentation mask,
-    which can support arbitrary number of classes.
+#     Returns the color map for visualizing the segmentation mask,
+#     which can support arbitrary number of classes.
     Args:
-        num_classes (int): Number of classes.
-    Returns:
-        (list). The color map.
+#         num_classes (int): Number of classes.
+#     Returns:
+#         (list). The color map.
     """
 
-    num_classes += 1
-    color_map = num_classes * [0, 0, 0]
-    for i in range(0, num_classes):
-        j = 0
-        lab = i
-        while lab:
-            color_map[i * 3] |= (((lab >> 0) & 1) << (7 - j))
-            color_map[i * 3 + 1] |= (((lab >> 1) & 1) << (7 - j))
-            color_map[i * 3 + 2] |= (((lab >> 2) & 1) << (7 - j))
-            j += 1
-            lab >>= 3
-    color_map = color_map[3:]
-    return color_map
+#     num_classes += 1
+#     color_map = num_classes * [0, 0, 0]
+#     for i in range(0, num_classes):
+#         j = 0
+#         lab = i
+#         while lab:
+            # color_map[i * 3] |= (((lab >> 0) & 1) << (7 - j))
+            # color_map[i * 3 + 1] |= (((lab >> 1) & 1) << (7 - j))
+            # color_map[i * 3 + 2] |= (((lab >> 2) & 1) << (7 - j))
+            # j += 1
+            # lab >>= 3
+#     color_map = color_map[3:]
+#     return color_map
 
 
-color_map = get_color_map_list(14)
+# color_map = get_color_map_list(14)
 
 
-def save_image_PMODE(data, path):
-    image = Image.fromarray(data).convert("P")
-    image.putpalette(color_map)
-    return image.save(path.replace(".jpg", ".png"))
+#def save_image_PMODE(data, path):
+#    image = Image.fromarray(data).convert("P")
+#    image.putpalette(color_map)
+#    return image.save(path.replace(".jpg", ".png"))
 
 
 def save_mask(img_mask_dir, img, mask):
-    mask_file_path = str((img_mask_dir / img["file_name"]).resolve())
-    save_image_PMODE(mask, mask_file_path)
+    f_name = img["file_name"].replace(".jpg", ".png")
+    mask_file_path = str((img_mask_dir / f_name).resolve())
+#    save_image_PMODE(mask, mask_file_path)
+    save_image(mask, mask_file_path)
 
 
 def save_segmentation_mask(coco, img_mask_dir, ignore_exceptions=True):
