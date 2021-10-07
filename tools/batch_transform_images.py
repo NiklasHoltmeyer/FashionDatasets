@@ -10,8 +10,8 @@ from fashionscrapper.utils.parallel_programming import calc_chunk_size
 from tqdm.auto import tqdm
 from tqdm.contrib.concurrent import thread_map
 
-from datasets.deepfashion2.deepfashion2_preprocessor import save_image_PMODE
-from datasets.utils.io import load_img, save_image
+from fashiondatasets.deepfashion2.deepfashion2_preprocessor import save_image_PMODE
+from fashiondatasets.utils.io import load_img, save_image
 
 def parse_args():
     parser = argparse.ArgumentParser(
