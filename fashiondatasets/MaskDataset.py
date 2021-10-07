@@ -5,7 +5,7 @@ from tensorflow import keras
 from tensorflow.keras.preprocessing.image import load_img
 
 
-class Dataset(keras.utils.Sequence):
+class MaskDataset(keras.utils.Sequence):
     def __init__(self, base_path, split, batch_size, img_size):
         self.batch_size = batch_size
         self.img_size = img_size
@@ -49,4 +49,4 @@ class Dataset(keras.utils.Sequence):
 
 
 if __name__ == "__main__":
-    Dataset(r"F:\workspace\datasets\DeepFashion2 Dataset\train", "train", 1, (256, 256))
+    MaskDataset(r"F:\workspace\datasets\DeepFashion2 Dataset\train", "train", 1, (256, 256))

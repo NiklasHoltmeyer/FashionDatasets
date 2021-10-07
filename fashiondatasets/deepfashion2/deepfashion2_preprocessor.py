@@ -11,7 +11,7 @@ from tqdm.contrib.concurrent import thread_map
 from fashionscrapper.utils.io import json_load
 from fashionscrapper.utils.parallel_programming import calc_chunk_size
 
-from datasets.utils.io import load_img, list_dir_abs_path
+from fashiondatasets.utils.io import load_img, list_dir_abs_path
 
 tqdm.set_lock(RLock())
 
