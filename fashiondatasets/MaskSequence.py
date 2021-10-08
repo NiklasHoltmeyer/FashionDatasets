@@ -3,8 +3,9 @@ from pathlib import Path
 import numpy as np
 from tensorflow import keras
 from tensorflow.keras.preprocessing.image import load_img
+import tensorflow as tf
 
-class MaskDataset(keras.utils.Sequence):
+class MaskSequence(keras.utils.Sequence):
     def __init__(self, base_path, split, batch_size, img_size, **kwargs):
         self.batch_size = batch_size
         self.img_size = img_size
@@ -41,12 +42,7 @@ class MaskDataset(keras.utils.Sequence):
             rows = list(rows)
             inputs, outputs = zip(*rows)
 
-            absolute_path = lambda x: directory / x
+            absolute_path = lambda x: str((directory / x).resolve())
             inputs, outputs = map(absolute_path, inputs), map(absolute_path, outputs)
 
             return list(inputs), list(outputs)
-
-
-if __name__ == "__main__":
-    ds = MaskDataset(r"F:\workspace\datasets\DeepFashion2 Dataset\train", "train", 1, (256, 256))
-    print(ds[0])

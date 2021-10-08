@@ -126,5 +126,4 @@ def save_pairings_to_txt(args):
 
 if __name__ == "__main__":
     args = parse_args()
-
     save_pairings_to_txt(args)
