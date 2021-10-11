@@ -189,7 +189,7 @@ if __name__ == "__main__":
             break
 
     if args.validate_images_force:
-        print("Validate all DST Images")
+        print("[Force] Validate all DST Images")
         validate_all_images(args, threads=os.cpu_count())
 
 # --src_path "F:\workspace\datasets\DeepFashion2 Dataset\train"

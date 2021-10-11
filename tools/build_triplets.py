@@ -118,12 +118,6 @@ def validate_triplets(data):
 
 
 if __name__ == "__main__":
-    def list_mango_entries_by_cat(category_name):
-        entries = walk_entries(rf"{MANGO_BASE_PATH}\{category_name}")
-        anchor_items = (list(filtered_entries(entries)))
-        return anchor_items
-
-
     def list_asos_entries_by_cat(category_name):
         def clean_entry(entry):
             return {"id": entry["url"].replace(Asos_Selectors.URLS.BASE, ""),
@@ -140,26 +134,12 @@ if __name__ == "__main__":
         return anchor_items
 
 
-    def list_hm_entries_by_cat(category_name):
-        def clean_entry(entry):
-            return {"id": entry["url"].replace(HM_Selectors.URLS.BASE, ""),
-                    "images": [{"path": brand_path.relative_image_path_from_url(img["url"]), "view": img["name"]}
-                               for img in entry["images"]]}
-
-        brand_path = HMPaths(HM_BASE_PATH)
-        entries_db_path = brand_path.get_entries_db_base_path()
-        entries = list_dbs_by_category(entries_db_path, HM_CATEGORIES)
-        entries_by_cat_distinct = distinct_list_of_dicts(flatten([Json_DB(x).all() for x in entries[category_name]]),
-                                                         key="url")
-
-        anchor_items = list(map(clean_entry, entries_by_cat_distinct))
-        return anchor_items
-
-
     anchor_items = list_asos_entries_by_cat("hose")
-    triplets_df = as_df(build_triplets(anchor_items))
+    print(anchor_items)
 
-    print(triplets_df.head(3))
-
-    print("Columns", triplets_df.columns)
-    print("Len", len(triplets_df))
+#    triplets_df = as_df(build_triplets(anchor_items))
+#
+#    print(triplets_df.head(3))
+#
+#    print("Columns", triplets_df.columns)
+#    print("Len", len(triplets_df))
