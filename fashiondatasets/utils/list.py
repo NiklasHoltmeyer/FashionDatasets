@@ -1,5 +1,7 @@
 from random import shuffle
 
+from fashionscrapper.utils.list import flatten
+
 
 def random_range(n):
     range_lst = list(range(n))

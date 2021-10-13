@@ -7,7 +7,7 @@ from random import randint
 import numpy as np
 from tensorflow.keras.preprocessing.image import array_to_img
 
-def mask_to_img(mask, is_prediction, num_classes, resize=None):
+def mask_to_img(mask, is_prediction, num_classes, resize=None): #prediction, num_classes, is_prediction=True
     """
     SRC: Keras
     Quick utility to display a model's prediction."""
@@ -26,7 +26,7 @@ def mask_to_img(mask, is_prediction, num_classes, resize=None):
     return msk.convert("RGB")
 
 def display_mask_prediction(prediction, num_classes=None):
-    mask = mask_to_img(prediction, num_classes, is_prediction=True)
+    mask = mask_to_img(prediction, num_classes=num_classes, is_prediction=True)
     display(mask)
 
 def blend_mask(img, msk, num_classes=None, alpha=0.5):

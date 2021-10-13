@@ -1,19 +1,26 @@
 # TODO just create this from scratch. hacked this down asap
 
 import copy
+import os
+from collections import defaultdict
+from multiprocessing.dummy import freeze_support
 from pathlib import Path
+from random import choice
 from random import shuffle
 
+import albumentations as A
 import numpy as np
-# from fashionscrapper.brand import parser_settings
-from fashionscrapper.utils.io import Json_DB
-from fashionscrapper.utils.list import idx_self_reference
-from tqdm.auto import tqdm
-from collections import defaultdict
-from random import choice
-
-from fashiondatasets.utils.list import random_range, flatten_dict
 import pandas as pd
+from fashionscrapper.utils.io import Json_DB
+from fashionscrapper.utils.list import flatten
+from fashionscrapper.utils.list import idx_self_reference, distinct
+from fashionscrapper.utils.parallel_programming import calc_chunk_size
+from tqdm.auto import tqdm
+from tqdm.contrib.concurrent import thread_map
+
+from fashiondatasets.own.Quadruplets import Quadruplets
+from fashiondatasets.utils.io import load_img, save_image
+from fashiondatasets.utils.list import random_range, flatten_dict
 
 
 class EntriesHelper:
@@ -182,7 +189,6 @@ def unzip_quadruplets_nb(entries_helper, quadruplet, base_path=""):
 
         id, img_id = item["id"], item["img"]
         entry = entries_helper.entries_by_id[id]
-        cat = entry["category"]
         row = {"id": id, **entry["images"][img_id], "category": entry["category"]}
         row = {f"{header}_{k}": v for (k, v) in row.items()}
         row[f"{header}_path"] = row[f"{header}_path"].replace(base_path, "")
@@ -197,7 +203,7 @@ def unzip_quadruplets_nb(entries_helper, quadruplet, base_path=""):
 
 
 def to_csv(base_path, quadruplets):
-    df_path = Path(base_path, "quadruplet.csv")
+    df_path = Path(base_path, "quadruplet_full.csv")
     dicts = map(lambda x: unzip_quadruplets_nb(entries_helper, x, str(base_path)), quadruplets)
     dicts = list(dicts)
     quadruplets_df = pd.DataFrame(dicts, columns=dicts[0].keys())
@@ -205,19 +211,104 @@ def to_csv(base_path, quadruplets):
     quadruplets_df.to_csv(df_path, sep=";", index=False)
     print("Saved Quadruplets to", df_path)
 
+def transform_quads(base_path, target_path, transformer, validate=True):
+    Path(target_path).mkdir(parents=True, exist_ok=True)
+
+    def _list_jobs(path):
+        quad = Quadruplets(path)
+        p_keys = Quadruplets.list_path_colum_keys(quad.df)
+        relative_paths = map(lambda k: quad.df[k].values, p_keys)
+        relative_paths = distinct(flatten(relative_paths))
+
+        build_job = lambda p: (base_path + p, target_path + p)
+        jobs = map(build_job, relative_paths)
+        return list(jobs)
+
+    def transform_image(transformer, hide_exceptions):
+        def __call__(job):
+            src, dst = job
+            try:
+                img = np.array(load_img(src))
+                img_transformed = transformer(image=img)["image"]
+
+                save_image(img_transformed, dst, create_parents=True)
+
+                return 1
+            except Exception as e:
+                if hide_exceptions:
+                    return 0
+                raise e
+
+        return __call__
+
+    _transformer = transform_image(transformer, True)
+    jobs = _list_jobs(base_path)
+
+    def filter_not_dst_exists(job):
+        return not Path(job[1]).exists()
+
+    def map_exists_validate(job):
+        dst_exists = Path(job[1]).exists()
+        if not dst_exists:
+            return job
+
+        if validate:
+            try:
+                load_img(job[1])
+                return None
+            except:
+                Path(job[1]).unlink()
+                return job
+
+    def add_file_ext(job):
+        ext = os.path.splitext(job[1])[-1]
+        if len(ext) < 1:
+            return job[0], job[1] + ".jpg"
+        return job[0], job[1]
+
+    threads = os.cpu_count() / 2
+    jobs, total = map(add_file_ext, jobs), len(jobs)
+    #jobs = filter(filter_not_dst_exists, tqdm(jobs, desc="Filter DST::Exists", total=total))
+    #jobs = list(jobs)
+
+    chunk_size = calc_chunk_size(n_workers=threads, len_iterable=total)
+    jobs_validated = thread_map(map_exists_validate, jobs, max_workers=threads, total=total,
+                   chunksize=chunk_size, desc=f"Validate-Paths Images ({threads} Threads)")
+    jobs_validated = list(filter_not_none(jobs_validated))
+    chunk_size = calc_chunk_size(n_workers=threads, len_iterable=len(jobs_validated))
+    jobs_transformed = list(thread_map(_transformer, jobs_validated, max_workers=threads, total=len(jobs_validated),
+                   chunksize=chunk_size, desc=f"Transform Images ({threads} Threads)"))
+
+    n_successful = sum(jobs_transformed)
+    #    logger.debug(f"{n_succ} / {len(jobs)} = {100*n_succ/len(jobs)}%  Resized")
+
+    if len(jobs_validated) < 10:
+        for job in jobs_validated:
+            print("DST", job[1])
+
+    print(f"{n_successful} / {len(jobs_validated)} = {100 * n_successful / len(jobs_validated)}%  Transformed")
 
 if __name__ == "__main__":
-    BP = "F:\\workspace\\datasets\\own"
+    BP, target = "F:\\workspace\\datasets\\own", r"F:\workspace\datasets\own_256"
 
-    entries_path = Path(BP, "entires.json")
-    with Json_DB(entries_path) as entries_db:
-        entries = entries_db.all()
-        #^ list of dicts. required keys: id, images, category
-        # images = [{"path": ...}]
-        print(entries[0].keys())
-        exit(0)
-    shuffle(entries)
-    entries_helper = EntriesHelper(entries)
+    def build_quads():
+        entries_path = Path(BP, "entires.json")
+        with Json_DB(entries_path) as entries_db:
+            entries = entries_db.all()
+            #^ list of dicts. required keys: id, images, category
+            # images = [{"path": ...}]
+        shuffle(entries)
+        entries_helper = EntriesHelper(entries)
 
-    quadruplets = build_quadruplets(entries_helper)
-    to_csv(BP, quadruplets)
+        quadruplets = build_quadruplets(entries_helper)
+        to_csv(BP, quadruplets)
+
+
+    freeze_support()
+
+    transform = A.Compose([
+        A.Resize(width=256, height=256),
+        # A.RandomCrop(width=244, height=244),
+    ])
+
+    transform_quads(BP, target, transform)

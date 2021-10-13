@@ -78,10 +78,6 @@ def transform_image(transformer, hide_exceptions):
             img = np.array(load_img(src))
             img_transformed = transformer(image=img)["image"]
 
-            #            if is_mask:
-            #                save_image_PMODE(img_transformed, str(dst))
-            #            else:
-            #                save_image(img_transformed, dst)
             save_image(img_transformed, dst)
 
             return 1
