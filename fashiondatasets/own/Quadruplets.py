@@ -70,19 +70,30 @@ class Quadruplets:
         return df.to_dict("results")
 
     @staticmethod
-    def _map_full_paths(df, base_path, resolve_paths, **kwargs):
+    def _map_full_paths(df, base_path, resolve_paths, add_file_ext=True, **kwargs):
         threads = kwargs.get("threads", os.cpu_count())
 #        map_join_path = lambda p: os.path.join(base_path, ())   #os.path.join()
 #        map_path = lambda p: str(Path(base_path + "\\" + p).resolve()) if resolve_paths else \
 #            lambda p: Path(base_path + "\\" + p)
+
+        def _add_file_ext(p):
+            ext = os.path.splitext(p)[-1]
+            if len(ext) < 1:
+                return p + ".jpg"
+            return p
+
+
         if os.name == "nt":
             map_path = lambda p: base_path + p
         else:
             map_path = lambda p: base_path + p.replace("\\", "/")
+
         # Path(bp, p) doesnt work on Win.
 
         for path_key in tqdm(Quadruplets.list_path_colum_keys(df), desc="Prepare Paths"):
             df[path_key] = df[path_key].map(map_path)
+            if add_file_ext:
+                df[path_key] = df[path_key].map(_add_file_ext)
         return df
 
     @staticmethod
