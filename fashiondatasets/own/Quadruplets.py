@@ -75,7 +75,7 @@ class Quadruplets:
 #        map_join_path = lambda p: os.path.join(base_path, ())   #os.path.join()
 #        map_path = lambda p: str(Path(base_path + "\\" + p).resolve()) if resolve_paths else \
 #            lambda p: Path(base_path + "\\" + p)
-        map_path = lambda p: Path(base_path + p).resolve()
+        map_path = lambda p: str(Path(base_path + p).resolve())
         # Path(bp, p) doesnt work on Win.
 
         for path_key in tqdm(Quadruplets.list_path_colum_keys(df), desc="Prepare Paths"):
