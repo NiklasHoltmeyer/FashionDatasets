@@ -1,12 +1,12 @@
 fashionscrapper @ git+https://github.com/NiklasHoltmeyer/FashionScrapper.git#egg=FashionScrapper-1.0
-pycocotools~=2.0.0
-tqdm~=4.62.3
-pandas~=1.3.2
-setuptools~=58.2.0
-opencv-python~=4.5.3.56
-pillow~=8.3.2
-numpy~=1.21.2
-albumentations~=1.1.0
+pycocotools #~=2.0.0
+tqdm #~=4.62.3
+pandas #~=1.3.2
+setuptools #~=58.2.0
+opencv-python #~=4.5.3.56
+pillow #~=8.3.2
+numpy #~=1.21.2
+albumentations #~=1.1.0
 tensorflow
-tinydb~=4.5.2
-tinydb-serialization~=2.1.0
+tinydb #~=4.5.2
+tinydb-serialization #~=2.1.0
