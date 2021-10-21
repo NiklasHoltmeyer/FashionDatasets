@@ -6,6 +6,9 @@ from tqdm.contrib.concurrent import thread_map
 from tqdm.auto import tqdm
 import tensorflow as tf
 from random import choice
+
+from fashiondatasets.utils.list import parallel_map
+
 tqdm.pandas()
 
 
@@ -116,10 +119,15 @@ class Quadruplets:
         total = sum(map(lambda paths: len(df[paths]), path_cols))
         jobs = walk_paths(df, path_cols)
 
-        chunk_size = calc_chunk_size(n_workers=8, len_iterable=total)
+        r = parallel_map(lst=jobs,
+                         fn=validate_image,
+                         desc="Validate Images",
+                         total=total)
 
-        r = thread_map(validate_image, jobs, max_workers=8, total=total,
-                       chunksize=chunk_size, desc=f"Validate Images ({8} Threads)")
+#        chunk_size = calc_chunk_size(n_workers=8, len_iterable=total)
+
+#        r = thread_map(validate_image, jobs, max_workers=8, total=total,
+#                       chunksize=chunk_size, desc=f"Validate Images ({8} Threads)")
 
         n_successful = sum(r)
         print(f"{n_successful} / {total} Images = {100 * n_successful / total}%  Exist")

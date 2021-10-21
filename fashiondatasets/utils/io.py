@@ -3,7 +3,6 @@ from pathlib import Path
 
 from PIL import Image
 
-
 def load_img(path):
     return Image.open(path)
 

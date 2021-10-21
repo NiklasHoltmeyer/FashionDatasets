@@ -11,12 +11,14 @@ from tqdm.contrib.concurrent import thread_map
 from fashionscrapper.utils.io import json_load
 from fashionscrapper.utils.parallel_programming import calc_chunk_size
 
+from fashiondatasets.deepfashion2.helper.annotations import Annotations
 from fashiondatasets.utils.io import load_img, list_dir_abs_path, save_image
+from fashiondatasets.utils.list import parallel_map
 
 tqdm.set_lock(RLock())
 
 
-class DeepFashion2Preprocessor:
+class DeepFashion2SegmentationPreprocessor:
     def __init__(self, **settings):
         self.annotations_path = settings.pop("annotations_path")
         self.images_path = settings.pop("images_path")
@@ -30,14 +32,16 @@ class DeepFashion2Preprocessor:
                             min_area=min_area, min_visibility=min_visibility, )
 
     def bounding_boxes(self, transform):
-        anno_imgs = self.list_annotations_w_images(IGNORE_CHECK=self.settings.get("IGNORE_CHECK", False))
-        len_iterable = len(anno_imgs)
-        self.logger.debug(f"{len_iterable} Annotations")  #
+        anno_imgs = Annotations.list_with_images(self.annotations_path,
+                                                 IGNORE_CHECK=self.settings.get("IGNORE_CHECK", False))
+        r = parallel_map(lst=anno_imgs,
+                         fn=transform_w_bb(transform),
+                         desc="Transform Boundingboxes")
 
-        chunk_size = calc_chunk_size(n_workers=self.threads, len_iterable=len_iterable)
+#        chunk_size = calc_chunk_size(n_workers=self.threads, len_iterable=len_iterable)
 
-        r = thread_map(transform_w_bb(transform), anno_imgs, max_workers=self.threads, chunksize=chunk_size,
-                       desc=f"Transform Boundingboxes ({self.threads} Threads)")
+#        r = thread_map(transform_w_bb(transform), anno_imgs, max_workers=self.threads, chunksize=chunk_size,
+#                       desc=f"Transform Boundingboxes ({self.threads} Threads)")
 
         r_true = filter(lambda x: x[0], r)
         r_true = map(lambda x: x[1:], r_true)  # removing first list_item per list (successful-Flag)
@@ -75,37 +79,6 @@ class DeepFashion2Preprocessor:
         n_mask_created = sum(r)
         self.logger.debug(f"{n_mask_created} Mask Created. {len_iterable - n_mask_created} Failed.")
 
-    def list_annotations(self):
-        """
-
-        :return: List of Annoations::Path
-        """
-        return list_dir_abs_path(self.annotations_path)
-
-    def list_images_from_annotations(self, annotations, IGNORE_CHECK):
-        """
-
-        :param annotations:
-        :param IGNORE_CHECK: sanity check, if images exists
-        :return: List of Image::Path (JPG)
-        """
-        annos_len = len(annotations)
-        annotations_f_names = map(lambda x: x.name, annotations)
-        imgs = map(lambda x: x.split(".json")[0] + ".jpg", annotations_f_names)
-        imgs = list(map(lambda x: Path(self.images_path, x), imgs))
-
-        if not IGNORE_CHECK:
-            imgs_itter = tqdm(imgs, desc="IMG::exists", total=annos_len)
-
-            img_missing = any(filter(lambda i: not i.exists(), imgs_itter))
-            assert not img_missing, "Atleast one Image missing"
-
-        return imgs
-
-    def list_annotations_w_images(self, IGNORE_CHECK):
-        annos = self.list_annotations()
-        imgs = self.list_images_from_annotations(annos, IGNORE_CHECK=IGNORE_CHECK)
-        return list(zip(annos, imgs))
 
 
 def clean_bbox(w, h):
@@ -127,7 +100,7 @@ def clean_bboxes(bboxes, width, height):
 
 
 def load_items(anno_path):
-    anno_data = json_load(anno_path)
+    anno_data = Annotations.load(anno_path)
     item_keys = filter(lambda i: "item" in i, anno_data.keys())
     items = map(lambda k: anno_data[k], item_keys)
 
@@ -215,5 +188,5 @@ if __name__ == "__main__":
         "threads": 8,
     }
 
-    preprocessor = DeepFashion2Preprocessor(**preprocessor_settings)
+    preprocessor = DeepFashion2SegmentationPreprocessor(**preprocessor_settings)
     preprocessor.semantic_segmentation(coco_train_path)

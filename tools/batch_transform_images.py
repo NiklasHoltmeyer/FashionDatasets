@@ -12,6 +12,7 @@ from tqdm.auto import tqdm
 from tqdm.contrib.concurrent import thread_map
 
 from fashiondatasets.utils.io import load_img, save_image, list_dir_abs_path
+from fashiondatasets.utils.list import parallel_map
 
 
 def parse_args():
@@ -100,10 +101,14 @@ def validate_images(imgs, threads):
 
     imgs = list(imgs)
 
-    chunk_size = calc_chunk_size(n_workers=threads, len_iterable=len(imgs))
+    r = parallel_map(lst=imgs,
+                     fn=validate_image,
+                     desc="Transform Images")
 
-    r = thread_map(validate_image, imgs, max_workers=threads, total=len(imgs),
-                   chunksize=chunk_size, desc=f"Transform Images ({threads} Threads)")
+#    chunk_size = calc_chunk_size(n_workers=threads, len_iterable=len(imgs))
+
+#    r = thread_map(validate_image, imgs, max_workers=threads, total=len(imgs),
+#                   chunksize=chunk_size, desc=f"Transform Images ({threads} Threads)")
 
     n_successful = sum(r)
     print(f"{n_successful} / {len(imgs)} = {100 * n_successful / len(imgs)}%  Validated")
@@ -147,16 +152,21 @@ def batch_transform(args, transform, threads=os.cpu_count()):
 
     hide_exceptions = False  # len(jobs) > 100
 
-    chunk_size = calc_chunk_size(n_workers=threads, len_iterable=len(jobs))
-
     #    logger.debug("Transform Images")
     print("Transform Images")
 
     if len(jobs) < 1:
         return True
 
-    r = thread_map(transform_image(transform, hide_exceptions), jobs, max_workers=threads, total=len(jobs),
-                   chunksize=chunk_size, desc=f"Transform Images ({threads} Threads)")
+    r = parallel_map(
+        lst=jobs,
+        fn=transform_image(transform, hide_exceptions),
+        desc="Transform Images",
+        threads=threads
+    )
+#    chunk_size = calc_chunk_size(n_workers=threads, len_iterable=len(jobs))
+#    r = thread_map(transform_image(transform, hide_exceptions), jobs, max_workers=threads, total=len(jobs),
+#                   chunksize=chunk_size, desc=f"Transform Images ({threads} Threads)")
 
     n_successful = sum(r)
     #    logger.debug(f"{n_succ} / {len(jobs)} = {100*n_succ/len(jobs)}%  Resized")
