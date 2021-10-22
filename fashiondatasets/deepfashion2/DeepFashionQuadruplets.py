@@ -12,7 +12,43 @@ class DeepFashionQuadruplets:
         self.base_path = base_path
         self.split_suffix = split_suffix
 
-    def load_as_datasets(self, validate_paths=False):
+    def _build_pairs_ds_fn(self, is_triplet):
+        """
+        :param is_triplet: Triplet_loss, else Quad.
+        :return: Zipped Dataframe Consisting of A, P, N or A, P, N1, N2 depending on is_triplet Flag
+        """
+        def zip_triplets(a, p, n):
+            a_ds = tf.data.Dataset.from_tensor_slices(a)
+            p_ds = tf.data.Dataset.from_tensor_slices(p)
+            n_ds = tf.data.Dataset.from_tensor_slices(n)
+
+            return tf.data.Dataset.zip(a_ds, p_ds, n_ds)
+
+        def zip_quadruplets(a, p, n1, n2):
+            a_ds = tf.data.Dataset.from_tensor_slices(a)
+            p_ds = tf.data.Dataset.from_tensor_slices(p)
+            n1_ds = tf.data.Dataset.from_tensor_slices(n1)
+            n2_ds = tf.data.Dataset.from_tensor_slices(n2)
+
+            return tf.data.Dataset.zip(a_ds, p_ds, n1_ds, n2_ds)
+
+        def apnn_pairs(a, p, n1, n2):
+            return zip_quadruplets(a, p, n1, n2)
+
+        def apn_pairs(a, p, n1, n2):
+            n = []
+            for i, (n1, n2) in enumerate(zip(n1, n2)):
+                if i % 2 == 0:
+                    n.append(n1)
+                else:
+                    n.append(n2)
+            return zip_triplets(a, p, n)
+
+        if is_triplet:
+            return apn_pairs
+        return apnn_pairs
+
+    def load_as_datasets(self, validate_paths=False, triplet=False):
         data = self.load(validate_paths=validate_paths)
         datasets = {}
 
@@ -24,15 +60,16 @@ class DeepFashionQuadruplets:
                 )
             )
 
+        build_pairs_ds = self._build_pairs_ds_fn(triplet)
+
         for split, apnns in data.items():
             a, p, n1, n2 = list(map(lambda x: load_x(apnns, x), range(4)))
             assert len(a) == len(p) and len(p) == len(n1) and len(n1) == len(n2)
 
-            a_ds, p_ds = tf.data.Dataset.from_tensor_slices(a), tf.data.Dataset.from_tensor_slices(p)
-            n1_ds, n2_ds = tf.data.Dataset.from_tensor_slices(n1), tf.data.Dataset.from_tensor_slices(n2)
+            ds = build_pairs_ds(a, p, n1, n2)
 
             datasets[split] = {
-                "dataset": tf.data.Dataset.zip((a_ds, p_ds, n1_ds, n2_ds)),
+                "dataset": ds,
                 "n_items": len(apnns)
             }
 
