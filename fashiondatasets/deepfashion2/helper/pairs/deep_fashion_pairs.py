@@ -46,6 +46,7 @@ class DeepFashionPairsGenerator:
         assert len(anchor_positives) == len(df_helper.user.image_ids)
 
         return anchor_positives
+
     def build_anchor_positive_negatives(self, split):
         """
         Negative from Same Category. 50/50 Chance of the image beeing from Shop or Consumer
@@ -79,6 +80,7 @@ class DeepFashionPairsGenerator:
         assert len(apn) / len(
             anchor_positives) > 0.95, f"Couldnt build enough Pairs. {100 * len(apn) / len(anchor_positives):.0f}% Successfull"
         return apn
+
     def build_anchor_positive_negative1_negative2(self, split):
         """
         Negative1 from Same Category. 50/50 Chance of the image beeing from Shop or Consumer
@@ -114,7 +116,7 @@ class DeepFashionPairsGenerator:
                 continue
 
             if len(complementary_cat_ids_) < 1:
-                raise Exception("#Todo 8964654") # <- shouldnt occur
+                raise Exception("#Todo 8964654")  # <- shouldnt occur
 
             possible_cat = complementary_cat_ids_.pop(0)
             complementary_cat_ids_.append(possible_cat)
@@ -147,24 +149,41 @@ class DeepFashionPairsGenerator:
         return apnn
 
     def validate_apnn(self, apnn):
-        assert all([all(d) for d in apnn]), "Atleast one None in Data"
 
+        assert all([all(d) for d in apnn]), "Atleast one None in Data"
+        data_sources = {"a": {"user": 0, "shop": 0}, "p": {"user": 0, "shop": 0}, "n1": {"user": 0, "shop": 0},
+                        "n2": {"user": 0, "shop": 0}}
         for d in apnn:
             # checking cat_id
-            a, p, n1, n2 = list(map(lambda d: d["categories_in_image_idx"], d))
+            a_cid, p_cid, n1_cid, n2_cid = list(map(lambda d: d["categories_in_image_idx"], d))
 
-            assert n2 not in [a, p, n1], f"Negative2 in APN! APN: {n2} N2 {[a, p, n1]}"
-            assert a == p == n1, f"A, P, N1 should have same Category. A: {a} P: {p} N1: {n1}"
+            assert n2_cid not in [a_cid, p_cid, n1_cid], f"Negative2 in APN! APN: {n2_cid} N2 {[a_cid, p_cid, n1_cid]}"
+            assert a_cid == p_cid == n1_cid, f"A, P, N1 should have same Category. A: {a_cid} P: {p_cid} N1: {n1_cid}"
 
             # checking pair_id
-            a, p, n1, n2 = list(map(lambda d: d["pair_id"], d))
-            assert a == p, f"A and P must be of same Item! Pair-ID (A): {a} - (P): {p}"
+            a_pid, p_id, n1_pid, n2_pid = list(map(lambda d: d["pair_id"], d))
+            assert a_pid == p_id, f"A and P must be of same Item! Pair-ID (A): {a_pid} - (P): {p_id}"
 
-            assert n1 not in [a, n2], "A/P and N1 shouldnt be of same Item!"
-            assert n2 not in [a], "A/P and N2 shouldnt be of same Item!"
+            assert n1_pid not in [a_pid, n2_pid], "A/P and N1 shouldnt be of same Item!"
+            assert n2_pid not in [a_pid], "A/P and N2 shouldnt be of same Item!"
 
-        print("Validate APNN")
+            a_source, p_source, n1_sourced, n2_source = list(map(lambda d: d["source"], d))
+            data_sources["a"][a_source] += 1
+            data_sources["p"][p_source] += 1
+            data_sources["n1"][n1_sourced] += 1
+            data_sources["n2"][n2_source] += 1
 
+        print(f"Validate APNN ({len(apnn)} Pairs)")
+        z_fill_length = len(f"{len(apnn)}")
+        for item, dict in data_sources.items():
+            if dict["shop"] != 0:
+                ratio = f"{100*dict['user']/dict['shop']:.0f}%"
+                ratio = (4-len(ratio)) * " " + ratio
+            else:
+                ratio = ""
+            print(item, f"\t{str(dict['user']).zfill(z_fill_length)} User "
+                        f"and {str(dict['shop']).zfill(z_fill_length)} Shop Images.",
+                  ratio)
 
 if __name__ == "__main__":
     base_path = f"F:\workspace\datasets\DeepFashion2 Dataset"
