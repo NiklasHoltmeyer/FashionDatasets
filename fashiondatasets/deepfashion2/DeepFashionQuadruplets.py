@@ -22,7 +22,7 @@ class DeepFashionQuadruplets:
             p_ds = tf.data.Dataset.from_tensor_slices(p)
             n_ds = tf.data.Dataset.from_tensor_slices(n)
 
-            return tf.data.Dataset.zip(a_ds, p_ds, n_ds)
+            return tf.data.Dataset.zip((a_ds, p_ds, n_ds))
 
         def zip_quadruplets(a, p, n1, n2):
             a_ds = tf.data.Dataset.from_tensor_slices(a)
@@ -30,7 +30,7 @@ class DeepFashionQuadruplets:
             n1_ds = tf.data.Dataset.from_tensor_slices(n1)
             n2_ds = tf.data.Dataset.from_tensor_slices(n2)
 
-            return tf.data.Dataset.zip(a_ds, p_ds, n1_ds, n2_ds)
+            return tf.data.Dataset.zip((a_ds, p_ds, n1_ds, n2_ds))
 
         def apnn_pairs(a, p, n1, n2):
             return zip_quadruplets(a, p, n1, n2)
