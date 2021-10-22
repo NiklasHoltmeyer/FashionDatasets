@@ -31,7 +31,10 @@ class DeepFashionQuadruplets:
             a_ds, p_ds = tf.data.Dataset.from_tensor_slices(a), tf.data.Dataset.from_tensor_slices(p)
             n1_ds, n2_ds = tf.data.Dataset.from_tensor_slices(n1), tf.data.Dataset.from_tensor_slices(n2)
 
-            datasets[split] = tf.data.Dataset.zip((a_ds, p_ds, n1_ds, n2_ds))
+            datasets[split] = {
+                "dataset": tf.data.Dataset.zip((a_ds, p_ds, n1_ds, n2_ds)),
+                "n_items": len(apnns)
+            }
 
         return datasets
 
