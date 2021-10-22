@@ -8,11 +8,14 @@ import tensorflow as tf
 
 
 class DeepFashionQuadruplets:
-    def __init__(self, base_path, split_suffix=""):
+    def __init__(self, base_path, format="quadtruplet", split_suffix=""):
         self.base_path = base_path
         self.split_suffix = split_suffix
+        self.format = format
 
-    def _build_pairs_ds_fn(self, is_triplet):
+        self.is_triplet = (format != "quadtruplet")
+
+    def _build_pairs_ds_fn(self):
         """
         :param is_triplet: Triplet_loss, else Quad.
         :return: Zipped Dataframe Consisting of A, P, N or A, P, N1, N2 depending on is_triplet Flag
@@ -44,7 +47,7 @@ class DeepFashionQuadruplets:
                     n.append(n2)
             return zip_triplets(a, p, n)
 
-        if is_triplet:
+        if self.is_triplet:
             return apn_pairs
         return apnn_pairs
 
