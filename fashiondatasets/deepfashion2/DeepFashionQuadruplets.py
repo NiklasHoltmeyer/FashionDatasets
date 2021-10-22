@@ -51,7 +51,7 @@ class DeepFashionQuadruplets:
             return apn_pairs
         return apnn_pairs
 
-    def load_as_datasets(self, validate_paths=False, triplet=False):
+    def load_as_datasets(self, validate_paths=False):
         data = self.load(validate_paths=validate_paths)
         datasets = {}
 
@@ -63,7 +63,7 @@ class DeepFashionQuadruplets:
                 )
             )
 
-        build_pairs_ds = self._build_pairs_ds_fn(triplet)
+        build_pairs_ds = self._build_pairs_ds_fn()
 
         for split, apnns in data.items():
             a, p, n1, n2 = list(map(lambda x: load_x(apnns, x), range(4)))
