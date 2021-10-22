@@ -198,8 +198,15 @@ if __name__ == "__main__":
         print("[Force] Validate all DST Images")
         validate_all_images(args, threads=os.cpu_count())
 
+#Train (for Mask and Quad):
 # --src_path "F:\workspace\datasets\DeepFashion2 Dataset\train"
 # --dst_path "F:\workspace\datasets\DeepFashion2 Dataset\train_256"
 # --sub_folders "annotations" "images" --validate_images True
+# --validate_images_force True
+
+#Val (for Quad):
+# --src_path "F:\workspace\datasets\DeepFashion2 Dataset\validation"
+# --dst_path "F:\workspace\datasets\DeepFashion2 Dataset\validation_256"
+# --sub_folders "images" --validate_images True
 # --validate_images_force True
 

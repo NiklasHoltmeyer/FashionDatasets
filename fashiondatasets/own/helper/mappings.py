@@ -5,7 +5,6 @@ def preprocess_image(img_shape, preprocess_img=None, channels=3, dtype=tf.float3
     @tf.function
     def __call__(filename):
         image_string = tf.io.read_file(filename)
-        return image_string
         image = tf.image.decode_jpeg(image_string, channels=channels)
         image = tf.image.convert_image_dtype(image, dtype)
         image = tf.image.resize(image, img_shape)

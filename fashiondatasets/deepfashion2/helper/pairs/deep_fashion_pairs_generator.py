@@ -1,5 +1,6 @@
 from fashiondatasets.deepfashion2.helper.pairs._aggregate_collections import load_aggregated_annotations, \
-    DeepFashion_DF_Helper
+    DeepFashion_DF_Helper, load_image_quadtruplets_csv_path, splits, load_info_path
+import pandas as pd
 
 
 class DeepFashionPairsGenerator:
@@ -60,10 +61,11 @@ class DeepFashionPairsGenerator:
             pair_id = a["pair_id"]
 
             for _idx in range(100):  # <- number of retries
-                if (idx + _idx) % 2 == 0:
-                    possible_negatives = df_helper.user.by_cat_id[cat_id]
-                else:
-                    possible_negatives = df_helper.shop.by_cat_id[cat_id]
+                possible_negatives = df_helper.shop.by_cat_id[cat_id]
+                #if (idx + _idx) % 2 == 0:
+                #    possible_negatives = df_helper.user.by_cat_id[cat_id]
+                #else:
+                #    possible_negatives = df_helper.shop.by_cat_id[cat_id]
 
                 _negative = possible_negatives.pop(0)
                 possible_negatives.append(_negative)
@@ -78,7 +80,7 @@ class DeepFashionPairsGenerator:
             assert negative is not None
             apn.append((a, p, negative))
         assert len(apn) / len(
-            anchor_positives) > 0.95, f"Couldnt build enough Pairs. {100 * len(apn) / len(anchor_positives):.0f}% Successfull"
+            anchor_positives) > 0.93, f"Couldnt build enough Pairs. {100 * len(apn) / len(anchor_positives):.0f}% Successfull"
         return apn
 
     def build_anchor_positive_negative1_negative2(self, split):
@@ -88,6 +90,7 @@ class DeepFashionPairsGenerator:
         :param split:
         :return:
         """
+
         apn = self.build_anchor_positive_negatives(split)
         complementary_cat_ids = self.complementary_cat_ids[split]
         df_helper = self.df_helper[split]
@@ -121,10 +124,11 @@ class DeepFashionPairsGenerator:
             possible_cat = complementary_cat_ids_.pop(0)
             complementary_cat_ids_.append(possible_cat)
 
-            if idx % 2 == 0:
-                possible_negatives2 = df_helper.user.by_items_in_img[possible_cat]
-            else:
-                possible_negatives2 = df_helper.shop.by_items_in_img[possible_cat]
+#            if idx % 2 == 0:
+#                possible_negatives2 = df_helper.user.by_items_in_img[possible_cat]
+#            else:
+#                possible_negatives2 = df_helper.shop.by_items_in_img[possible_cat]
+            possible_negatives2 = df_helper.user.by_items_in_img[possible_cat]
 
             if len(possible_negatives2) < 1:
                 raise Exception("#Todo #213213")
@@ -145,10 +149,10 @@ class DeepFashionPairsGenerator:
                 apnn.append((anchor, positive, negative, negative2))
 
         assert len(apnn) == len(apn), f"Couldnt build enough Pairs. {100 * len(apnn) / len(apn):.0f}% Successfull"
-        self.validate_apnn(apnn)
+        self.validate_apnn(apnn, split)
         return apnn
 
-    def validate_apnn(self, apnn):
+    def validate_apnn(self, apnn, split):
 
         assert all([all(d) for d in apnn]), "Atleast one None in Data"
         data_sources = {"a": {"user": 0, "shop": 0}, "p": {"user": 0, "shop": 0}, "n1": {"user": 0, "shop": 0},
@@ -173,19 +177,64 @@ class DeepFashionPairsGenerator:
             data_sources["n1"][n1_sourced] += 1
             data_sources["n2"][n2_source] += 1
 
-        print(f"Validate APNN ({len(apnn)} Pairs)")
+        print(f"Validate APNN ({len(apnn)} Pairs) Consisting:")
         z_fill_length = len(f"{len(apnn)}")
+        info_txt = load_info_path(self.base_path, split)
+
+
+        lines = []
         for item, dict in data_sources.items():
-            if dict["shop"] != 0:
-                ratio = f"{100*dict['user']/dict['shop']:.0f}%"
-                ratio = (4-len(ratio)) * " " + ratio
-            else:
-                ratio = ""
-            print(item, f"\t{str(dict['user']).zfill(z_fill_length)} User "
-                        f"and {str(dict['shop']).zfill(z_fill_length)} Shop Images.",
-                  ratio)
+            total = dict['user'] + dict['shop']
+            user_ratio, shop_ratio = dict['user'] / total, dict['shop'] / total
+            user_ratio, shop_ratio = 100 * user_ratio, 100 * shop_ratio
+            user_ratio, shop_ratio = f"{user_ratio: .0f}%", f"{shop_ratio: .0f}%"
+            user_ratio = (" " * (5 - len(user_ratio))) + user_ratio  #<- padding
+            shop_ratio = (" " * (5 - len(shop_ratio))) + shop_ratio
+            ratio = f"{user_ratio} User-Images. {shop_ratio} In-Shop Images."
+
+            line = (item + " " f"\t{str(dict['user']).zfill(z_fill_length)} User " +
+                    f"and {str(dict['shop']).zfill(z_fill_length)} Shop Images."
+                    + " " + ratio)
+            lines.append(line + "\n")
+        print(f"Write Infos to: {info_txt}")
+        with open(info_txt, "w+") as f:
+                f.writelines(lines)
+
+    @staticmethod
+    def pair_only_keep_image_id(apnn):
+        only_keep_img_id = lambda i: str(i["image_id"]).zfill(6)
+        only_img_id_over_pairs = lambda p: list(map(only_keep_img_id, p))
+        return list(map(only_img_id_over_pairs, apnn))
+
+    @staticmethod
+    def save_pairs_to_csv(base_path, split, apnn):
+        apnn_ids = DeepFashionPairsGenerator.pair_only_keep_image_id(apnn)
+        if len(apnn_ids[0]) == 4:
+            header = ["a", "p", "n1", "n2"]
+        elif len(apnn_ids[0]) < 4:
+            header = ["a", "p", "n"][:len(apnn_ids[0])]
+        else:
+            raise Exception(f"Pairs consisting of {len(apnn_ids[0])} Items not Supported.")
+        quadtruplets_csv_path = load_image_quadtruplets_csv_path(base_path, split)
+        df = pd.DataFrame(apnn_ids, columns=header)
+        df.to_csv(quadtruplets_csv_path, index=False)
+
+    @staticmethod
+    def load_pairs_from_csv(base_path, split, force=False):
+        quadtruplets_csv_path = load_image_quadtruplets_csv_path(base_path, split)
+
+        if force and quadtruplets_csv_path.exists():
+            quadtruplets_csv_path.unlink()
+
+        if not quadtruplets_csv_path.exists():
+            apnn = DeepFashionPairsGenerator(base_path).build_anchor_positive_negative1_negative2(split)
+            DeepFashionPairsGenerator.save_pairs_to_csv(base_path, split, apnn)
+
+        return pd.read_csv(quadtruplets_csv_path)
+
 
 if __name__ == "__main__":
     base_path = f"F:\workspace\datasets\DeepFashion2 Dataset"
-    apnn = DeepFashionPairsGenerator(base_path).build_anchor_positive_negative1_negative2("train")
-    print(len(apnn))
+    for split in splits:
+        apnn = DeepFashionPairsGenerator(base_path).build_anchor_positive_negative1_negative2(split)
+        DeepFashionPairsGenerator.save_pairs_to_csv(base_path, split, apnn)

@@ -14,6 +14,8 @@ load_annonation_path = lambda base_path, split: Path(base_path, split, "annos")
 load_images_path = lambda base_path, split: Path(base_path, split, "images")
 load_image_infos_csv_path = lambda base_path, split: Path(base_path, split, "image_info.csv")
 load_pairs_complementary_path = lambda base_path, split: Path(base_path, split, "pairs_complementary.json")
+load_image_quadtruplets_csv_path = lambda base_path, split: Path(base_path, split, "quadruplets.csv")
+load_info_path = lambda base_path, split: Path(base_path, split, "quadruplets_info.txt")
 
 def load_aggregated_annotations(base_path, split, threads=None):
     csv_path = load_image_infos_csv_path(base_path, split)
