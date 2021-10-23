@@ -220,7 +220,7 @@ class DeepFashionPairsGenerator:
         df.to_csv(quadtruplets_csv_path, index=False)
 
     @staticmethod
-    def load_pairs_from_csv(base_path, split, force=False):
+    def load_pairs_from_csv(base_path, split, force=False, nrows=None):
         quadtruplets_csv_path = load_image_quadtruplets_csv_path(base_path, split)
 
         if force and quadtruplets_csv_path.exists():
@@ -230,7 +230,7 @@ class DeepFashionPairsGenerator:
             apnn = DeepFashionPairsGenerator(base_path).build_anchor_positive_negative1_negative2(split)
             DeepFashionPairsGenerator.save_pairs_to_csv(base_path, split, apnn)
 
-        return pd.read_csv(quadtruplets_csv_path)
+        return pd.read_csv(quadtruplets_csv_path, nrows=nrows)
 
 
 if __name__ == "__main__":

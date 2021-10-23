@@ -8,12 +8,13 @@ import tensorflow as tf
 
 
 class DeepFashionQuadruplets:
-    def __init__(self, base_path, format="quadtruplet", split_suffix=""):
+    def __init__(self, base_path, format="quadtruplet", split_suffix="", nrows=None):
         self.base_path = base_path
         self.split_suffix = split_suffix
         self.format = format
 
         self.is_triplet = (format != "quadtruplet")
+        self.nrows=nrows
 
     def _build_pairs_ds_fn(self):
         """
@@ -94,7 +95,9 @@ class DeepFashionQuadruplets:
                 split: map_df_full_path(split, apnns) for split, apnns in quadtruplets.items()
             }
 
-        load_split = lambda split: DeepFashionPairsGenerator.load_pairs_from_csv(base_path=self.base_path, split=split)
+        load_split = lambda split: DeepFashionPairsGenerator.load_pairs_from_csv(base_path=self.base_path,
+                                                                                 split=split,
+                                                                                 nrows=self.nrows)
         unpacking_results = lambda df: df.values
 
         id_to_jpg = lambda x: str(x).zfill(6) + ".jpg"
