@@ -48,7 +48,7 @@ def parse_args():
     parser.add_argument(
         '--sep',
         dest='sep',
-        help='Seperator',
+        help='Separator',
         type=str,
         required=False,
         default=" "
@@ -63,9 +63,9 @@ def list_image_annotations_pairs(ds_path, image_dir_name, label_dir_name):
 
     assert len(image_file_names) == len(label_file_names), "Len(Images) != Len(Labels)"
 
-    def same_file_name(img_lbl, IGNORE_FILEFORMAT=True):
+    def same_file_name(img_lbl, IGNORE_FILE_FORMAT=True):
         img, lbl = img_lbl
-        if IGNORE_FILEFORMAT:
+        if IGNORE_FILE_FORMAT:
             return img.split(".")[0] == lbl.split(".")[0]
         return img == lbl
 
@@ -104,23 +104,23 @@ def split_pairs(pairs, splits, shuffle_pairs=True):
     return ds
 
 
-def save_pairings_to_txt(args):
+def save_pairings_to_txt(_args):
     split = {
-        "train": args.split[0],
-        "val": args.split[1],
-        "test": args.split[2]
+        "train": _args.split[0],
+        "val": _args.split[1],
+        "test": _args.split[2]
     }
 
-    img_annotation_pairs = list_image_annotations_pairs(args.dataset_path, args.image_dir_name, args.label_dir_name)
-    img_annotation_pairs = list(map(lambda x: args.sep.join(x) + "\n", img_annotation_pairs))
+    img_annotation_pairs = list_image_annotations_pairs(_args.dataset_path, _args.image_dir_name, _args.label_dir_name)
+    img_annotation_pairs = list(map(lambda x: _args.sep.join(x) + "\n", img_annotation_pairs))
 
     splitted_data = split_pairs(img_annotation_pairs, split)
 
     for split, pairs in splitted_data.items():
-        with open(Path(args.dataset_path, split + ".txt"), 'w+') as f:
+        with open(Path(_args.dataset_path, split + ".txt"), 'w+') as f:
             f.writelines(pairs)
 
-        with open(Path(args.dataset_path, split + ".txt"), 'r') as f:
+        with open(Path(_args.dataset_path, split + ".txt"), 'r') as f:
             assert (len(list(f.readlines()))) == len(pairs)
 
 

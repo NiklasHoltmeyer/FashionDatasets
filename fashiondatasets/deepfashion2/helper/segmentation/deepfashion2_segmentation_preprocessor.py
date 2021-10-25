@@ -1,19 +1,15 @@
 from multiprocessing import RLock
-from multiprocessing.dummy import freeze_support
-from pathlib import Path
 
 import albumentations as A
-from PIL import Image
-from default_logger.defaultLogger import defaultLogger
+from fashionscrapper.utils.parallel_programming import calc_chunk_size
 from pycocotools.coco import COCO
 from tqdm.auto import tqdm
 from tqdm.contrib.concurrent import thread_map
-from fashionscrapper.utils.io import json_load
-from fashionscrapper.utils.parallel_programming import calc_chunk_size
 
 from fashiondatasets.deepfashion2.helper.annotations import Annotations
-from fashiondatasets.utils.io import load_img, list_dir_abs_path, save_image
+from fashiondatasets.utils.io import load_img, save_image
 from fashiondatasets.utils.list import parallel_map
+from fashiondatasets.utils.logger.defaultLogger import defaultLogger
 
 tqdm.set_lock(RLock())
 
@@ -32,16 +28,11 @@ class DeepFashion2SegmentationPreprocessor:
                             min_area=min_area, min_visibility=min_visibility, )
 
     def bounding_boxes(self, transform):
-        anno_imgs = Annotations.list_with_images(self.annotations_path,
-                                                 IGNORE_CHECK=self.settings.get("IGNORE_CHECK", False))
-        r = parallel_map(lst=anno_imgs,
+        annotation_imgs = Annotations.list_with_images(self.annotations_path, self.images_path,
+                                                       IGNORE_CHECK=self.settings.get("IGNORE_CHECK", False))
+        r = parallel_map(lst=annotation_imgs,
                          fn=transform_w_bb(transform),
-                         desc="Transform Boundingboxes")
-
-#        chunk_size = calc_chunk_size(n_workers=self.threads, len_iterable=len_iterable)
-
-#        r = thread_map(transform_w_bb(transform), anno_imgs, max_workers=self.threads, chunksize=chunk_size,
-#                       desc=f"Transform Boundingboxes ({self.threads} Threads)")
+                         desc="Transform Bounding-Boxes")
 
         r_true = filter(lambda x: x[0], r)
         r_true = map(lambda x: x[1:], r_true)  # removing first list_item per list (successful-Flag)
@@ -80,7 +71,6 @@ class DeepFashion2SegmentationPreprocessor:
         self.logger.debug(f"{n_mask_created} Mask Created. {len_iterable - n_mask_created} Failed.")
 
 
-
 def clean_bbox(w, h):
     # coco: [x_min, y_min, width, height]#albumentations/voc [x_min, y_min, x_max, y_max] <- (0, 1)
     def __call__(bbox):
@@ -99,10 +89,10 @@ def clean_bboxes(bboxes, width, height):
     return list(map(clean_bbox_, bboxes))
 
 
-def load_items(anno_path):
-    anno_data = Annotations.load(anno_path)
-    item_keys = filter(lambda i: "item" in i, anno_data.keys())
-    items = map(lambda k: anno_data[k], item_keys)
+def load_items(annotation_path):
+    annotation_data = Annotations.load(annotation_path)
+    item_keys = filter(lambda i: "item" in i, annotation_data.keys())
+    items = map(lambda k: annotation_data[k], item_keys)
 
     return list(items)
 
@@ -111,15 +101,15 @@ def transform_image_bounding_box(annotation_path, image_path, transformer):
     img = (load_img(image_path))
     height, width, channels = img.shape
 
-    anno_items = load_items(annotation_path)
+    annotation_items = load_items(annotation_path)
 
-    bboxes = map(lambda i: i["bounding_box"], anno_items)
+    bboxes = map(lambda i: i["bounding_box"], annotation_items)
     bboxes = clean_bboxes(bboxes, width, height)
 
-    category_ids = map(lambda i: i["category_id"], anno_items)
+    category_ids = map(lambda i: i["category_id"], annotation_items)
     category_ids = list(category_ids)
 
-    category_names = map(lambda i: i["category_name"], anno_items)
+    category_names = map(lambda i: i["category_name"], annotation_items)
     category_names = list(category_names)
 
     try:
@@ -136,24 +126,17 @@ def transform_w_bb(transformer):
     return __call__
 
 
-# Seg
-
-#def save_image_PMODE(data, path):
-#    image = Image.fromarray(data).convert("P")
-#    image.putpalette(color_map)
-#    return image.save(path.replace(".jpg", ".png"))
-
-
 def save_mask(img_mask_dir, img, mask):
     f_name = img["file_name"].replace(".jpg", ".png")
     mask_file_path = str((img_mask_dir / f_name).resolve())
-#    save_image_PMODE(mask, mask_file_path)
+    #    save_image_PMODE(mask, mask_file_path)
     save_image(mask, mask_file_path)
 
 
 def save_segmentation_mask(coco, img_mask_dir, ignore_exceptions=True):
     cat_ids = coco.getCatIds()
 
+    # noinspection SpellCheckingInspection
     def __call__(img):
         try:
             anns_ids = coco.getAnnIds(imgIds=img['id'], catIds=cat_ids, iscrowd=False)
@@ -171,22 +154,3 @@ def save_segmentation_mask(coco, img_mask_dir, ignore_exceptions=True):
             raise e
 
     return __call__
-
-
-if __name__ == "__main__":
-    freeze_support()
-
-    annotations_path, images_path = (Path(f'F:/workspace/datasets/DeepFashion2 Dataset/train/annos'),
-                                     Path(f'F:/workspace/datasets/DeepFashion2 Dataset/train/image'))
-
-    coco_train_path = r"F:\workspace\datasets\DeepFashion2 Dataset\train\train_coco.json"
-
-    preprocessor_settings = {
-        "annotations_path": annotations_path,
-        "images_path": images_path,
-        "IGNORE_CHECK": True,
-        "threads": 8,
-    }
-
-    preprocessor = DeepFashion2SegmentationPreprocessor(**preprocessor_settings)
-    preprocessor.semantic_segmentation(coco_train_path)

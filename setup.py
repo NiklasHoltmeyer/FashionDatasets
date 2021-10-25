@@ -6,7 +6,7 @@ with open('requirements.txt') as f:
     required = f.read().splitlines()
 
 with open('LICENSE') as f:
-    license = f.read()
+    _license = f.read()
 
 with open('README.md') as f:
     readme = f.read()
@@ -18,7 +18,7 @@ setup(
     long_description=readme,
     author='Niklas Holtmeyer',
     url='https://github.com/NiklasHoltmeyer/FashionDatasets',
-    license=license,
+    license=_license,
     packages=find_packages(exclude=('tests', 'docs')),
     install_requires=required
 )

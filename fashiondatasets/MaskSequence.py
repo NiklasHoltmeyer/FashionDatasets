@@ -3,10 +3,10 @@ from pathlib import Path
 import numpy as np
 from tensorflow import keras
 from tensorflow.keras.preprocessing.image import load_img
-import tensorflow as tf
+
 
 class MaskSequence(keras.utils.Sequence):
-    def __init__(self, base_path, split, batch_size, img_size, **kwargs):
+    def __init__(self, base_path, split, batch_size, img_size):
         self.batch_size = batch_size
         self.img_size = img_size
 

@@ -7,8 +7,9 @@ from multiprocessing.dummy import freeze_support
 from pathlib import Path
 
 import requests
-from default_logger.defaultLogger import defaultLogger
 from tqdm import tqdm
+
+from fashiondatasets.utils.logger.defaultLogger import defaultLogger
 
 THREADS = 32
 RETRIES = 36

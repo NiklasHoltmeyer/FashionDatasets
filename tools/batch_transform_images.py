@@ -1,17 +1,13 @@
 import argparse
-
 import os
 from multiprocessing.dummy import freeze_support
 from pathlib import Path
 
 import albumentations as A
 import numpy as np
-from fashionscrapper.utils.list import flatten
-from fashionscrapper.utils.parallel_programming import calc_chunk_size
 from tqdm.auto import tqdm
-from tqdm.contrib.concurrent import thread_map
 
-from fashiondatasets.utils.io import load_img, save_image, list_dir_abs_path
+from fashiondatasets.utils.io import load_img, save_image
 from fashiondatasets.utils.list import parallel_map
 
 
@@ -40,21 +36,21 @@ def parse_args():
     parser.add_argument(
         '--sub_folders',
         dest='sub_folders',
-        help='Subfolders (e.g. Images, Annotations, ...)',
+        help='Sub-Folders (e.g. Images, Annotations, ...)',
         nargs='+',
         default=["annotations", "images"])
 
     parser.add_argument(
         '--validate_images',
         dest='validate_images',
-        help='Check wether all Images can be loaded (PIL)',
+        help='Check whether all Images can be loaded (PIL)',
         type=bool,
         default=False)
 
     parser.add_argument(
         '--validate_images_force',
         dest='validate_images_force',
-        help='Check wether all Images can be loaded (PIL). [Force = Check all Files]',
+        help='Check whether all Images can be loaded (PIL). [Force = Check all Files]',
         type=bool,
         default=False)
 
@@ -90,8 +86,9 @@ def transform_image(transformer, hide_exceptions):
     return __call__
 
 
-def validate_images(imgs, threads):
+def validate_images(imgs):
     def validate_image(img):
+        # noinspection PyBroadException
         try:
             img = load_img(img)
             return 1
@@ -105,36 +102,33 @@ def validate_images(imgs, threads):
                      fn=validate_image,
                      desc="Transform Images")
 
-#    chunk_size = calc_chunk_size(n_workers=threads, len_iterable=len(imgs))
-
-#    r = thread_map(validate_image, imgs, max_workers=threads, total=len(imgs),
-#                   chunksize=chunk_size, desc=f"Transform Images ({threads} Threads)")
-
     n_successful = sum(r)
     print(f"{n_successful} / {len(imgs)} = {100 * n_successful / len(imgs)}%  Validated")
     return n_successful == len(imgs)
 
-def validate_all_images(args, threads=os.cpu_count()):
-    def all_images(args):
-        dst = Path(args.dst_path)
 
-        for folder in args.sub_folders:
+def validate_all_images(_args):
+    def all_images(__args):
+        dst = Path(__args.dst_path)
+
+        for folder in __args.sub_folders:
             folder_path = dst / folder
             for img in os.listdir(folder_path):
                 yield folder_path / img
 
-    return validate_images(all_images(args), threads)
+    return validate_images(all_images(_args))
 
 
-def batch_transform(args, transform, threads=os.cpu_count()):
-    src, dst = Path(args.src_path), Path(args.dst_path)
+def batch_transform(_args, _transform, threads=os.cpu_count()):
+    src, dst = Path(_args.src_path), Path(_args.dst_path)
     #    logger = defaultLogger("Batch Transform Images")
     assert src.exists()
 
-    assert all(map(lambda x: (src / x).exists(), args.sub_folders)), "At least one Folder doesnt exist"
+    assert all(map(lambda x: (src / x).exists(), _args.sub_folders)), "At least one Folder doesnt exist"
 
     def resize_jobs(folders):
         for folder in folders:
+            # noinspection SpellCheckingInspection
             is_mask = "anno" in folder or "label" in "folder"
             (dst / folder).mkdir(exist_ok=True, parents=True)
 
@@ -146,7 +140,7 @@ def batch_transform(args, transform, threads=os.cpu_count()):
 
     #    logger.debug("List Images")
     print("List Images")
-    jobs = list(resize_jobs(args.sub_folders))
+    jobs = list(resize_jobs(_args.sub_folders))
     jobs = filter(filter_not_dst_exists, tqdm(jobs, desc="Filter DST::Exists", total=len(jobs)))
     jobs = list(jobs)
 
@@ -160,22 +154,18 @@ def batch_transform(args, transform, threads=os.cpu_count()):
 
     r = parallel_map(
         lst=jobs,
-        fn=transform_image(transform, hide_exceptions),
+        fn=transform_image(_transform, hide_exceptions),
         desc="Transform Images",
         threads=threads
     )
-#    chunk_size = calc_chunk_size(n_workers=threads, len_iterable=len(jobs))
-#    r = thread_map(transform_image(transform, hide_exceptions), jobs, max_workers=threads, total=len(jobs),
-#                   chunksize=chunk_size, desc=f"Transform Images ({threads} Threads)")
 
     n_successful = sum(r)
-    #    logger.debug(f"{n_succ} / {len(jobs)} = {100*n_succ/len(jobs)}%  Resized")
 
     print(f"{n_successful} / {len(jobs)} = {100 * n_successful / len(jobs)}%  Resized")
 
-    if args.validate_images:
+    if _args.validate_images:
         target_imgs = map(lambda j: j[1], jobs)
-        return validate_images(target_imgs, threads)
+        return validate_images(target_imgs)
     else:
         return n_successful == len(jobs)
 
@@ -196,17 +186,16 @@ if __name__ == "__main__":
 
     if args.validate_images_force:
         print("[Force] Validate all DST Images")
-        validate_all_images(args, threads=os.cpu_count())
+        validate_all_images(args)
 
-#Train (for Mask and Quad):
+# Train (for Mask and Quad):
 # --src_path "F:\workspace\datasets\DeepFashion2 Dataset\train"
 # --dst_path "F:\workspace\datasets\DeepFashion2 Dataset\train_256"
 # --sub_folders "annotations" "images" --validate_images True
 # --validate_images_force True
 
-#Val (for Quad):
+# Val (for Quad):
 # --src_path "F:\workspace\datasets\DeepFashion2 Dataset\validation"
 # --dst_path "F:\workspace\datasets\DeepFashion2 Dataset\validation_256"
 # --sub_folders "images" --validate_images True
 # --validate_images_force True
-

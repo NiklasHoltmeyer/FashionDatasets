@@ -1,7 +1,8 @@
 from multiprocessing.dummy import freeze_support
 from pathlib import Path
 
-from fashiondatasets.deepfashion2.helper.segmentation.deepfashion2_segmentation_preprocessor import DeepFashion2SegmentationPreprocessor
+from fashiondatasets.deepfashion2.helper.segmentation.deepfashion2_segmentation_preprocessor import \
+    DeepFashion2SegmentationPreprocessor
 
 if __name__ == "__main__":
     freeze_support()

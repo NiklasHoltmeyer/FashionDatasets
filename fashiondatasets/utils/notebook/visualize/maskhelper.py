@@ -1,13 +1,12 @@
-from tensorflow.keras.preprocessing.image import load_img
-from IPython.display import Image, display
+from IPython.display import display
 import PIL
-from PIL import ImageOps
 from PIL import Image as PILImage
-from random import randint
-import numpy as np
+from PIL import ImageOps
 from tensorflow.keras.preprocessing.image import array_to_img
+import numpy as np
 
-def mask_to_img(mask, is_prediction, num_classes, resize=None): #prediction, num_classes, is_prediction=True
+
+def mask_to_img(mask, is_prediction, num_classes, resize=None):  # prediction, num_classes, is_prediction=True
     """
     SRC: Keras
     Quick utility to display a model's prediction."""
@@ -25,9 +24,11 @@ def mask_to_img(mask, is_prediction, num_classes, resize=None): #prediction, num
 
     return msk.convert("RGB")
 
+
 def display_mask_prediction(prediction, num_classes=None):
     mask = mask_to_img(prediction, num_classes=num_classes, is_prediction=True)
     display(mask)
+
 
 def blend_mask(img, msk, num_classes=None, alpha=0.5):
     msk = PIL.ImageOps.autocontrast(msk)
@@ -39,6 +40,7 @@ def blend_mask(img, msk, num_classes=None, alpha=0.5):
     msk = msk.convert("RGB")
 
     return PILImage.blend(img, msk, alpha=alpha)
+
 
 def get_color_map_list(num_classes):
     """ Src: PaddleSeq """
@@ -55,5 +57,3 @@ def get_color_map_list(num_classes):
             lab >>= 3
     color_map = color_map[3:]
     return color_map
-
-

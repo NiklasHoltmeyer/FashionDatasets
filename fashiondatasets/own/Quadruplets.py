@@ -1,11 +1,10 @@
 import os
 from pathlib import Path
-import pandas as pd
-from fashionscrapper.utils.parallel_programming import calc_chunk_size
-from tqdm.contrib.concurrent import thread_map
-from tqdm.auto import tqdm
-import tensorflow as tf
 from random import choice
+
+import pandas as pd
+import tensorflow as tf
+from tqdm.auto import tqdm
 
 from fashiondatasets.utils.list import parallel_map
 
@@ -26,12 +25,11 @@ class Quadruplets:
 
         df_path = Path(base_path, csv_name)
         nrows = kwargs.get("nrows", None)
-        df = pd.read_csv(df_path, sep=";", nrows =nrows)
+        df = pd.read_csv(df_path, sep=";", nrows=nrows)
 
         map_full_paths = kwargs.get("map_full_paths", False)
-        resolve_paths = kwargs.get("resolve_paths", map_full_paths)
 
-        df = df if not map_full_paths else Quadruplets._map_full_paths(df, base_path, resolve_paths)
+        df = df if not map_full_paths else Quadruplets._map_full_paths(df, base_path)
 
         if kwargs.get("validate_paths", False):
             print("Validate Paths")
@@ -66,25 +64,18 @@ class Quadruplets:
 
         raise Exception('Unknown Format! Supported Formats {"quadruplet", "triplet"}')
 
-
     @staticmethod
     def load_as_quadruplets(base_path, **kwargs):
         df = Quadruplets.load_as_df(base_path, **kwargs)
         return df.to_dict("results")
 
     @staticmethod
-    def _map_full_paths(df, base_path, resolve_paths, add_file_ext=True, **kwargs):
-        threads = kwargs.get("threads", os.cpu_count())
-#        map_join_path = lambda p: os.path.join(base_path, ())   #os.path.join()
-#        map_path = lambda p: str(Path(base_path + "\\" + p).resolve()) if resolve_paths else \
-#            lambda p: Path(base_path + "\\" + p)
-
+    def _map_full_paths(df, base_path, add_file_ext=True):
         def _add_file_ext(p):
             ext = os.path.splitext(p)[-1]
             if len(ext) < 1:
                 return p + ".jpg"
             return p
-
 
         if os.name == "nt":
             map_path = lambda p: base_path + p
@@ -93,14 +84,14 @@ class Quadruplets:
 
         # Path(bp, p) doesnt work on Win.
 
-        for path_key in tqdm(Quadruplets.list_path_colum_keys(df), desc="Prepare Paths"):
+        for path_key in tqdm(Quadruplets.list_path_column_keys(df), desc="Prepare Paths"):
             df[path_key] = df[path_key].map(map_path)
             if add_file_ext:
                 df[path_key] = df[path_key].map(_add_file_ext)
         return df
 
     @staticmethod
-    def list_path_colum_keys(df):
+    def list_path_column_keys(df):
         return list(filter(lambda c: "path" in c, df.columns))
 
     @staticmethod
@@ -115,7 +106,7 @@ class Quadruplets:
                 return 1
             return 0
 
-        path_cols = Quadruplets.list_path_colum_keys(df)
+        path_cols = Quadruplets.list_path_column_keys(df)
         total = sum(map(lambda paths: len(df[paths]), path_cols))
         jobs = walk_paths(df, path_cols)
 
@@ -124,14 +115,10 @@ class Quadruplets:
                          desc="Validate Images",
                          total=total)
 
-#        chunk_size = calc_chunk_size(n_workers=8, len_iterable=total)
-
-#        r = thread_map(validate_image, jobs, max_workers=8, total=total,
-#                       chunksize=chunk_size, desc=f"Validate Images ({8} Threads)")
-
         n_successful = sum(r)
         print(f"{n_successful} / {total} Images = {100 * n_successful / total}%  Exist")
         return n_successful == total
+
 
 if __name__ == "__main__":
     base_path = "F:\\workspace\\datasets\\own"
@@ -141,5 +128,5 @@ if __name__ == "__main__":
         "resolve_paths": True
     }
 
-    ds = Quadruplets.load_as_dataset(base_path, **settings)
+    ds = Quadruplets(**settings).load_as_dataset(base_path)
     print(ds)

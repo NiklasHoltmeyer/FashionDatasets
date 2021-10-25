@@ -1,5 +1,6 @@
 import matplotlib.pyplot as plt
 
+
 def visualize(anchors, positives, *negative_lst):
     # Adapted for Quad. from: https://keras.io/examples/vision/siamese_network/
     def show(ax, image):

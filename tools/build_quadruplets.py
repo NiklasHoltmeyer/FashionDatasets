@@ -50,9 +50,9 @@ class EntriesHelper:
         _entries_by_id = copy.deepcopy(self.entries_by_id)
 
         self.entries_by_category = defaultdict(lambda: [])
-        for id, entry in _entries_by_id.items():
+        for _id, entry in _entries_by_id.items():
             category = entry["category"]
-            self.entries_by_category[category].append(id)
+            self.entries_by_category[category].append(_id)
 
         [shuffle(v) for k, v in self.entries_by_category.items()]
 
@@ -64,8 +64,8 @@ class EntriesHelper:
         self.number_of_images_by_id = {e["id"]: len(e["images"]) for e in self.entries}
         self.all_ids = [e for e in self.entries_by_id]
 
-        assert len(self.entries_by_id) == len(entries) == len(self.all_ids)
-        self.id_imgs_mapping = {id: random_range(self.number_of_images_by_id[id]) for id in self.all_ids}
+        assert len(self.entries_by_id) == len(self.entries) == len(self.all_ids)
+        self.id_imgs_mapping = {_id: random_range(self.number_of_images_by_id[_id]) for _id in self.all_ids}
 
         self._load_random_ids()
         self._load_entries_by_cat()
@@ -106,13 +106,13 @@ def build_quadruplets(entries_helper):
         n_images = entries_helper.number_of_images_by_id[entry_id]
         anchors = range(n_images)
         positive_anchors = _random_references(n_images)
-        pairs = []
-        for pair in zip(anchors, positive_anchors):
-            if (pair[1], pair[0]) not in pairs:
-                pairs.append(pair)
+        ap_pairs_distinct = []
+        for ap_pairs in zip(anchors, positive_anchors):
+            if (ap_pairs[1], ap_pairs[0]) not in ap_pairs:
+                ap_pairs_distinct.append(ap_pairs)
 
         return entry_id, [{"anchor": {"id": entry_id, "img": a}, "positive": {"id": entry_id, "img": p}} for (a, p) in
-                          pairs]
+                          ap_pairs_distinct]
 
     def load_negative_id(anchor_id, category, same_category):
         negative_id = None
@@ -132,40 +132,40 @@ def build_quadruplets(entries_helper):
 
         return {'id': negative_id, 'img': img}
 
-    def negative_image_pairs(anchor_id, positive_pair):
-        anchor_cat = entries_helper.entries_by_id[anchor_id]["category"]
+    def negative_image_pairs(_anchor_id, positive_pair):
+        anchor_cat = entries_helper.entries_by_id[_anchor_id]["category"]
 
-        negative = load_negative_id(anchor_id, anchor_cat, same_category=True)
-        negative2 = load_negative_id(anchor_id, anchor_cat, same_category=False)
+        negative = load_negative_id(_anchor_id, anchor_cat, same_category=True)
+        negative2 = load_negative_id(_anchor_id, anchor_cat, same_category=False)
 
         negatives = list(filter_not_none([negative, negative2]))
 
         return {**positive_pair, "negatives": negatives}
 
-    def validate_quadruplet(apnn):
-        assert len(apnn.keys()) == 3  # Anchor, Positive, Negatives
-        a_id, p_id = apnn["anchor"]["id"], apnn["positive"]["id"]
+    def validate_quadruplet(_apnn):
+        assert len(_apnn.keys()) == 3  # Anchor, Positive, Negatives
+        a_id, p_id = _apnn["anchor"]["id"], _apnn["positive"]["id"]
 
         a_cat = entries_helper.entries_by_id[a_id]["category"]
 
         assert a_id == p_id, "Anchor and Positive must be Same Article!"
 
-        negative_ids = list(map(lambda d: d["id"], apnn["negatives"]))
-        n_ids_neq_a_id = all(map(lambda id: a_id != id, negative_ids))
+        negative_ids = list(map(lambda d: d["id"], _apnn["negatives"]))
+        n_ids_neq_a_id = all(map(lambda _id: a_id != _id, negative_ids))
 
         assert n_ids_neq_a_id, "Negative_ID == A_ID"
 
-        negative_categories = map(lambda id: entries_helper.entries_by_id[id], negative_ids)
+        negative_categories = map(lambda _id: entries_helper.entries_by_id[_id], negative_ids)
         negative_categories = map(lambda entry: entry["category"], negative_categories)
 
         n_dif_cat = len(list(filter(lambda cat: cat != a_cat, negative_categories)))
-        n_same_dif = len(apnn["negatives"]) - n_dif_cat
+        n_same_dif = len(_apnn["negatives"]) - n_dif_cat
 
         if n_dif_cat < 1 or n_same_dif < 1:
             return False
         return True
 
-    errors, succ = 0, 0
+    errors, n_successful = 0, 0
 
     for anchor_id in tqdm(entries_helper.all_ids):
         anchor_id, positive_pairs = positive_image_pairs(anchor_id)
@@ -173,23 +173,25 @@ def build_quadruplets(entries_helper):
         for pair in positive_pairs:
             apnn = negative_image_pairs(anchor_id, pair)
             if validate_quadruplet(apnn):
-                succ += 1
+                n_successful += 1
                 yield apnn
             else:
                 errors += 1
 
     print("Errors:", errors)
-    print("Success:", succ, f"{(100 * succ) / (errors + succ)}%")
+    print("Success:", n_successful, f"{(100 * n_successful) / (errors + n_successful)}%")
 
 
 def unzip_quadruplets_nb(entries_helper, quadruplet, base_path=""):
-    # {'anchor': {'id': 50371, 'img': 0}, 'positive': {'id': 50371, 'img': 3}, 'negatives': [{'id': 87380, 'img': 0}, {'id': 97536, 'img': 2}]}
-    def load_img(d):
+    # {'anchor': {'_id': 50371, 'img': 0}, 'positive': {'_id': 50371, 'img': 3}, 'negatives': [{'_id': 87380, 'img': 0},
+    # {'_id': 97536, 'img': 2}]}
+
+    def load_image(d):
         header, item = d
 
-        id, img_id = item["id"], item["img"]
-        entry = entries_helper.entries_by_id[id]
-        row = {"id": id, **entry["images"][img_id], "category": entry["category"]}
+        _id, img_id = item["id"], item["img"]
+        entry = entries_helper.entries_by_id[_id]
+        row = {"id": _id, **entry["images"][img_id], "category": entry["category"]}
         row = {f"{header}_{k}": v for (k, v) in row.items()}
         row[f"{header}_path"] = row[f"{header}_path"].replace(base_path, "")
         # dicts[0]["a_path"].replace(BP, "")
@@ -198,11 +200,11 @@ def unzip_quadruplets_nb(entries_helper, quadruplet, base_path=""):
     a, p, ns = quadruplet["anchor"], quadruplet["positive"], quadruplet["negatives"]
     header = ["a", "p", "n1", "n2"]
     items = [a, p, *ns]
-    items_img = list(map(load_img, zip(header, items)))
+    items_img = list(map(load_image, zip(header, items)))
     return flatten_dict(items_img)
 
 
-def to_csv(base_path, quadruplets):
+def to_csv(entries_helper, base_path, quadruplets):
     df_path = Path(base_path, "quadruplet_full.csv")
     dicts = map(lambda x: unzip_quadruplets_nb(entries_helper, x, str(base_path)), quadruplets)
     dicts = list(dicts)
@@ -211,25 +213,26 @@ def to_csv(base_path, quadruplets):
     quadruplets_df.to_csv(df_path, sep=";", index=False)
     print("Saved Quadruplets to", df_path)
 
+
 def transform_quads(base_path, target_path, transformer, validate=True):
     Path(target_path).mkdir(parents=True, exist_ok=True)
 
     def _list_jobs(path):
         quad = Quadruplets(path)
-        p_keys = Quadruplets.list_path_colum_keys(quad.df)
+        p_keys = Quadruplets.list_path_column_keys(quad.df)
         relative_paths = map(lambda k: quad.df[k].values, p_keys)
         relative_paths = distinct(flatten(relative_paths))
 
         build_job = lambda p: (base_path + p, target_path + p)
-        jobs = map(build_job, relative_paths)
-        return list(jobs)
 
-    def transform_image(transformer, hide_exceptions):
-        def __call__(job):
-            src, dst = job
+        return list(map(build_job, relative_paths))
+
+    def transform_image(_transformer, hide_exceptions):
+        def __call__(_job):
+            src, dst = _job
             try:
                 img = np.array(load_img(src))
-                img_transformed = transformer(image=img)["image"]
+                img_transformed = _transformer(image=img)["image"]
 
                 save_image(img_transformed, dst, create_parents=True)
 
@@ -244,43 +247,38 @@ def transform_quads(base_path, target_path, transformer, validate=True):
     _transformer = transform_image(transformer, True)
     jobs = _list_jobs(base_path)
 
-    def filter_not_dst_exists(job):
-        return not Path(job[1]).exists()
-
-    def map_exists_validate(job):
-        dst_exists = Path(job[1]).exists()
+    # noinspection PyBroadException
+    def map_exists_validate(_job):
+        dst_exists = Path(_job[1]).exists()
         if not dst_exists:
-            return job
+            return _job
 
         if validate:
             try:
-                load_img(job[1])
+                load_img(_job[1])
                 return None
             except:
-                Path(job[1]).unlink()
-                return job
+                Path(_job[1]).unlink()
+                return _job
 
-    def add_file_ext(job):
-        ext = os.path.splitext(job[1])[-1]
+    def add_file_ext(_job):
+        ext = os.path.splitext(_job[1])[-1]
         if len(ext) < 1:
-            return job[0], job[1] + ".jpg"
-        return job[0], job[1]
+            return _job[0], _job[1] + ".jpg"
+        return _job[0], _job[1]
 
     threads = os.cpu_count() / 2
     jobs, total = map(add_file_ext, jobs), len(jobs)
-    #jobs = filter(filter_not_dst_exists, tqdm(jobs, desc="Filter DST::Exists", total=total))
-    #jobs = list(jobs)
 
     chunk_size = calc_chunk_size(n_workers=threads, len_iterable=total)
     jobs_validated = thread_map(map_exists_validate, jobs, max_workers=threads, total=total,
-                   chunksize=chunk_size, desc=f"Validate-Paths Images ({threads} Threads)")
+                                chunksize=chunk_size, desc=f"Validate-Paths Images ({threads} Threads)")
     jobs_validated = list(filter_not_none(jobs_validated))
     chunk_size = calc_chunk_size(n_workers=threads, len_iterable=len(jobs_validated))
     jobs_transformed = list(thread_map(_transformer, jobs_validated, max_workers=threads, total=len(jobs_validated),
-                   chunksize=chunk_size, desc=f"Transform Images ({threads} Threads)"))
+                                       chunksize=chunk_size, desc=f"Transform Images ({threads} Threads)"))
 
     n_successful = sum(jobs_transformed)
-    #    logger.debug(f"{n_succ} / {len(jobs)} = {100*n_succ/len(jobs)}%  Resized")
 
     if len(jobs_validated) < 10:
         for job in jobs_validated:
@@ -288,20 +286,22 @@ def transform_quads(base_path, target_path, transformer, validate=True):
 
     print(f"{n_successful} / {len(jobs_validated)} = {100 * n_successful / len(jobs_validated)}%  Transformed")
 
+
 if __name__ == "__main__":
     BP, target = "F:\\workspace\\datasets\\own", r"F:\workspace\datasets\own_256"
 
+
     def build_quads():
-        entries_path = Path(BP, "entires.json")
+        entries_path = Path(BP, "entries.json")
         with Json_DB(entries_path) as entries_db:
             entries = entries_db.all()
-            #^ list of dicts. required keys: id, images, category
+            # ^ list of dicts. required keys: id, images, category
             # images = [{"path": ...}]
         shuffle(entries)
         entries_helper = EntriesHelper(entries)
 
         quadruplets = build_quadruplets(entries_helper)
-        to_csv(BP, quadruplets)
+        to_csv(entries_helper, BP, quadruplets)
 
 
     freeze_support()

@@ -8,19 +8,20 @@ import tensorflow as tf
 
 
 class DeepFashionQuadruplets:
-    def __init__(self, base_path, format="quadtruplet", split_suffix="", nrows=None):
+    def __init__(self, base_path, format="quadruplet", split_suffix="", nrows=None):
         self.base_path = base_path
         self.split_suffix = split_suffix
         self.format = format
 
-        self.is_triplet = (format != "quadtruplet")
-        self.nrows=nrows
+        self.is_triplet = (format != "quadruplet")
+        self.nrows = nrows
 
     def _build_pairs_ds_fn(self):
         """
-        :param is_triplet: Triplet_loss, else Quad.
+        Params: is_triplet: Triplet_loss, else Quad.
         :return: Zipped Dataframe Consisting of A, P, N or A, P, N1, N2 depending on is_triplet Flag
         """
+
         def zip_triplets(a, p, n):
             a_ds = tf.data.Dataset.from_tensor_slices(a)
             p_ds = tf.data.Dataset.from_tensor_slices(p)
@@ -56,11 +57,11 @@ class DeepFashionQuadruplets:
         data = self.load(validate_paths=validate_paths)
         datasets = {}
 
-        def load_x(apnns, x):
+        def load_x(_apnns, x):
             return list(
                 map(
                     lambda apnn: apnn[x],
-                    apnns
+                    _apnns
                 )
             )
 
@@ -81,18 +82,18 @@ class DeepFashionQuadruplets:
 
     def load(self, validate_paths=False):
         """
-        Load Quadtruplets from CSV. If CSV doesnt exist, it will be generated before reading from it.
+        Load quadruplets from CSV. If CSV doesnt exist, it will be generated before reading from it.
         :return:
         """
 
-        def quadtruplets_map_full_paths(quadtruplets):
+        def quadruplets_map_full_paths(_quadruplets):
             full_path = lambda split, x: os.path.join(self.base_path, split + self.split_suffix, "images", x)
             apnn_full_path = lambda split, apnn: [full_path(split, x) for x in apnn]
 
             map_df_full_path = lambda split, df: list(map(lambda apnn: apnn_full_path(split, apnn), df))
 
             return {
-                split: map_df_full_path(split, apnns) for split, apnns in quadtruplets.items()
+                split: map_df_full_path(split, apnns) for split, apnns in _quadruplets.items()
             }
 
         load_split = lambda split: DeepFashionPairsGenerator.load_pairs_from_csv(base_path=self.base_path,
@@ -105,19 +106,19 @@ class DeepFashionQuadruplets:
         apnn_id_to_jpg = lambda apnn: list(map(id_to_jpg, apnn))
         apnn_ids_to_jps = lambda apnns: list(map(apnn_id_to_jpg, apnns))
 
-        quadtruplets_dfs = {split: load_split(split) for split in splits}
-        quadtruplets_unpacked = {split: unpacking_results(df) for split, df in quadtruplets_dfs.items()}
-        quadtruplets = {split: apnn_ids_to_jps(apnns) for split, apnns in quadtruplets_unpacked.items()}
+        quadruplets_dfs = {split: load_split(split) for split in splits}
+        quadruplets_unpacked = {split: unpacking_results(df) for split, df in quadruplets_dfs.items()}
+        quadruplets = {split: apnn_ids_to_jps(apnns) for split, apnns in quadruplets_unpacked.items()}
 
-        quadtruplets = quadtruplets_map_full_paths(quadtruplets)
+        quadruplets = quadruplets_map_full_paths(quadruplets)
 
         if validate_paths:
-            DeepFashionQuadruplets.validate(quadtruplets)
+            DeepFashionQuadruplets.validate(quadruplets)
 
-        return quadtruplets
+        return quadruplets
 
     @staticmethod
-    def validate(quadtruplets):
+    def validate(quadruplets):
         """Just validating the Existences of all Paths. Everything else is Validated at the Generation Stage.
         """
         path_exists = lambda p: Path(p).exists()
@@ -126,12 +127,12 @@ class DeepFashionQuadruplets:
             files_exist = all(list(map(path_exists, apnn)))
             if not files_exist:
                 print(
-                    f"atleast one File missing [(Path, Missing), ...]! {list(zip(apnn, list(map(path_exists, apnn))))}")
+                    f"at least one File missing [(Path, Missing), ...]! {list(zip(apnn, list(map(path_exists, apnn))))}")
             return files_exist
 
         all_files_exist = all(
             [all(parallel_map(apnns, validate_apnn_path, desc=f"Validating {split}-Split")) for split, apnns in
-             quadtruplets.items()])
+             quadruplets.items()])
         assert all_files_exist
 
 

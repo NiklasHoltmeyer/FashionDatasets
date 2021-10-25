@@ -1,5 +1,5 @@
 import tensorflow as tf
-import os
+
 
 def preprocess_image(img_shape, preprocess_img=None, channels=3, dtype=tf.float32):
     @tf.function
@@ -11,4 +11,5 @@ def preprocess_image(img_shape, preprocess_img=None, channels=3, dtype=tf.float3
         if preprocess_img:
             image = preprocess_img(image)
         return image
+
     return __call__
