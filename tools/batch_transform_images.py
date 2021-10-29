@@ -189,13 +189,20 @@ if __name__ == "__main__":
         validate_all_images(args)
 
 # Train (for Mask and Quad):
-# --src_path "F:\workspace\datasets\DeepFashion2 Dataset\train"
-# --dst_path "F:\workspace\datasets\DeepFashion2 Dataset\train_256"
+# --src_path "F:\workspace\datasets\deep_fashion_256\train"
+# --dst_path "F:\workspace\datasets\deep_fashion_256\train_256"
 # --sub_folders "annotations" "images" --validate_images True
 # --validate_images_force True
 
 # Val (for Quad):
-# --src_path "F:\workspace\datasets\DeepFashion2 Dataset\validation"
-# --dst_path "F:\workspace\datasets\DeepFashion2 Dataset\validation_256"
+# --src_path "F:\workspace\datasets\deep_fashion_256\validation"
+# --dst_path "F:\workspace\datasets\deep_fashion_256\validation_256"
 # --sub_folders "images" --validate_images True
 # --validate_images_force True
+
+# Test (for Quad):
+# --src_path "F:\workspace\datasets\deep_fashion_256\test"
+# --dst_path "F:\workspace\datasets\deep_fashion_256\test_256"
+# --sub_folders "images" --validate_images True
+# --validate_images_force True
+
