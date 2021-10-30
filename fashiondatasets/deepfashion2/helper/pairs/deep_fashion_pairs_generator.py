@@ -147,6 +147,20 @@ class DeepFashionPairsGenerator:
             embedding_jobs.extend(image_ids)
 
         if len(embedding_jobs) > 0:
+            image_paths = list(map(lambda x: self.full_image_path(split, x), embedding_jobs))
+            negative_1_ds = tf.data.Dataset.from_tensor_slices(image_paths) \
+                .map(preprocess_image((224, 224))) \
+                .batch(64, drop_remainder=False) \
+                .prefetch(tf.data.AUTOTUNE)
+
+            embeddings = []
+            for batch in tqdm(negative_1_ds, desc="N2-Embeddings"):
+                embeddings.extend(self.embedding(batch))
+
+            self.embedding_storage.update({id: embedding for id, embedding in
+                                           zip(embedding_jobs, embeddings)})
+
+            # 1312
             raise Exception("TODO Embedd new Negatives")
             # if this Exp. occours embedd all Images from withing Embedding_jobs and append them to
             # self::embedding_storage
@@ -173,6 +187,7 @@ class DeepFashionPairsGenerator:
         apn = self.build_anchor_positive_negatives(split)
         complementary_cat_ids = self.complementary_cat_ids[split]
         df_helper = self.df_helper[split]
+        apn_possiblen2 = []
 
         def _complementary_cat_ids_(cat_id, depth=0):
             if depth > 0:
@@ -218,13 +233,41 @@ class DeepFashionPairsGenerator:
                 lambda d: d["categories_in_image_idx"] != pair_id and d["categories_in_image_idx"] != _a_id,
                 possible_negatives2)
             possible_negatives2 = list(possible_negatives2)
-            possible_negatives2 = random.sample(possible_negatives2, min(self.number_possibilites, len(possible_negatives2)))
+            possible_negatives2 = random.sample(possible_negatives2,
+                                                min(self.number_possibilites, len(possible_negatives2)))
+            apn_possiblen2.append((anchor, positive, negative, possible_negatives2))
 
-            negative2 = self.choose_possibility(negative, possible_negatives2, reverse=True)
-            if negative2:
-                apnn.append((anchor, positive, negative, negative2))
+        #
+        possible_negatives_2 = distinct(flatten([[y["image_id"] for y in x[3]] for x in apn_possiblen2]))
+        image_ids = list(filter(lambda id: id not in self.embedding_storage.keys(), possible_negatives_2))
+        image_paths = list(map(lambda x: self.full_image_path(split, x), image_ids))
 
-        assert len(apnn) == len(apn), f"Couldn't build enough Pairs. {100 * len(apnn) / len(apn):.0f}% Successful"
+        negative_2_ds = tf.data.Dataset.from_tensor_slices(image_paths) \
+            .map(preprocess_image((224, 224))) \
+            .batch(64, drop_remainder=False) \
+            .prefetch(tf.data.AUTOTUNE)
+
+        embeddings = []
+        for batch in tqdm(negative_2_ds, desc="N2-Embeddings"):
+            embeddings.extend(self.embedding(batch))
+
+        self.embedding_storage.update({id: embedding for id, embedding in zip(image_ids, embeddings)})
+        apnn = []
+        for anchor, positive, negative, possible_negatives2 in apn_possiblen2:
+            if len(negative) < 1:
+                continue
+            for pp in possible_negatives2:
+                pp["embedding"] = self.embedding_storage[pp["image_id"]]
+
+            if len(possible_negatives2) > 1:
+                if type(negative) == list and len(negative) == 1:
+                    negative = negative[0]
+                negative2 = self.choose_possibility(negative, possible_negatives2, reverse=True)
+            else:
+                negative2 = possible_negatives2
+            apnn.append((anchor, positive, negative, negative2))
+
+        assert len(apnn) < len(apn) and len(apnn) / len(apn) > 0.9, f"Couldn't build enough Pairs. {100 * len(apnn) / len(apn):.0f}% Successful"
         if validate:
             self.validate_apnn(apnn, split)
         return apnn
@@ -312,8 +355,7 @@ class DeepFashionPairsGenerator:
 if __name__ == "__main__":
     base_path = f"F:\workspace\datasets\deep_fashion_256"
     print(splits)
-    #for split in splits: #"train"
+    # for split in splits: #"train"
     # apnn = DeepFashionPairsGenerator(base_path).build_anchor_positive_negative1_negative2(split)
     # DeepFashionPairsGenerator.save_pairs_to_csv(base_path, split, apnn)
-    #DeepFashionPairsGenerator(base_path).build_anchor_positive_negative1_negative2(splits[1])
-
+    # DeepFashionPairsGenerator(base_path).build_anchor_positive_negative1_negative2(splits[1])
