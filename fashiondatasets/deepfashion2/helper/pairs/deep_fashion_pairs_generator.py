@@ -1,16 +1,30 @@
+import os
+import random
+
 from fashiondatasets.deepfashion2.helper.pairs._aggregate_collections import load_aggregated_annotations, \
     DeepFashion_DF_Helper, load_image_quadruplets_csv_path, splits, load_info_path
 import pandas as pd
+from tqdm.auto import tqdm
+import tensorflow as tf
+
+from fashiondatasets.deepfashion2.helper.pairs.similar_embeddings import find_top_k
+from fashiondatasets.own.helper.mappings import preprocess_image
 
 
 class DeepFashionPairsGenerator:
-    def __init__(self, _base_path, **kwargs):
+    def __init__(self, _base_path, embedding, split_suffix="", **kwargs):
         self.base_path = _base_path
         self.threads = kwargs.get("threads", None)
         self.kwargs = kwargs
 
         self.df_helper = {}
         self.complementary_cat_ids = {}
+
+        self.embedding = embedding
+        self.split_suffix = split_suffix
+
+    def full_image_path(self, split, x):
+        return os.path.join(self.base_path, split + self.split_suffix, "images", str(x).zfill(6) + ".jpg")
 
     def _load(self, split):
         annotations_info = load_aggregated_annotations(self.base_path, _split=split)
@@ -24,24 +38,56 @@ class DeepFashionPairsGenerator:
         self.df_helper[split] = df_helper
         self.complementary_cat_ids[split] = complementary_cat_ids
 
-    def build_anchor_positives(self, split):
-        self._load(split)
-        df_helper = self.df_helper[split]
-
-        anchor_positives = []
-
+    def yield_anchor_positive_possibilites(self, df_helper):
         for a_img_id in df_helper.user.image_ids:
             anchor = df_helper.user.by_image_id[a_img_id]
             pair_id = anchor["pair_id"]
 
             possibles_positives = df_helper.shop.by_pair_id[pair_id]
+            yield anchor, possibles_positives
 
+    def choose_possibility_by_round_robin(self, possibilities):
+        for i in range(100):  # <- 100 retries
+            choice = possibilities.pop(0)  # take first Item -> Push it to the End of the List -> Round Robin
+            possibilities.append(choice)
+            return choice
+
+    def choose_possibility_by_distance(self, split, pivot, possibilities, reverse):
+        image_paths = map(lambda d: self.full_image_path(split, d["image_id"]), possibilities)
+        image_ds = tf.data.Dataset.from_tensor_slices(list(image_paths)) \
+            .map(preprocess_image((224, 224))) \
+            .batch(len(possibilities) + 1, drop_remainder=False) \
+            .prefetch(tf.data.AUTOTUNE)
+
+        # embeddings = #embedding.predict(image_ds)
+        pivot_path = self.full_image_path(split, pivot["image_id"])
+        pivot_ds = tf.data.Dataset.from_tensor_slices([pivot_path]) \
+            .map(preprocess_image((224, 224))) \
+            .batch(len(possibilities) + 1, drop_remainder=False) \
+            .prefetch(tf.data.AUTOTUNE)
+
+        pivot_embedding = self.embedding.predict(pivot_ds)
+        embeddings = self.embedding.predict(image_ds)
+        idx = find_top_k(pivot_embedding, embeddings, reverse=reverse, k=1)[0]
+        return possibilities[idx]
+
+    def choose_possibility(self, split, pivot, possibilities, reverse):
+        if not self.embedding or len(possibilities) == 1:
+            return self.choose_possibility_by_round_robin(possibilities)
+        return self.choose_possibility_by_distance(split, pivot, possibilities, reverse=reverse)
+
+    def build_anchor_positives(self, split):
+        anchor_positives = []
+        self._load(split)
+        df_helper = self.df_helper[split]
+
+        for anchor, possibles_positives in tqdm(self.yield_anchor_positive_possibilites(df_helper),
+                                                desc="AP",
+                                                total=len(df_helper.user.image_ids)):
             if len(possibles_positives) < 1:
                 raise Exception("#TODO 4897")  # <- Shouldn't occur
-
-            positive = possibles_positives.pop(0)  # take first Item -> Push it to the End of the List -> Round Robin
-            possibles_positives.append(positive)
-
+            positive = self.choose_possibility(split, anchor, possibles_positives, reverse=False)  # <- most dis sim.
+            # A is always != P for all possibilites
             anchor_positives.append((anchor, positive))
             assert anchor is not None and positive is not None
         assert len(anchor_positives) == len(df_helper.user.image_ids)
@@ -54,37 +100,25 @@ class DeepFashionPairsGenerator:
         """
         anchor_positives = self.build_anchor_positives(split)
         df_helper = self.df_helper[split]
-
+        print("BUILD APN")
         apn = []
-        for idx, (a, p) in enumerate(anchor_positives):
+        for idx, (a, p) in tqdm(enumerate(anchor_positives), desc="APN"):
             cat_id = a["categories_in_image_idx"]
             pair_id = a["pair_id"]
+            possible_negatives = df_helper.shop.by_cat_id[cat_id]
+            possible_negatives = list(filter(lambda d: pair_id != d["pair_id"], possible_negatives))
+            possible_negatives = random.sample(possible_negatives, min(64, len(possible_negatives)))
 
-            for _idx in range(100):  # <- number of retries
-                possible_negatives = df_helper.shop.by_cat_id[cat_id]
-                # if (idx + _idx) % 2 == 0:
-                #    possible_negatives = df_helper.user.by_cat_id[cat_id]
-                # else:
-                #    possible_negatives = df_helper.shop.by_cat_id[cat_id]
+            negative = self.choose_possibility(split, a, possible_negatives, reverse=True)
 
-                _negative = possible_negatives.pop(0)
-                possible_negatives.append(_negative)
-                negative_pair_id = _negative["pair_id"]
-
-                if negative_pair_id != pair_id:
-                    negative = _negative
-                    break
-            else:
-                continue
-
-            assert negative is not None
+            #            assert negative is not None
             apn.append((a, p, negative))
         assert len(apn) / len(
             anchor_positives) > 0.93, f"Couldn't build enough Pairs. {100 * len(apn) / len(anchor_positives):.0f}% " \
                                       f"Successful "
         return apn
 
-    def build_anchor_positive_negative1_negative2(self, split):
+    def build_anchor_positive_negative1_negative2(self, split, validate=False):
         """
         Negative1 from Same Category. 50/50 Chance of the image being from Shop or Consumer
         Negative2 from different Category. 50/50 Chance of Image being from Shop or Consumer
@@ -134,23 +168,21 @@ class DeepFashionPairsGenerator:
             if len(possible_negatives2) < 1:
                 raise Exception("#Todo #213213")
 
-            negative2 = None
             _a_id = anchor["categories_in_image_idx"]
 
-            for _ in range(100):  # <- number of retries
-                _negative = possible_negatives2.pop(0)
-                possible_negatives2.append(_negative)
-                negative_pair_id = _negative["pair_id"]
-                _n_id = _negative["categories_in_image_idx"]
+            possible_negatives2 = filter(
+                lambda d: d["categories_in_image_idx"] != pair_id and d["categories_in_image_idx"] != _a_id,
+                possible_negatives2)
+            possible_negatives2 = list(possible_negatives2)
+            possible_negatives2 = random.sample(possible_negatives2, min(64, len(possible_negatives2)))
 
-                if negative_pair_id != pair_id and _n_id != _a_id:
-                    negative2 = _negative
-                    break
+            negative2 = self.choose_possibility(split, negative, possible_negatives2, reverse=True)
             if negative2:
                 apnn.append((anchor, positive, negative, negative2))
 
         assert len(apnn) == len(apn), f"Couldn't build enough Pairs. {100 * len(apnn) / len(apn):.0f}% Successful"
-        self.validate_apnn(apnn, split)
+        if validate:
+            self.validate_apnn(apnn, split)
         return apnn
 
     def validate_apnn(self, apnn, split):
@@ -234,7 +266,9 @@ class DeepFashionPairsGenerator:
 
 
 if __name__ == "__main__":
-    base_path = f"F:\workspace\datasets\DeepFashion2 Dataset"
-    for split in splits:
-        apnn = DeepFashionPairsGenerator(base_path).build_anchor_positive_negative1_negative2(split)
-        DeepFashionPairsGenerator.save_pairs_to_csv(base_path, split, apnn)
+    base_path = f"F:\workspace\datasets\deep_fashion_256"
+    print(splits)
+    # for split in splits:
+    # apnn = DeepFashionPairsGenerator(base_path).build_anchor_positive_negative1_negative2(split)
+    # DeepFashionPairsGenerator.save_pairs_to_csv(base_path, split, apnn)
+    DeepFashionPairsGenerator(base_path).build_anchor_positive_negative1_negative2(splits[1])
