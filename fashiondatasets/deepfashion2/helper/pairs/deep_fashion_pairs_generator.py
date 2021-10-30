@@ -203,8 +203,6 @@ class DeepFashionPairsGenerator:
                 return cat_ids
             return _complementary_cat_ids_(cat_id, depth + 1)
 
-        apnn = []
-
         for idx, (anchor, positive, negative) in enumerate(apn):
             cat_id = anchor["categories_in_image"]
             pair_id = anchor["pair_id"]
@@ -253,23 +251,27 @@ class DeepFashionPairsGenerator:
             embeddings.extend(self.embedding(batch))
 
         self.embedding_storage.update({id: embedding for id, embedding in zip(image_ids, embeddings)})
+
         apnn = []
         for anchor, positive, negative, possible_negatives2 in apn_possiblen2:
-            if len(negative) < 1:
-                continue
+            if not (type(negative) == dict) and len(negative) == 1:
+                negative = negative[0]
             for pp in possible_negatives2:
                 pp["embedding"] = self.embedding_storage[pp["image_id"]]
 
-            if len(possible_negatives2) > 1:
-                if type(negative) == list and len(negative) == 1:
-                    negative = negative[0]
+            assert type(possible_negatives2) == list
+
+            if len(possible_negatives2) == 1:
+                negative2 = possible_negatives2[0]
+            elif len(possible_negatives2) > 1:
                 negative2 = self.choose_possibility(negative, possible_negatives2, reverse=True)
             else:
-                negative2 = possible_negatives2
+                negative2 = None
             if all([anchor, positive, negative, negative2]):
                 apnn.append((anchor, positive, negative, negative2))
 
-        assert len(apnn) < len(apn) and len(apnn) / len(apn) > 0.9, f"Couldn't build enough Pairs. {100 * len(apnn) / len(apn):.0f}% Successful"
+        assert len(apnn) < len(apn) and (len(apnn) / len(apn)) > 0.9, f"Couldn't build enough Pairs. " \
+                                                                      f"{100 * len(apnn) / len(apn):.0f}% Successful "
         if validate:
             self.validate_apnn(apnn, split)
         return apnn
