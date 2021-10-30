@@ -11,6 +11,7 @@ class DeepFashionQuadruplets_Static:
     """
     Build DeepFashion Quadtruplets (Deterministic)
     """
+
     def __init__(self, base_path, format, split_suffix="", nrows=None, embedding=None):
         self.base_path = base_path
         self.split_suffix = split_suffix
@@ -18,7 +19,7 @@ class DeepFashionQuadruplets_Static:
 
         self.is_triplet = (format == "triplet")
         self.nrows = nrows
-        self.embedding=embedding
+        self.embedding = embedding
 
     def _build_pairs_ds_fn(self):
         """
