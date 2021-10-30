@@ -12,7 +12,7 @@ from fashiondatasets.own.helper.mappings import preprocess_image
 
 
 class DeepFashionPairsGenerator:
-    def __init__(self, _base_path, embedding, split_suffix="", **kwargs):
+    def __init__(self, _base_path, embedding, number_possibilites=32, split_suffix="", **kwargs):
         self.base_path = _base_path
         self.threads = kwargs.get("threads", None)
         self.kwargs = kwargs
@@ -22,6 +22,8 @@ class DeepFashionPairsGenerator:
 
         self.embedding = embedding
         self.split_suffix = split_suffix
+
+        self.number_possibilites = number_possibilites
 
     def full_image_path(self, split, x):
         return os.path.join(self.base_path, split + self.split_suffix, "images", str(x).zfill(6) + ".jpg")
@@ -86,6 +88,9 @@ class DeepFashionPairsGenerator:
                                                 total=len(df_helper.user.image_ids)):
             if len(possibles_positives) < 1:
                 raise Exception("#TODO 4897")  # <- Shouldn't occur
+
+            possibles_positives = random.sample(possibles_positives, min(self.number_possibilites, len(possibles_positives)))
+
             positive = self.choose_possibility(split, anchor, possibles_positives, reverse=False)  # <- most dis sim.
             # A is always != P for all possibilites
             anchor_positives.append((anchor, positive))
@@ -107,7 +112,7 @@ class DeepFashionPairsGenerator:
             pair_id = a["pair_id"]
             possible_negatives = df_helper.shop.by_cat_id[cat_id]
             possible_negatives = list(filter(lambda d: pair_id != d["pair_id"], possible_negatives))
-            possible_negatives = random.sample(possible_negatives, min(64, len(possible_negatives)))
+            possible_negatives = random.sample(possible_negatives, min(self.number_possibilites, len(possible_negatives)))
 
             negative = self.choose_possibility(split, a, possible_negatives, reverse=True)
 
@@ -174,7 +179,7 @@ class DeepFashionPairsGenerator:
                 lambda d: d["categories_in_image_idx"] != pair_id and d["categories_in_image_idx"] != _a_id,
                 possible_negatives2)
             possible_negatives2 = list(possible_negatives2)
-            possible_negatives2 = random.sample(possible_negatives2, min(64, len(possible_negatives2)))
+            possible_negatives2 = random.sample(possible_negatives2, min(self.number_possibilites, len(possible_negatives2)))
 
             negative2 = self.choose_possibility(split, negative, possible_negatives2, reverse=True)
             if negative2:
@@ -268,7 +273,8 @@ class DeepFashionPairsGenerator:
 if __name__ == "__main__":
     base_path = f"F:\workspace\datasets\deep_fashion_256"
     print(splits)
-    # for split in splits:
+    #for split in splits: #"train"
     # apnn = DeepFashionPairsGenerator(base_path).build_anchor_positive_negative1_negative2(split)
     # DeepFashionPairsGenerator.save_pairs_to_csv(base_path, split, apnn)
-    DeepFashionPairsGenerator(base_path).build_anchor_positive_negative1_negative2(splits[1])
+    #DeepFashionPairsGenerator(base_path).build_anchor_positive_negative1_negative2(splits[1])
+
