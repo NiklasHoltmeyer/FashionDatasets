@@ -173,7 +173,8 @@ class DeepFashionPairsGenerator:
                 negative = self.choose_possibility(a, possible_negatives, reverse=True)
             else:
                 negative = possible_negatives
-            apn.append((a, p, negative))
+            if all([a, p, negative]):
+                apn.append((a, p, negative))
         return apn
 
     def build_anchor_positive_negative1_negative2(self, split, validate=False):
@@ -265,7 +266,8 @@ class DeepFashionPairsGenerator:
                 negative2 = self.choose_possibility(negative, possible_negatives2, reverse=True)
             else:
                 negative2 = possible_negatives2
-            apnn.append((anchor, positive, negative, negative2))
+            if all([anchor, positive, negative, negative2]):
+                apnn.append((anchor, positive, negative, negative2))
 
         assert len(apnn) < len(apn) and len(apnn) / len(apn) > 0.9, f"Couldn't build enough Pairs. {100 * len(apnn) / len(apn):.0f}% Successful"
         if validate:
@@ -273,7 +275,6 @@ class DeepFashionPairsGenerator:
         return apnn
 
     def validate_apnn(self, apnn, split):
-
         assert all([all(d) for d in apnn]), "At least one None in Data"
         data_sources = {"a": {"user": 0, "shop": 0}, "p": {"user": 0, "shop": 0}, "n1": {"user": 0, "shop": 0},
                         "n2": {"user": 0, "shop": 0}}
