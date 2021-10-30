@@ -64,7 +64,7 @@ class DeepFashionPairsGenerator:
         idx = find_top_k(pivot_embedding, possibilites_embeddings, reverse=reverse, k=1)[0]
         return possibilities[idx]
 
-    def choose_possibility(self, split, pivot, possibilities, reverse):
+    def choose_possibility(self, pivot, possibilities, reverse):
         if not self.embedding or len(possibilities) == 1:
             return self.choose_possibility_by_round_robin(possibilities)
         return self.choose_possibility_by_distance(pivot, possibilities, reverse=reverse)
@@ -143,7 +143,7 @@ class DeepFashionPairsGenerator:
             possible_negatives = list(filter(lambda d: pair_id != d["pair_id"], possible_negatives))
             possible_negatives = random.sample(possible_negatives, min(self.number_possibilites, len(possible_negatives)))
 
-            negative = self.choose_possibility(split, a, possible_negatives, reverse=True)
+            negative = self.choose_possibility(a, possible_negatives, reverse=True)
 
             #            assert negative is not None
             apn.append((a, p, negative))
@@ -210,7 +210,7 @@ class DeepFashionPairsGenerator:
             possible_negatives2 = list(possible_negatives2)
             possible_negatives2 = random.sample(possible_negatives2, min(self.number_possibilites, len(possible_negatives2)))
 
-            negative2 = self.choose_possibility(split, negative, possible_negatives2, reverse=True)
+            negative2 = self.choose_possibility(negative, possible_negatives2, reverse=True)
             if negative2:
                 apnn.append((anchor, positive, negative, negative2))
 
