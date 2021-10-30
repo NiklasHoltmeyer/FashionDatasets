@@ -76,9 +76,7 @@ class DeepFashionPairsGenerator:
         image_paths = []
         anchor_possible_positives = list(self.yield_anchor_positive_possibilites(df_helper))
 
-        for anchor, possibles_positives in tqdm(self.yield_anchor_positive_possibilites(df_helper),
-                                                desc="AP",
-                                                total=len(df_helper.user.image_ids)):
+        for anchor, possibles_positives in self.yield_anchor_positive_possibilites(df_helper):
             i_path = self.full_image_path(split, anchor["image_id"])
             image_paths.append(i_path)
 
@@ -88,7 +86,7 @@ class DeepFashionPairsGenerator:
             .prefetch(tf.data.AUTOTUNE)
 
         embeddings = []
-        for batch in tqdm(image_ds):
+        for batch in tqdm(image_ds, desc="Anchor-Embeddings"):
             embeddings.extend(self.embedding(batch))
 
         assert len(embeddings) == len(image_paths)
@@ -107,7 +105,7 @@ class DeepFashionPairsGenerator:
             .prefetch(tf.data.AUTOTUNE)
 
         pp_embeddings = []
-        for batch in tqdm(pp_image_ds):
+        for batch in tqdm(pp_image_ds, desc="Positives Embeddings"):
             pp_embeddings.extend(self.embedding(batch))
 
         assert len(pp_embeddings) == len(possible_positive_images)
@@ -126,30 +124,42 @@ class DeepFashionPairsGenerator:
 
         return anchor_positives
 
-
-
     def build_anchor_positive_negatives(self, split):
         """
         Negative from Same Category. 50/50 Chance of the image being from Shop or Consumer
         """
         anchor_positives = self.build_anchor_positives(split)
         df_helper = self.df_helper[split]
-        print("BUILD APN")
-        apn = []
-        for idx, (a, p) in tqdm(enumerate(anchor_positives), desc="APN"):
+        anchor_positives_negative_possibilities = []
+        for idx, (a, p) in tqdm(enumerate(anchor_positives), desc="APN", total=len(anchor_positives)):
             cat_id = a["categories_in_image_idx"]
             pair_id = a["pair_id"]
             possible_negatives = df_helper.shop.by_cat_id[cat_id]
             possible_negatives = list(filter(lambda d: pair_id != d["pair_id"], possible_negatives))
-            possible_negatives = random.sample(possible_negatives, min(self.number_possibilites, len(possible_negatives)))
+            possible_negatives = random.sample(possible_negatives,
+                                               min(self.number_possibilites, len(possible_negatives)))
+            anchor_positives_negative_possibilities.append((a, p, possible_negatives))
 
-            negative = self.choose_possibility(a, possible_negatives, reverse=True)
+        embedding_jobs = []
+        for a, p, possible_negatives in anchor_positives_negative_possibilities:
+            image_ids = (map(lambda d: d["image_id"], possible_negatives))
+            image_ids = list(filter(lambda id: id not in self.embedding_storage.keys(), image_ids))
+            embedding_jobs.extend(image_ids)
 
-            #            assert negative is not None
+        if len(embedding_jobs) > 0:
+            raise Exception("TODO Embedd new Negatives")
+            # if this Exp. occours embedd all Images from withing Embedding_jobs and append them to
+            # self::embedding_storage
+        ###
+        apn = []
+        for a, p, possible_negatives in anchor_positives_negative_possibilities:
+            for pp in possible_negatives:
+                pp["embedding"] = self.embedding_storage[pp["image_id"]]
+            if len(possible_negatives) > 1:
+                negative = self.choose_possibility(a, possible_negatives, reverse=True)
+            else:
+                negative = possible_negatives
             apn.append((a, p, negative))
-        assert len(apn) / len(
-            anchor_positives) > 0.93, f"Couldn't build enough Pairs. {100 * len(apn) / len(anchor_positives):.0f}% " \
-                                      f"Successful "
         return apn
 
     def build_anchor_positive_negative1_negative2(self, split, validate=False):
