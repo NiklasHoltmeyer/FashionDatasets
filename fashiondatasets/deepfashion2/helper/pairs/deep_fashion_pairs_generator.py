@@ -1,6 +1,8 @@
 import os
 import random
 
+from fashionscrapper.utils.list import flatten, distinct
+
 from fashiondatasets.deepfashion2.helper.pairs._aggregate_collections import load_aggregated_annotations, \
     DeepFashion_DF_Helper, load_image_quadruplets_csv_path, splits, load_info_path
 import pandas as pd
@@ -22,6 +24,7 @@ class DeepFashionPairsGenerator:
 
         self.embedding = embedding
         self.split_suffix = split_suffix
+        self.embedding_storage = None
 
         self.number_possibilites = number_possibilites
 
@@ -54,50 +57,76 @@ class DeepFashionPairsGenerator:
             possibilities.append(choice)
             return choice
 
-    def choose_possibility_by_distance(self, split, pivot, possibilities, reverse):
-        image_paths = map(lambda d: self.full_image_path(split, d["image_id"]), possibilities)
-        image_ds = tf.data.Dataset.from_tensor_slices(list(image_paths)) \
-            .map(preprocess_image((224, 224))) \
-            .batch(len(possibilities) + 1, drop_remainder=False) \
-            .prefetch(tf.data.AUTOTUNE)
+    def choose_possibility_by_distance(self, pivot, possibilities, reverse):
+        possibilites_embeddings = [x["embedding"] for x in possibilities]
+        pivot_embedding = [pivot["embedding"]]
 
-        # embeddings = #embedding.predict(image_ds)
-        pivot_path = self.full_image_path(split, pivot["image_id"])
-        pivot_ds = tf.data.Dataset.from_tensor_slices([pivot_path]) \
-            .map(preprocess_image((224, 224))) \
-            .batch(len(possibilities) + 1, drop_remainder=False) \
-            .prefetch(tf.data.AUTOTUNE)
-
-        pivot_embedding = self.embedding.predict(pivot_ds)
-        embeddings = self.embedding.predict(image_ds)
-        idx = find_top_k(pivot_embedding, embeddings, reverse=reverse, k=1)[0]
+        idx = find_top_k(pivot_embedding, possibilites_embeddings, reverse=reverse, k=1)[0]
         return possibilities[idx]
 
     def choose_possibility(self, split, pivot, possibilities, reverse):
         if not self.embedding or len(possibilities) == 1:
             return self.choose_possibility_by_round_robin(possibilities)
-        return self.choose_possibility_by_distance(split, pivot, possibilities, reverse=reverse)
+        return self.choose_possibility_by_distance(pivot, possibilities, reverse=reverse)
 
     def build_anchor_positives(self, split):
-        anchor_positives = []
         self._load(split)
         df_helper = self.df_helper[split]
+
+        image_paths = []
+        anchor_possible_positives = list(self.yield_anchor_positive_possibilites(df_helper))
 
         for anchor, possibles_positives in tqdm(self.yield_anchor_positive_possibilites(df_helper),
                                                 desc="AP",
                                                 total=len(df_helper.user.image_ids)):
-            if len(possibles_positives) < 1:
-                raise Exception("#TODO 4897")  # <- Shouldn't occur
+            i_path = self.full_image_path(split, anchor["image_id"])
+            image_paths.append(i_path)
 
-            possibles_positives = random.sample(possibles_positives, min(self.number_possibilites, len(possibles_positives)))
+        image_ds = tf.data.Dataset.from_tensor_slices(list(image_paths)) \
+            .map(preprocess_image((224, 224))) \
+            .batch(64, drop_remainder=False) \
+            .prefetch(tf.data.AUTOTUNE)
 
-            positive = self.choose_possibility(split, anchor, possibles_positives, reverse=False)  # <- most dis sim.
-            # A is always != P for all possibilites
+        embeddings = []
+        for batch in tqdm(image_ds):
+            embeddings.extend(self.embedding(batch))
+
+        assert len(embeddings) == len(image_paths)
+
+        anchor_possible_positives_embeddings = [(anchor, possibles_positives, embedding) for
+                                                ((anchor, possibles_positives), embedding) in
+                                                zip(anchor_possible_positives, embeddings)]
+
+        possible_positive_images = flatten([x[1] for x in anchor_possible_positives_embeddings])
+        possible_positive_images_ids = distinct([x["image_id"] for x in possible_positive_images])
+        possible_positive_images = [self.full_image_path(split, x) for x in possible_positive_images_ids]
+
+        pp_image_ds = tf.data.Dataset.from_tensor_slices(list(possible_positive_images)) \
+            .map(preprocess_image((224, 224))) \
+            .batch(128, drop_remainder=False) \
+            .prefetch(tf.data.AUTOTUNE)
+
+        pp_embeddings = []
+        for batch in tqdm(pp_image_ds):
+            pp_embeddings.extend(self.embedding(batch))
+
+        assert len(pp_embeddings) == len(possible_positive_images)
+
+        self.embedding_storage = {id: embedding for id, embedding in zip(possible_positive_images_ids, pp_embeddings)}
+
+        anchor_positives = []
+        for anchor, possibles_positives, embedding in anchor_possible_positives_embeddings:
+            anchor["embedding"] = embedding
+            for pp in possibles_positives:
+                pp["embedding"] = self.embedding_storage[pp["image_id"]]
+            positive = self.choose_possibility(anchor, possibles_positives, reverse=False)
             anchor_positives.append((anchor, positive))
-            assert anchor is not None and positive is not None
-        assert len(anchor_positives) == len(df_helper.user.image_ids)
+
+        assert len(anchor_positives) == len(anchor_possible_positives)
 
         return anchor_positives
+
+
 
     def build_anchor_positive_negatives(self, split):
         """
