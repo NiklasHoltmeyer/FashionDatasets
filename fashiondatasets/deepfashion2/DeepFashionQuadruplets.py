@@ -7,7 +7,7 @@ from fashiondatasets.utils.list import parallel_map
 import tensorflow as tf
 
 
-class DeepFashionQuadruplets_Static:
+class DeepFashionQuadruplets:
     """
     Build DeepFashion Quadtruplets (Deterministic)
     """
@@ -118,7 +118,7 @@ class DeepFashionQuadruplets_Static:
         quadruplets = quadruplets_map_full_paths(quadruplets)
 
         if validate_paths:
-            DeepFashionQuadruplets_Static.validate(quadruplets)
+            DeepFashionQuadruplets.validate(quadruplets)
 
         return quadruplets
 
@@ -143,5 +143,5 @@ class DeepFashionQuadruplets_Static:
 
 if __name__ == "__main__":
     base_path = r"F:\workspace\datasets\deep_fashion_256"
-    results = DeepFashionQuadruplets_Static(base_path, format="triplet").load(validate_paths=False)
+    results = DeepFashionQuadruplets(base_path, format="triplet").load(validate_paths=False)
     print(results)
