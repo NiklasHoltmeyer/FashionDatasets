@@ -270,7 +270,7 @@ class DeepFashionPairsGenerator:
             if all([anchor, positive, negative, negative2]):
                 apnn.append((anchor, positive, negative, negative2))
 
-        assert len(apnn) < len(apn) and (len(apnn) / len(apn)) > 0.9, f"Couldn't build enough Pairs. " \
+        assert len(apnn) <= len(apn) and (len(apnn) / len(apn)) > 0.9, f"Couldn't build enough Pairs. " \
                                                                       f"{100 * len(apnn) / len(apn):.0f}% Successful "
         if validate:
             self.validate_apnn(apnn, split)
@@ -358,7 +358,10 @@ class DeepFashionPairsGenerator:
 if __name__ == "__main__":
     base_path = f"F:\workspace\datasets\deep_fashion_256"
     print(splits)
-    # for split in splits: #"train"
-    # apnn = DeepFashionPairsGenerator(base_path).build_anchor_positive_negative1_negative2(split)
+    #for split in splits: #"train"
+    apnn = DeepFashionPairsGenerator(base_path,
+                                     embedding=None,
+                                     split_suffix="_256",
+                                     nrows=32).build_anchor_positive_negative1_negative2("train")
     # DeepFashionPairsGenerator.save_pairs_to_csv(base_path, split, apnn)
     # DeepFashionPairsGenerator(base_path).build_anchor_positive_negative1_negative2(splits[1])
