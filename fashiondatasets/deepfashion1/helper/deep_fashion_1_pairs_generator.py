@@ -13,7 +13,8 @@ class DeepFashion1PairsGenerator:
                  base_path,
                  model,
                  image_suffix="",
-                 number_possibilities=32):
+                 number_possibilities=32,
+                 nrows=None):
         self.base_path = base_path
         self.model = model
         self.split_helper = DF1_Split_Extractor(self.base_path).load_helper()
@@ -24,7 +25,7 @@ class DeepFashion1PairsGenerator:
                                                                                           'ids_by_cat_idx']]
         img_folder_name = "img" + image_suffix
         self.image_base_path = Path(base_path, img_folder_name)
-
+        self.nrows=nrows
         self.encodings = {}
         self.batch_size = 1
         self.number_possibilities = number_possibilities
@@ -37,7 +38,8 @@ class DeepFashion1PairsGenerator:
         if force or not csv_path.exists():
             anchor_positive_negative_negatives = self.build(split)
             quadtruplet_df = pd.DataFrame(anchor_positive_negative_negatives,
-                                          columns=["anchor", "positive", "negative1", "negative2"])
+                                          columns=["anchor", "positive", "negative1", "negative2"],
+                                          nrows=self.nrows)
 
             quadtruplet_df.to_csv(csv_path, index=False)
 
