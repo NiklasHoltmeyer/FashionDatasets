@@ -38,7 +38,24 @@ class DeepFashion1Dataset:
 
         pair_builder = build_pairs_ds_fn(is_triplet)
 
-        return pair_builder(a, p, n1, n2)
+        return pair_builder(a, p, n1, n2), len(a)
+
+    def load(self, is_triplet, force_train_recreate):
+        datasets = {}
+        #"test", "train", "val"
+        for split in DeepFashion1PairsGenerator.splits():
+            force = split == "train" and force_train_recreate
+            ds, n_items = self.load_split(split, is_triplet, force)
+
+            if split == "val":
+                split = "validation"
+
+            datasets[split] = {
+                    "dataset": ds,
+                    "n_items": n_items
+            }
+
+        return datasets
 
 
 
