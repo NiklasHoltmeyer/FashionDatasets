@@ -2,7 +2,7 @@ from pathlib import Path
 
 from fashiondatasets.deepfashion1.helper.deep_fashion_1_pairs_generator import DeepFashion1PairsGenerator
 from fashiondatasets.own.helper.quad_to_ds import build_pairs_ds_fn
-
+from tqdm.auto import tqdm
 
 class DeepFashion1Dataset:
     def __init__(self,
@@ -23,21 +23,21 @@ class DeepFashion1Dataset:
 
     def load_split(self, split, is_triplet, force):
         assert split in DeepFashion1PairsGenerator.splits()
-        print("load Split")
+
         df = self.pair_gen.load(split, force=force)
-        print("load Split loaded")
+
         cols = ['anchor', 'positive', 'negative1', 'negative2']
         img_base_path = Path(self.base_path, f"img{self.image_suffix}")
-        print("Map FULL PATHS")
+
         map_full_path = lambda p: str((img_base_path / p).resolve())
         map_full_paths = lambda lst: list(map(map_full_path, lst))
         load_values = lambda c: list(map_full_paths(df[c].values))
 
-        a, p, n1, n2 = [load_values(c) for c in cols]
+        a, p, n1, n2 = [load_values(c) for c in tqdm(cols, f"{split}: Map full Paths")]
         assert len(a) == len(p) and len(p) == len(n1) and len(n1) == len(n2)
-        print("Map FULL PATHS Done")
+
         pair_builder = build_pairs_ds_fn(is_triplet)
-        print("askdkasd")
+
         return pair_builder(a, p, n1, n2), len(a)
 
     def load(self, is_triplet, force_train_recreate, splits=None):
