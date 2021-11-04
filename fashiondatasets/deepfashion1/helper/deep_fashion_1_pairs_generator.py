@@ -9,8 +9,8 @@ from tqdm.auto import tqdm
 import tensorflow as tf
 from fashiondatasets.own.helper.mappings import preprocess_image
 
-assert tf is not None or True # PyCharm removes the Imports, even tho the Function/Classes are used
-assert preprocess_image is not None or True # PyCharm removes the Imports, even tho the Function/Classes are used
+assert tf is not None or True  # PyCharm removes the Imports, even tho the Function/Classes are used
+assert preprocess_image is not None or True  # PyCharm removes the Imports, even tho the Function/Classes are used
 
 
 class DeepFashion1PairsGenerator:
@@ -30,7 +30,7 @@ class DeepFashion1PairsGenerator:
                                                                                           'ids_by_cat_idx']]
         img_folder_name = "img" + image_suffix
         self.image_base_path = Path(base_path, img_folder_name)
-        self.nrows=nrows
+        self.nrows = nrows
         self.encodings = {}
         self.batch_size = 1
         self.number_possibilities = number_possibilities
@@ -103,13 +103,13 @@ class DeepFashion1PairsGenerator:
             random_possibilities = filter(lambda pid: pid != pair_id, random_possibilities)
             random_possibilities = list(random_possibilities)
 
-            n_samples = min(self.number_possibilities, len(random_possibilities))
-            possible_pair_ids = random.sample(random_possibilities, n_samples + 10)
+            n_samples = min((self.number_possibilities+10), len(random_possibilities))
+            possible_pair_ids = random.sample(random_possibilities, n_samples)
             # + 10 random number. just pick more samples, since the samples get filterd anyways
             # only n_samples Samples will be returned
             possible_images = map(lambda pid: random.sample(split_data[pid][CONSUMER], 1)[0], possible_pair_ids)
             possible_images = filter(lambda p: p.split("/")[1] == cat_name, possible_images)
-            possible_images = list(possible_images)[:n_samples]
+            possible_images = list(possible_images)[:self.number_possibilities]
 
             if len(possible_images) > 0:
                 yield pair_id, cat_idxs, anchor, positive, possible_images
@@ -127,11 +127,11 @@ class DeepFashion1PairsGenerator:
             # possible_ids = ids_by_cat_idx[cat1][cat2]
             possible_ids = ids_by_cat_idx[str(r_cat)]
 
-            n_samples = min(self.number_possibilities, len(possible_ids))
-            possible_ids = random.sample(possible_ids, n_samples + 10)
+            n_samples = min((self.number_possibilities+10), len(possible_ids))
+            possible_ids = random.sample(possible_ids, n_samples)
             possible_images = map(lambda pid: random.sample(split_data[pid][CONSUMER], 1)[0], possible_ids)
             possible_images = filter(lambda p: p.split("/")[1] != cat_name, possible_images)
-            possible_images = list(possible_images)[:n_samples]
+            possible_images = list(possible_images)[:self.number_possibilities]
 
             yield a_img, p_img, n_img, possible_images
 

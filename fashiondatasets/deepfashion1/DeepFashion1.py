@@ -4,6 +4,7 @@ from fashiondatasets.deepfashion1.helper.deep_fashion_1_pairs_generator import D
 from fashiondatasets.own.helper.quad_to_ds import build_pairs_ds_fn
 from tqdm.auto import tqdm
 
+
 class DeepFashion1Dataset:
     def __init__(self,
                  base_path,
@@ -15,7 +16,7 @@ class DeepFashion1Dataset:
         self.model = model
         self.image_suffix = image_suffix
         self.number_possibilities = number_possibilities
-        self.nrows=nrows
+        self.nrows = nrows
         self.pair_gen = DeepFashion1PairsGenerator(base_path, model=model,
                                                    image_suffix=image_suffix,
                                                    number_possibilities=number_possibilities,
@@ -42,7 +43,7 @@ class DeepFashion1Dataset:
 
     def load(self, is_triplet, force_train_recreate, splits=None):
         datasets = {}
-        #"test", "train", "val"
+        # "test", "train", "val"
         if splits is None:
             splits = DeepFashion1PairsGenerator.splits()
 
@@ -54,11 +55,8 @@ class DeepFashion1Dataset:
                 split = "validation"
 
             datasets[split] = {
-                    "dataset": ds,
-                    "n_items": n_items
+                "dataset": ds,
+                "n_items": n_items
             }
 
         return datasets
-
-
-
