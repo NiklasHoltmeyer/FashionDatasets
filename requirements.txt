@@ -10,3 +10,6 @@ albumentations #~=1.1.0
 tensorflow
 tinydb #~=4.5.2
 tinydb-serialization #~=2.1.0
+ipython
+matplotlib
+requests

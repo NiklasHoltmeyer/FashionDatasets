@@ -1,4 +1,4 @@
-# Default DS Strucutre
+# Default DS Structure
 ```bash
 DeepFashion2 Dataset
 ├───test
