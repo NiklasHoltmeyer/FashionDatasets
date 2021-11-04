@@ -137,7 +137,7 @@ class DeepFashion1PairsGenerator:
             yield a_img, p_img, n_img, possible_images
 
     def build_anchor_positives(self, splits):
-        ap_possibilities = list(self.walk_anchor_positive_possibilities(splits))[:3]
+        ap_possibilities = list(self.walk_anchor_positive_possibilities(splits))
 
         image_paths_from_pair = lambda d: [d[2], *d[-1]]
         self.encode_paths(ap_possibilities, image_paths_from_pair)
@@ -328,9 +328,10 @@ if __name__ == "__main__":
 
 
     embedding = FakeEmbedder()
-    base_path = "D:\Download\Cts"
+    base_path = r"F:\workspace\datasets\deep_fashion_1_256"
 
     for split in ["val", "train", "test"]:
         generator = DeepFashion1PairsGenerator(base_path, FakeEmbedder(), "_256")
-        df = generator.load(split, force=True)
+        force = split == "val" #<- for debugging just take the smallest split lul
+        df = generator.load(split, force=force)
         DeepFashion1PairsGenerator.validate_dataframe(df)
