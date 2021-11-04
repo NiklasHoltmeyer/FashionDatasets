@@ -1,14 +1,12 @@
-import pickle
-from pathlib import Path
 import random
+from pathlib import Path
+
 import pandas as pd
-import tensorflow as tf
+from fashiondatasets.deepfashion1.helper.ExtractSplits import DF1_Split_Extractor, CONSUMER
+from fashiondatasets.deepfashion2.helper.pairs.similar_embeddings import find_top_k
 from fashionscrapper.utils.list import flatten, distinct
 from tqdm.auto import tqdm
 
-from fashiondatasets.deepfashion1.helper.ExtractSplits import DF1_Split_Extractor, CONSUMER
-from fashiondatasets.deepfashion2.helper.pairs.similar_embeddings import find_top_k
-from fashiondatasets.own.helper.mappings import preprocess_image
 
 class DeepFashion1PairsGenerator:
     def __init__(self,
@@ -73,7 +71,8 @@ class DeepFashion1PairsGenerator:
         for p, model_embedding in zip(paths, embeddings):
             self.encodings[p] = model_embedding
 
-    def walk_anchor_positive_possibilities(self, split_data):
+    @staticmethod
+    def walk_anchor_positive_possibilities(split_data):
         for pair_id, pair_data in split_data.items():
             for anchor_image in pair_data[CONSUMER]:
                 cat_idx = pair_data["cat_idx"]
@@ -131,7 +130,6 @@ class DeepFashion1PairsGenerator:
 
     def build_anchor_positives(self, splits):
         ap_possibilities = list(self.walk_anchor_positive_possibilities(splits))[:3]
-
 
         image_paths_from_pair = lambda d: [d[2], *d[-1]]
         self.encode_paths(ap_possibilities, image_paths_from_pair)
@@ -264,7 +262,8 @@ class DeepFashion1PairsGenerator:
                 assert False
 
     # pair_id, cat_idx, anchor_image, possibilities[idx]
-    def validate_anchor_positives(self, anchor_positives):
+    @staticmethod
+    def validate_anchor_positives(anchor_positives):
         for pair_id, cat_idx, anchor_image, positive_image in tqdm(anchor_positives, desc="Validate AP's"):
             assert pair_id in anchor_image and pair_id in positive_image, \
                 f"({[pair_id, cat_idx, anchor_image, positive_image]}) "
@@ -277,7 +276,8 @@ class DeepFashion1PairsGenerator:
             assert pair_id in anchor_image
             assert pair_id in positive_image  #
 
-    def validate_anchor_positive_negatives(self, anchor_positive_negatives):
+    @staticmethod
+    def validate_anchor_positive_negatives(anchor_positive_negatives):
         # validation assumes, that ap's are validated per validate_anchor_positives
         for pair_id, cat_id, anchor, positive, negative in tqdm(anchor_positive_negatives, desc="Validate APN"):
             n_tl_cat = negative.split("/")[1]
@@ -286,7 +286,8 @@ class DeepFashion1PairsGenerator:
             assert n_tl_cat == a_tl_cat, "A,P and N should be of same Category"
             assert pair_id not in negative, "Negative and A/P should not be of same Pair Id"
 
-    def validate_anchor_positive_negative_negatives(self, anchor_positive_negative_negatives):
+    @staticmethod
+    def validate_anchor_positive_negative_negatives(anchor_positive_negative_negatives):
         for a, p, n1, n2 in anchor_positive_negative_negatives:
             assert a.split("/")[1] != n2.split("/")[1]
 

@@ -13,7 +13,7 @@ from fashiondatasets.deepfashion2.helper.pairs.similar_embeddings import find_to
 from fashiondatasets.own.helper.mappings import preprocess_image
 
 
-class DeepFashionPairsGenerator:
+class DeepFashion2PairsGenerator:
     def __init__(self, _base_path, embedding, number_possibilites=32, split_suffix="", **kwargs):
         self.base_path = _base_path
         self.threads = kwargs.get("threads", None)
@@ -43,7 +43,8 @@ class DeepFashionPairsGenerator:
         self.df_helper[split] = df_helper
         self.complementary_cat_ids[split] = complementary_cat_ids
 
-    def walk_anchor_positive_possibilites(self, df_helper):
+    @staticmethod
+    def walk_anchor_positive_possibilites(df_helper):
         for a_img_id in df_helper.user.image_ids:
             anchor = df_helper.user.by_image_id[a_img_id]
             pair_id = anchor["pair_id"]
@@ -51,13 +52,15 @@ class DeepFashionPairsGenerator:
             possibles_positives = df_helper.shop.by_pair_id[pair_id]
             yield anchor, possibles_positives
 
-    def choose_possibility_by_round_robin(self, possibilities):
+    @staticmethod
+    def choose_possibility_by_round_robin(possibilities):
         for i in range(100):  # <- 100 retries
             choice = possibilities.pop(0)  # take first Item -> Push it to the End of the List -> Round Robin
             possibilities.append(choice)
             return choice
 
-    def choose_possibility_by_distance(self, pivot, possibilities, reverse):
+    @staticmethod
+    def choose_possibility_by_distance(pivot, possibilities, reverse):
         possibilites_embeddings = [x["embedding"] for x in possibilities]
         pivot_embedding = [pivot["embedding"]]
 
@@ -271,7 +274,7 @@ class DeepFashionPairsGenerator:
                 apnn.append((anchor, positive, negative, negative2))
 
         assert len(apnn) <= len(apn) and (len(apnn) / len(apn)) > 0.9, f"Couldn't build enough Pairs. " \
-                                                                      f"{100 * len(apnn) / len(apn):.0f}% Successful "
+                                                                       f"{100 * len(apnn) / len(apn):.0f}% Successful "
         if validate:
             self.validate_apnn(apnn, split)
         return apnn
@@ -330,7 +333,7 @@ class DeepFashionPairsGenerator:
 
     @staticmethod
     def save_pairs_to_csv(base_path, split, apnn):
-        apnn_ids = DeepFashionPairsGenerator.pair_only_keep_image_id(apnn)
+        apnn_ids = DeepFashion2PairsGenerator.pair_only_keep_image_id(apnn)
         if len(apnn_ids[0]) == 4:
             header = ["a", "p", "n1", "n2"]
         elif len(apnn_ids[0]) < 4:
@@ -349,8 +352,8 @@ class DeepFashionPairsGenerator:
             quadruplets_csv_path.unlink()
 
         if not quadruplets_csv_path.exists():
-            apnn = DeepFashionPairsGenerator(base_path).build_anchor_positive_negative1_negative2(split)
-            DeepFashionPairsGenerator.save_pairs_to_csv(base_path, split, apnn)
+            apnn = DeepFashion2PairsGenerator(base_path).build_anchor_positive_negative1_negative2(split)
+            DeepFashion2PairsGenerator.save_pairs_to_csv(base_path, split, apnn)
 
         return pd.read_csv(quadruplets_csv_path, nrows=nrows)
 
@@ -358,10 +361,10 @@ class DeepFashionPairsGenerator:
 if __name__ == "__main__":
     base_path = f"F:\workspace\datasets\deep_fashion_256"
     print(splits)
-    #for split in splits: #"train"
-    apnn = DeepFashionPairsGenerator(base_path,
-                                     embedding=None,
-                                     split_suffix="_256",
-                                     nrows=32).build_anchor_positive_negative1_negative2("train")
+    # for split in splits: #"train"
+    apnn = DeepFashion2PairsGenerator(base_path,
+                                      embedding=None,
+                                      split_suffix="_256",
+                                      nrows=32).build_anchor_positive_negative1_negative2("train")
     # DeepFashionPairsGenerator.save_pairs_to_csv(base_path, split, apnn)
     # DeepFashionPairsGenerator(base_path).build_anchor_positive_negative1_negative2(splits[1])

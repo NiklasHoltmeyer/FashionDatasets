@@ -60,7 +60,8 @@ class DF1_Split_Extractor:
 
         return entries
 
-    def _group_entries(self, entries):
+    @staticmethod
+    def _group_entries(entries):
         item_ids_by_split = defaultdict(lambda: [])
         split_by_id = defaultdict(lambda: [])
         images_by_id = defaultdict(lambda: defaultdict(lambda: []))
@@ -117,16 +118,17 @@ class DF1_Split_Extractor:
         for split, split_data in grouped_entries.items():
             for pair_id, images in split_data.items():
                 sample_img = images["shop"][0]
-                #cat_groups = sample_img.split("/")[-4:-2]
+                # cat_groups = sample_img.split("/")[-4:-2]
                 cat_groups = sample_img.split("/")[1]
 
-                #images["cat_name"] = "/".join(cat_groups)
+                # images["cat_name"] = "/".join(cat_groups)
                 images["cat_name"] = cat_groups
                 images["cat_idx"] = cat_idx_by_name[images["cat_name"]]
 
         return grouped_entries, cat_name_by_idxs, cat_idx_by_name
 
-    def generate_ids_by_cat(self, grouped_entries):
+    @staticmethod
+    def generate_ids_by_cat(grouped_entries):
         # ids_by_cat_split = defaultdict(lambda: defaultdict(lambda: defaultdict(lambda: [])))
         ids_by_cat_split = defaultdict(lambda: defaultdict(lambda: []))
 

@@ -6,7 +6,7 @@ import tensorflow as tf
 from fashiondatasets.utils.list import parallel_map
 
 
-class DeepFashionCBIR:
+class DeepFashion2CBIR:
     def __init__(self, base_path, split_suffix=""):
         self.base_path = base_path
 
@@ -82,5 +82,4 @@ class DeepFashionCBIR:
 
 if __name__ == "__main__":
     base_path = r"F:\workspace\datasets\deep_fashion_256"
-    results = DeepFashionCBIR(base_path, split_suffix="_256").load(False)
-    flatten()
+    results = DeepFashion2CBIR(base_path, split_suffix="_256").load(False)

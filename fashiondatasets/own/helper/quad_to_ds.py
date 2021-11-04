@@ -1,7 +1,7 @@
 import tensorflow as tf
 
 
-def _build_pairs_ds_fn(is_triplet):
+def build_pairs_ds_fn(is_triplet):
     """
     Params: is_triplet: Triplet_loss, else Quad.
     :return: Zipped Dataframe Consisting of A, P, N or A, P, N1, N2 depending on is_triplet Flag

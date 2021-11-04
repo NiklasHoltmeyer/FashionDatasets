@@ -2,13 +2,12 @@ import os
 from pathlib import Path
 
 from fashiondatasets.deepfashion2.helper.pairs._aggregate_collections import splits
-from fashiondatasets.deepfashion2.helper.pairs.deep_fashion_pairs_generator import DeepFashionPairsGenerator
-from fashiondatasets.own.helper.quad_to_ds import _build_pairs_ds_fn
+from fashiondatasets.deepfashion2.helper.pairs.deep_fashion_2_pairs_generator import DeepFashion2PairsGenerator
+from fashiondatasets.own.helper.quad_to_ds import build_pairs_ds_fn
 from fashiondatasets.utils.list import parallel_map
-import tensorflow as tf
 
 
-class DeepFashionQuadruplets:
+class DeepFashion2Quadruplets:
     """
     Build DeepFashion Quadtruplets (Deterministic)
     """
@@ -34,7 +33,7 @@ class DeepFashionQuadruplets:
                 )
             )
 
-        build_pairs_ds = _build_pairs_ds_fn(self.is_triplet)
+        build_pairs_ds = build_pairs_ds_fn(self.is_triplet)
 
         for split, apnns in data.items():
             a, p, n1, n2 = list(map(lambda x: load_x(apnns, x), range(4)))
@@ -65,9 +64,9 @@ class DeepFashionQuadruplets:
                 split: map_df_full_path(split, apnns) for split, apnns in _quadruplets.items()
             }
 
-        load_split = lambda split: DeepFashionPairsGenerator.load_pairs_from_csv(base_path=self.base_path,
-                                                                                 split=split,
-                                                                                 nrows=self.nrows)
+        load_split = lambda split: DeepFashion2PairsGenerator.load_pairs_from_csv(base_path=self.base_path,
+                                                                                  split=split,
+                                                                                  nrows=self.nrows)
         unpacking_results = lambda df: df.values
 
         id_to_jpg = lambda x: str(x).zfill(6) + ".jpg"
@@ -82,7 +81,7 @@ class DeepFashionQuadruplets:
         quadruplets = quadruplets_map_full_paths(quadruplets)
 
         if validate_paths:
-            DeepFashionQuadruplets.validate(quadruplets)
+            DeepFashion2Quadruplets.validate(quadruplets)
 
         return quadruplets
 
@@ -96,7 +95,8 @@ class DeepFashionQuadruplets:
             files_exist = all(list(map(path_exists, apnn)))
             if not files_exist:
                 print(
-                    f"at least one File missing [(Path, Missing), ...]! {list(zip(apnn, list(map(path_exists, apnn))))}")
+                    f"at least one File missing [(Path, Missing), ...]! {list(zip(apnn, list(map(path_exists, apnn))))}"
+                )
             return files_exist
 
         all_files_exist = all(
@@ -107,5 +107,5 @@ class DeepFashionQuadruplets:
 
 if __name__ == "__main__":
     base_path = r"F:\workspace\datasets\deep_fashion_256"
-    results = DeepFashionQuadruplets(base_path, format="triplet").load(validate_paths=False)
+    results = DeepFashion2Quadruplets(base_path, format="triplet").load(validate_paths=False)
     print(results)

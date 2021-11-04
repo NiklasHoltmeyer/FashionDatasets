@@ -166,9 +166,9 @@ def build_complimentaries(df, threads=None):
         return True
 
     def build_combinations(l_lst, r_lst):
-        for l in l_lst:
-            for r in r_lst:
-                yield l, r
+        for l_list_item in l_lst:
+            for r_list_item in r_lst:
+                yield l_list_item, r_list_item
 
     def build_complimentaries_for_ids(ids):
         ids = map(lambda _id: _id.split("/"), ids)

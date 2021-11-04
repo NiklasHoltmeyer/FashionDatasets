@@ -1,7 +1,7 @@
 from pathlib import Path
 
 from fashiondatasets.deepfashion1.helper.deep_fashion_1_pairs_generator import DeepFashion1PairsGenerator
-from fashiondatasets.own.helper.quad_to_ds import _build_pairs_ds_fn
+from fashiondatasets.own.helper.quad_to_ds import build_pairs_ds_fn
 
 
 class DeepFashion1Dataset:
@@ -19,7 +19,7 @@ class DeepFashion1Dataset:
                                                    image_suffix=image_suffix,
                                                    number_possibilities=number_possibilities)
 
-    def load_split(self, split, force):
+    def load_split(self, split, is_triplet, force):
         assert split in DeepFashion1PairsGenerator.splits()
 
         df = self.pair_gen.load(split, force=force)
@@ -34,7 +34,7 @@ class DeepFashion1Dataset:
         a, p, n1, n2 = [load_values(c) for c in cols]
         assert len(a) == len(p) and len(p) == len(n1) and len(n1) == len(n2)
 
-        pair_builder = _build_pairs_ds_fn(is_triplet)
+        pair_builder = build_pairs_ds_fn(is_triplet)
 
         return pair_builder(a, p, n1, n2)
 
