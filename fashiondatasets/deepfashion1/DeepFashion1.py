@@ -11,16 +11,19 @@ class DeepFashion1Dataset:
                  model,
                  image_suffix="",
                  number_possibilities=32,
-                 nrows=None):
+                 nrows=None,
+                 batch_size=64):
         self.base_path = base_path
         self.model = model
         self.image_suffix = image_suffix
         self.number_possibilities = number_possibilities
         self.nrows = nrows
+        self.batch_size=batch_size
         self.pair_gen = DeepFashion1PairsGenerator(base_path, model=model,
                                                    image_suffix=image_suffix,
                                                    number_possibilities=number_possibilities,
-                                                   nrows=nrows)
+                                                   nrows=nrows,
+                                                   batch_size=batch_size)
 
     def load_split(self, split, is_triplet, force):
         assert split in DeepFashion1PairsGenerator.splits()

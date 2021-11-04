@@ -19,7 +19,8 @@ class DeepFashion1PairsGenerator:
                  model,
                  image_suffix="",
                  number_possibilities=32,
-                 nrows=None):
+                 nrows=None,
+                 batch_size=64):
         self.base_path = base_path
         self.model = model
         self.split_helper = DF1_Split_Extractor(self.base_path).load_helper()
@@ -32,7 +33,7 @@ class DeepFashion1PairsGenerator:
         self.image_base_path = Path(base_path, img_folder_name)
         self.nrows = nrows
         self.encodings = {}
-        self.batch_size = 1
+        self.batch_size = batch_size
         self.number_possibilities = number_possibilities
 
     def load(self, split, force=False):
