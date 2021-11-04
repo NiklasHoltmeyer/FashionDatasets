@@ -83,3 +83,4 @@ class DeepFashionCBIR:
 if __name__ == "__main__":
     base_path = r"F:\workspace\datasets\deep_fashion_256"
     results = DeepFashionCBIR(base_path, split_suffix="_256").load(False)
+    flatten()

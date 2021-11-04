@@ -43,7 +43,7 @@ class DeepFashionPairsGenerator:
         self.df_helper[split] = df_helper
         self.complementary_cat_ids[split] = complementary_cat_ids
 
-    def yield_anchor_positive_possibilites(self, df_helper):
+    def walk_anchor_positive_possibilites(self, df_helper):
         for a_img_id in df_helper.user.image_ids:
             anchor = df_helper.user.by_image_id[a_img_id]
             pair_id = anchor["pair_id"]
@@ -74,9 +74,9 @@ class DeepFashionPairsGenerator:
         df_helper = self.df_helper[split]
 
         image_paths = []
-        anchor_possible_positives = list(self.yield_anchor_positive_possibilites(df_helper))
+        anchor_possible_positives = list(self.walk_anchor_positive_possibilites(df_helper))
 
-        for anchor, possibles_positives in self.yield_anchor_positive_possibilites(df_helper):
+        for anchor, possibles_positives in self.walk_anchor_positive_possibilites(df_helper):
             i_path = self.full_image_path(split, anchor["image_id"])
             image_paths.append(i_path)
 

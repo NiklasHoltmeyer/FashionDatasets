@@ -33,12 +33,12 @@ def parse_args():
         type=str,
         required=True)
 
-    parser.add_argument(
-        '--sub_folders',
-        dest='sub_folders',
-        help='Sub-Folders (e.g. Images, Annotations, ...)',
-        nargs='+',
-        default=["annotations", "images"])
+#    parser.add_argument(
+#        '--sub_folders',
+#        dest='sub_folders',
+#        help='Sub-Folders (e.g. Images, Annotations, ...)',
+#        nargs='+',
+#        default=["annotations", "images"])
 
     parser.add_argument(
         '--validate_images',
@@ -107,40 +107,75 @@ def validate_images(imgs):
     return n_successful == len(imgs)
 
 
+#def validate_all_images(_args):
+    #def all_images(__args):
+        #dst = Path(__args.dst_path)
+
+        #for folder in __args.sub_folders:
+            #folder_path = dst / folder
+            #for img in os.listdir(folder_path):
+                #yield folder_path / img
+
+    #return validate_images(all_images(_args))
+
 def validate_all_images(_args):
     def all_images(__args):
-        dst = Path(__args.dst_path)
+        dst = __args.dst_path
 
-        for folder in __args.sub_folders:
-            folder_path = dst / folder
-            for img in os.listdir(folder_path):
-                yield folder_path / img
+        for i_src, i_dst, is_mask in walk_jobs(dst, dst):
+            yield i_dst
 
     return validate_images(all_images(_args))
 
+
+
+def walk_jobs(src_base, dst_base):
+    src_base = str(Path(src_base).resolve())
+    dst_base = str(Path(dst_base).resolve())
+
+    for root, directory, files in os.walk(src_base):
+        parent_created = False
+
+        # is_mask = "anno" in folder or "label" in "folder"
+
+        for file in files:
+            if ".jpg" in file:
+                folder_name = Path(root).name
+                is_mask = "anno" in folder_name or "label" in folder_name
+
+                img_src = Path(root, file)
+                img_dst = str(img_src.resolve()).replace(src_base, dst_base)
+                img_dst = Path(img_dst)
+
+                if not parent_created:
+                    img_dst.parent.mkdir(exist_ok=True, parents=True)
+                    parent_created = True
+
+                yield img_src, img_dst, is_mask
 
 def batch_transform(_args, _transform, threads=os.cpu_count()):
     src, dst = Path(_args.src_path), Path(_args.dst_path)
     #    logger = defaultLogger("Batch Transform Images")
     assert src.exists()
 
-    assert all(map(lambda x: (src / x).exists(), _args.sub_folders)), "At least one Folder doesnt exist"
+#    assert all(map(lambda x: (src / x).exists(), _args.sub_folders)), "At least one Folder doesnt exist"
 
-    def resize_jobs(folders):
-        for folder in folders:
-            # noinspection SpellCheckingInspection
-            is_mask = "anno" in folder or "label" in "folder"
-            (dst / folder).mkdir(exist_ok=True, parents=True)
+#    def resize_jobs(folders): # doesnt work for nisted folders
+#        for folder in folders:
+#            # noinspection SpellCheckingInspection
+#            is_mask = "anno" in folder or "label" in "folder"
+#            (dst / folder).mkdir(exist_ok=True, parents=True)
 
-            for file in os.listdir(src / folder):
-                yield src / folder / file, dst / folder / file, is_mask
+#            for file in os.listdir(src / folder):
+#                yield src / folder / file, dst / folder / file, is_mask
 
     def filter_not_dst_exists(job):
         return not job[1].exists()
 
     #    logger.debug("List Images")
     print("List Images")
-    jobs = list(resize_jobs(_args.sub_folders))
+#    jobs = list(resize_jobs(_args.sub_folders))
+    jobs = list(walk_jobs(src, dst))
     jobs = filter(filter_not_dst_exists, tqdm(jobs, desc="Filter DST::Exists", total=len(jobs)))
     jobs = list(jobs)
 
