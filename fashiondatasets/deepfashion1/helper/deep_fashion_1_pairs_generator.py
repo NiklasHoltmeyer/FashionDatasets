@@ -44,12 +44,11 @@ class DeepFashion1PairsGenerator:
         if force or not csv_path.exists():
             anchor_positive_negative_negatives = self.build(split)
             quadruplets_df = pd.DataFrame(anchor_positive_negative_negatives,
-                                          columns=["anchor", "positive", "negative1", "negative2"],
-                                          nrows=self.nrows)
+                                          columns=["anchor", "positive", "negative1", "negative2"])
 
             quadruplets_df.to_csv(csv_path, index=False)
 
-        return pd.read_csv(csv_path)
+        return pd.read_csv(csv_path, nrows=self.nrows)
 
     def encode_paths(self, pairs, retrieve_paths_fn):
         map_full_path = lambda p: str((self.image_base_path / p).resolve())
