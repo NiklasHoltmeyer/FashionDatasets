@@ -6,6 +6,7 @@ from fashiondatasets.deepfashion1.helper.ExtractSplits import DF1_Split_Extracto
 from fashiondatasets.deepfashion2.helper.pairs.similar_embeddings import find_top_k
 from fashionscrapper.utils.list import flatten, distinct
 from tqdm.auto import tqdm
+import tensorflow as tf
 
 
 class DeepFashion1PairsGenerator:
