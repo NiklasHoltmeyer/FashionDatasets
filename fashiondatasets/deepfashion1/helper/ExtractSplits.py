@@ -142,5 +142,5 @@ class DF1_Split_Extractor:
 
 
 if __name__ == "__main__":
-    base_path = r"D:\Download\Cts"
+    base_path = r"F:\workspace\datasets\deep_fashion_1_256"
     print(DF1_Split_Extractor(base_path).load_helper(force=True))
