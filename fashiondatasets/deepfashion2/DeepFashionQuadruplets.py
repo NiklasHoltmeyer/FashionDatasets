@@ -3,6 +3,7 @@ from pathlib import Path
 
 from fashiondatasets.deepfashion2.helper.pairs._aggregate_collections import splits
 from fashiondatasets.deepfashion2.helper.pairs.deep_fashion_pairs_generator import DeepFashionPairsGenerator
+from fashiondatasets.own.helper.quad_to_ds import _build_pairs_ds_fn
 from fashiondatasets.utils.list import parallel_map
 import tensorflow as tf
 
@@ -21,43 +22,6 @@ class DeepFashionQuadruplets:
         self.nrows = nrows
         self.embedding = embedding
 
-    def _build_pairs_ds_fn(self):
-        """
-        Params: is_triplet: Triplet_loss, else Quad.
-        :return: Zipped Dataframe Consisting of A, P, N or A, P, N1, N2 depending on is_triplet Flag
-        """
-
-        def zip_triplets(a, p, n):
-            a_ds = tf.data.Dataset.from_tensor_slices(a)
-            p_ds = tf.data.Dataset.from_tensor_slices(p)
-            n_ds = tf.data.Dataset.from_tensor_slices(n)
-
-            return tf.data.Dataset.zip((a_ds, p_ds, n_ds))
-
-        def zip_quadruplets(a, p, n1, n2):
-            a_ds = tf.data.Dataset.from_tensor_slices(a)
-            p_ds = tf.data.Dataset.from_tensor_slices(p)
-            n1_ds = tf.data.Dataset.from_tensor_slices(n1)
-            n2_ds = tf.data.Dataset.from_tensor_slices(n2)
-
-            return tf.data.Dataset.zip((a_ds, p_ds, n1_ds, n2_ds))
-
-        def apnn_pairs(a, p, n1, n2):
-            return zip_quadruplets(a, p, n1, n2)
-
-        def apn_pairs(a, p, n1, n2):
-            n = []
-            for i, (n1, n2) in enumerate(zip(n1, n2)):
-                if i % 2 == 0:
-                    n.append(n1)
-                else:
-                    n.append(n2)
-            return zip_triplets(a, p, n)
-
-        if self.is_triplet:
-            return apn_pairs
-        return apnn_pairs
-
     def load_as_datasets(self, validate_paths=False):
         data = self.load(validate_paths=validate_paths)
         datasets = {}
@@ -70,7 +34,7 @@ class DeepFashionQuadruplets:
                 )
             )
 
-        build_pairs_ds = self._build_pairs_ds_fn()
+        build_pairs_ds = _build_pairs_ds_fn(self.is_triplet)
 
         for split, apnns in data.items():
             a, p, n1, n2 = list(map(lambda x: load_x(apnns, x), range(4)))

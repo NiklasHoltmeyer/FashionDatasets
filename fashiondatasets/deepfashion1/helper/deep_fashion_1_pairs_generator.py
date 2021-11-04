@@ -10,7 +10,6 @@ from fashiondatasets.deepfashion1.helper.ExtractSplits import DF1_Split_Extracto
 from fashiondatasets.deepfashion2.helper.pairs.similar_embeddings import find_top_k
 from fashiondatasets.own.helper.mappings import preprocess_image
 
-
 class DeepFashion1PairsGenerator:
     def __init__(self,
                  base_path,
@@ -34,8 +33,7 @@ class DeepFashion1PairsGenerator:
 
     def load(self, split, force=False):
         # force only for train
-        splits = ["val", "train", "test"]
-        assert split in splits
+        assert split in DeepFashion1PairsGenerator.splits()
 
         csv_path = Path(self.base_path, split + ".csv")
         if force or not csv_path.exists():
@@ -298,6 +296,12 @@ class DeepFashion1PairsGenerator:
 
             assert a_pid != n2_pid
             assert n1_pid != n2_pid
+
+    @staticmethod
+    def splits():
+        return [
+            "test", "train", "val"
+        ]
 
 
 if __name__ == "__main__":
