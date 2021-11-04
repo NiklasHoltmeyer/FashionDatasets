@@ -13,3 +13,5 @@ tinydb-serialization #~=2.1.0
 ipython
 matplotlib
 requests
+fashionscrapper
+scipy

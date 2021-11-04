@@ -37,11 +37,11 @@ class DeepFashion1PairsGenerator:
         csv_path = Path(self.base_path, split + ".csv")
         if force or not csv_path.exists():
             anchor_positive_negative_negatives = self.build(split)
-            quadtruplet_df = pd.DataFrame(anchor_positive_negative_negatives,
+            quadruplets_df = pd.DataFrame(anchor_positive_negative_negatives,
                                           columns=["anchor", "positive", "negative1", "negative2"],
                                           nrows=self.nrows)
 
-            quadtruplet_df.to_csv(csv_path, index=False)
+            quadruplets_df.to_csv(csv_path, index=False)
 
         return pd.read_csv(csv_path)
 
