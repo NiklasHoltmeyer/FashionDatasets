@@ -36,13 +36,13 @@ class DeepFashion1PairsGenerator:
         self.batch_size = batch_size
         self.number_possibilities = number_possibilities
 
-    def load(self, split, force=False):
+    def load(self, split, force=False, validate=True):
         # force only for train
         assert split in DeepFashion1PairsGenerator.splits()
 
         csv_path = Path(self.base_path, split + ".csv")
         if force or not csv_path.exists():
-            anchor_positive_negative_negatives = self.build(split)
+            anchor_positive_negative_negatives = self.build(split, validate=validate)
             quadruplets_df = pd.DataFrame(anchor_positive_negative_negatives,
                                           columns=["anchor", "positive", "negative1", "negative2"])
 
@@ -201,7 +201,7 @@ class DeepFashion1PairsGenerator:
 
         return apnns
 
-    def build(self, split, validate=False):
+    def build(self, split, validate=True):
         split_data, ids_by_cat_idx = self.splits[split], self.ids_by_cat_idx[split]
 
         anchor_positives = self.build_anchor_positives(split_data)
