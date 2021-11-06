@@ -103,7 +103,7 @@ class DeepFashion1PairsGenerator:
             random_possibilities = filter(lambda pid: pid != pair_id, random_possibilities)
             random_possibilities = list(random_possibilities)
 
-            n_samples = min((self.number_possibilities+10), len(random_possibilities))
+            n_samples = min((self.number_possibilities + 10), len(random_possibilities))
             possible_pair_ids = random.sample(random_possibilities, n_samples)
             # + 10 random number. just pick more samples, since the samples get filterd anyways
             # only n_samples Samples will be returned
@@ -128,7 +128,7 @@ class DeepFashion1PairsGenerator:
             # possible_ids = ids_by_cat_idx[cat1][cat2]
             possible_ids = ids_by_cat_idx[str(r_cat)]
 
-            n_samples = min((self.number_possibilities+10), len(possible_ids))
+            n_samples = min((self.number_possibilities + 10), len(possible_ids))
             possible_ids = random.sample(possible_ids, n_samples)
             possible_images = map(lambda pid: random.sample(split_data[pid][CONSUMER], 1)[0], possible_ids)
             possible_images = filter(lambda p: p.split("/")[1] != cat_name, possible_images)
@@ -171,6 +171,7 @@ class DeepFashion1PairsGenerator:
 
             if (len(negative_embeddings)) == 1:
                 negative = n_possibilities[0]
+                len_one += 1
             elif (len(negative_embeddings)) > 1:
                 anchor_embedding = self.encodings[a_img]
                 idx = find_top_k([anchor_embedding], negative_embeddings, reverse=True, k=1)[0]
@@ -182,7 +183,7 @@ class DeepFashion1PairsGenerator:
             apns.append((pair_id, ap_cat_idx, a_img, p_img, negative))
             not_none += 1
 
-        print(f"Build APN. Not None {not_none}. Is None {is_none}")
+        print(f"Build APN. Not None {not_none}. Is None {is_none}. len_one {len_one}")
 
         return apns
 
@@ -337,6 +338,6 @@ if __name__ == "__main__":
 
     for split in ["val", "train", "test"]:
         generator = DeepFashion1PairsGenerator(base_path, FakeEmbedder(), "_256")
-        force = split == "val" #<- for debugging just take the smallest split lul
+        force = split == "val"  # <- for debugging just take the smallest split lul
         df = generator.load(split, force=force)
         DeepFashion1PairsGenerator.validate_dataframe(df)
