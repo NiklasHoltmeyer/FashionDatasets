@@ -95,7 +95,7 @@ class DeepFashion1PairsGenerator:
 
     def walk_anchor_positive_negative_possibilities(self, anchor_positives, ids_by_cat_idx, split_data):
         # random.sample(split_data[possible_ids[0]][CONSUMER], 1)[0]
-        for pair_id, cat_idxs, anchor, positive in anchor_positives:
+        for pair_id, cat_idxs, anchor, positive in tqdm(anchor_positives, desc="Sample Possible Negative1's"):
             # cat1_idx, cat2_idx = cat_idxs
             cat_name = anchor.split("/")[1]
             # random_possibilities = ids_by_cat_idx[str(cat1_idx)][str(cat2_idx)]
@@ -118,7 +118,8 @@ class DeepFashion1PairsGenerator:
                                                              split_data, ids_by_cat_idx):
         random_cat_gen = DeepFashion1PairsGenerator.random_cat_generator(ids_by_cat_idx)
 
-        for pair_id, ap_cat_idx, a_img, p_img, n_img in anchor_positive_negatives:
+        for pair_id, ap_cat_idx, a_img, p_img, n_img in tqdm(anchor_positive_negatives, desc="Sample Possible "
+                                                                                             "Negative2's"):
             # cat1, cat2 = random_cat_gen(ap_cat_idx)
             cat_name = (a_img.split("/")[1])
             cat_idx = self.cat_idx_by_name[cat_name]
@@ -164,7 +165,7 @@ class DeepFashion1PairsGenerator:
         self.encode_paths(apn_possibilities, image_paths_from_pair)
 
         apns = []
-        for pair_id, ap_cat_idx, a_img, p_img, n_possibilities in apn_possibilities:
+        for pair_id, ap_cat_idx, a_img, p_img, n_possibilities in tqdm(apn_possibilities, desc="Build APN"):
             anchor_embedding = self.encodings[a_img]
             negative_embeddings = [self.encodings[x] for x in n_possibilities]
 
@@ -175,7 +176,7 @@ class DeepFashion1PairsGenerator:
             else:
                 idx = None
 
-            if idx:
+            if idx is not None:
                 apn = (pair_id, ap_cat_idx, a_img, p_img, n_possibilities[idx])
                 apns.append(apn)
         return apns
