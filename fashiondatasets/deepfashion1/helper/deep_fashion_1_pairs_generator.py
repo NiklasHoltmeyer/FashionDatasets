@@ -184,7 +184,8 @@ class DeepFashion1PairsGenerator:
             else:
                 is_none += 1
 
-        print(f"Build APN. Not None {not_none}. Is None {is_none}. len_one {len_one}")
+        print(f"Build APN. Not None {not_none}. Is None {is_none}. len_one {len_one}. "
+              f"Not None - Len_One {(not_none - len_one)}")
 
         return apns
 
