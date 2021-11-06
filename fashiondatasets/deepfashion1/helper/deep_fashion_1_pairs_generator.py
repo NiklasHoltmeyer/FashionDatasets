@@ -165,27 +165,24 @@ class DeepFashion1PairsGenerator:
         self.encode_paths(apn_possibilities, image_paths_from_pair)
         is_none, not_none, len_one = 0, 0, 0
         apns = []
+
         for pair_id, ap_cat_idx, a_img, p_img, n_possibilities in tqdm(apn_possibilities, desc="Build APN"):
-            anchor_embedding = self.encodings[a_img]
             negative_embeddings = [self.encodings[x] for x in n_possibilities]
 
             if (len(negative_embeddings)) == 1:
-                idx = 0
-                len_one += 1
+                negative = n_possibilities[0]
             elif (len(negative_embeddings)) > 1:
+                anchor_embedding = self.encodings[a_img]
                 idx = find_top_k([anchor_embedding], negative_embeddings, reverse=True, k=1)[0]
-            else:
-                idx = None
-
-            if idx is not None:
-                apn = (pair_id, ap_cat_idx, a_img, p_img, n_possibilities[idx])
-                apns.append(apn)
-                not_none += 1
+                negative = n_possibilities[idx]
             else:
                 is_none += 1
+                continue
 
-        print(f"Build APN. Not None {not_none}. Is None {is_none}. len_one {len_one}. "
-              f"Not None - Len_One {(not_none - len_one)}")
+            apns.append((pair_id, ap_cat_idx, a_img, p_img, negative))
+            not_none += 1
+
+        print(f"Build APN. Not None {not_none}. Is None {is_none}")
 
         return apns
 
