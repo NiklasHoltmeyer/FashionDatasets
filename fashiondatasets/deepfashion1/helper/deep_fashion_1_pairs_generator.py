@@ -48,7 +48,7 @@ class DeepFashion1PairsGenerator:
 
             quadruplets_df.to_csv(csv_path, index=False)
 
-        return pd.read_csv(csv_path, nrows=self.nrows)
+        return pd.read_csv(csv_path, nrows=self.nrows).sample(frac=1).reset_index(drop=True)
 
     def encode_paths(self, pairs, retrieve_paths_fn):
         map_full_path = lambda p: str((self.image_base_path / p).resolve())
