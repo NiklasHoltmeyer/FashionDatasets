@@ -73,7 +73,7 @@ class DeepFashion1PairsGenerator:
 
         embeddings = []
         for batch in tqdm(images, desc=f"Build-Embeddings ({self.batch_size} Batch-Size)"):
-            embeddings.extend(self.model(batch))
+            embeddings.extend(self.model.predict(batch))
 
         for p, model_embedding in zip(paths, embeddings):
             self.encodings[p] = model_embedding
