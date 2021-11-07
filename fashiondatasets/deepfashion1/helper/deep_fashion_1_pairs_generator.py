@@ -160,7 +160,7 @@ class DeepFashion1PairsGenerator:
 
         anchor_positives = []
 
-        for ap_possibilities in ap_possibilities_chunked:
+        for ap_possibilities in tqdm(ap_possibilities_chunked, desc="Build AP"):
             batch_encodings = self.encode_paths(ap_possibilities, image_paths_from_pair)
 
             for pair_id, cat_idx, anchor_image, possibilities in ap_possibilities:
@@ -185,10 +185,10 @@ class DeepFashion1PairsGenerator:
         apns = []
         is_none, not_none, len_one = 0, 0, 0
 
-        for apn_possibilities in apn_possibilities_chunked:
+        for apn_possibilities in tqdm(apn_possibilities_chunked, desc="Build APN"):
             batch_encodings = self.encode_paths(apn_possibilities, image_paths_from_pair)
 
-            for pair_id, ap_cat_idx, a_img, p_img, n_possibilities in tqdm(apn_possibilities, desc="Build APN"):
+            for pair_id, ap_cat_idx, a_img, p_img, n_possibilities in apn_possibilities:
                 negative_embeddings = [batch_encodings[x] for x in n_possibilities]
 
                 if (len(negative_embeddings)) == 1:
@@ -217,7 +217,7 @@ class DeepFashion1PairsGenerator:
 
         apnn_possibilities_chunked = np.array_split(apnn_possibilities_all, self.n_chunks)
         apnns = []
-        for apnn_possibilities in apnn_possibilities_chunked:
+        for apnn_possibilities in tqdm(apnn_possibilities_chunked, desc="Build APNN"):
             batch_encodings = self.encode_paths(apnn_possibilities, image_paths_from_pair)
 
             for a, p, n, n2_possibilities in apnn_possibilities:
