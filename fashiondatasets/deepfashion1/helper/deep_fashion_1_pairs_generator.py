@@ -9,6 +9,8 @@ from tqdm.auto import tqdm
 import tensorflow as tf
 from fashiondatasets.own.helper.mappings import preprocess_image
 
+import numpy as np
+
 assert tf is not None or True  # PyCharm removes the Imports, even tho the Function/Classes are used
 assert preprocess_image is not None or True  # PyCharm removes the Imports, even tho the Function/Classes are used
 
