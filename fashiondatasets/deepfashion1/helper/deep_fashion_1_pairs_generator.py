@@ -72,7 +72,7 @@ class DeepFashion1PairsGenerator:
             .prefetch(tf.data.AUTOTUNE)
 
         embeddings = []
-        for batch in tqdm(images, desc="Build-Embeddings"):
+        for batch in tqdm(images, desc=f"Build-Embeddings ({self.batch_size} Batch-Size)"):
             embeddings.extend(self.model(batch))
 
         for p, model_embedding in zip(paths, embeddings):
