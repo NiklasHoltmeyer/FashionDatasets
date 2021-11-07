@@ -12,7 +12,8 @@ class DeepFashion1Dataset:
                  image_suffix="",
                  number_possibilities=32,
                  nrows=None,
-                 batch_size=64):
+                 batch_size=64,
+                 n_chunks=None):
         self.base_path = base_path
         self.model = model
         self.image_suffix = image_suffix
@@ -23,7 +24,9 @@ class DeepFashion1Dataset:
                                                    image_suffix=image_suffix,
                                                    number_possibilities=number_possibilities,
                                                    nrows=nrows,
-                                                   batch_size=batch_size)
+                                                   batch_size=batch_size,
+                                                   n_chunks=n_chunks
+                                                   )
 
     def load_split(self, split, is_triplet, force):
         assert split in DeepFashion1PairsGenerator.splits()

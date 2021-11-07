@@ -15,6 +15,7 @@ assert tf is not None or True  # PyCharm removes the Imports, even tho the Funct
 assert preprocess_image is not None or True  # PyCharm removes the Imports, even tho the Function/Classes are used
 assert np is not None or True
 
+
 class DeepFashion1PairsGenerator:
     def __init__(self,
                  base_path,
@@ -23,7 +24,10 @@ class DeepFashion1PairsGenerator:
                  number_possibilities=32,
                  nrows=None,
                  batch_size=64,
-                 n_chunks=50):
+                 n_chunks=None):
+        if n_chunks is None:
+            n_chunks = 1
+
         self.base_path = base_path
         self.model = model
         self.split_helper = DF1_Split_Extractor(self.base_path).load_helper()
@@ -57,12 +61,12 @@ class DeepFashion1PairsGenerator:
     def encode_paths(self, pairs, retrieve_paths_fn):
         map_full_path = lambda p: str((self.image_base_path / p).resolve())
 
-        #encodings_keys = self.batch_encodings.keys()
+        # encodings_keys = self.batch_encodings.keys()
         paths = (map(retrieve_paths_fn, pairs))
         paths = flatten(paths)
         paths = distinct(paths)
 
-        #paths = filter(lambda p: p not in encodings_keys, paths)
+        # paths = filter(lambda p: p not in encodings_keys, paths)
         paths = list(paths)
         paths_full = map(map_full_path, paths)
         paths_full = list(paths_full)
@@ -175,7 +179,7 @@ class DeepFashion1PairsGenerator:
     def build_anchor_positive_negatives(self, anchor_positives, split_data, ids_by_cat_idx):
         image_paths_from_pair = lambda d: [d[2], *d[-1]]
         apn_possibilities_all = list(self.walk_anchor_positive_negative_possibilities(anchor_positives,
-                                                                                  ids_by_cat_idx, split_data))
+                                                                                      ids_by_cat_idx, split_data))
 
         apn_possibilities_chunked = np.array_split(apn_possibilities_all, self.n_chunks)
         apns = []
@@ -228,21 +232,20 @@ class DeepFashion1PairsGenerator:
 
         return apnns
 
+    #        self.encode_paths(apnn_possibilities, image_paths_from_pair)
 
-#        self.encode_paths(apnn_possibilities, image_paths_from_pair)
+    #        apnns = []
+    #        for a, p, n, n2_possibilities in apnn_possibilities:
+    #            negative_embedding = self.encodings[n]
+    #            negative2_embeddings = [self.encodings[x] for x in n2_possibilities]
+    #            if (len(negative2_embeddings)) == 1:
+    #                idx = 0
+    #            else:
+    #                idx = find_top_k([negative_embedding], negative2_embeddings, reverse=True, k=1)[0]
+    #            apnn = (a, p, n, n2_possibilities[idx])
+    #            apnns.append(apnn)
 
-#        apnns = []
-#        for a, p, n, n2_possibilities in apnn_possibilities:
-#            negative_embedding = self.encodings[n]
-#            negative2_embeddings = [self.encodings[x] for x in n2_possibilities]
-#            if (len(negative2_embeddings)) == 1:
-#                idx = 0
-#            else:
-#                idx = find_top_k([negative_embedding], negative2_embeddings, reverse=True, k=1)[0]
-#            apnn = (a, p, n, n2_possibilities[idx])
-#            apnns.append(apnn)
-
-#        return apnns
+    #        return apnns
 
     def build(self, split, validate=True):
         split_data, ids_by_cat_idx = self.splits[split], self.ids_by_cat_idx[split]
@@ -364,13 +367,11 @@ if __name__ == "__main__":
 
     rand_emb = lambda: list(np.random.rand(5))
 
-
-#    class FakeEmbedder:
-#        def __call__(self, batch):
-#            return [rand_emb() for _ in range(5)]
-#        def predict(self, batch):
-#            return self(batch)
-
+    #    class FakeEmbedder:
+    #        def __call__(self, batch):
+    #            return [rand_emb() for _ in range(5)]
+    #        def predict(self, batch):
+    #            return self(batch)
 
     embedding_model = tf.keras.Sequential([
         tf.keras.layers.Conv2D(filters=64, kernel_size=2, padding='same', activation='relu',
