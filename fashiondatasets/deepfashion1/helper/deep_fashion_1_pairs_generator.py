@@ -81,7 +81,7 @@ class DeepFashion1PairsGenerator:
 
         embeddings = []
 
-        for batch in tqdm(images, desc=f"Build-Embeddings ({self.batch_size} Batch-Size)"):
+        for batch in images:
             batch_embeddings = self.model(batch)
             embeddings.extend(batch_embeddings)
 
@@ -160,7 +160,8 @@ class DeepFashion1PairsGenerator:
 
         anchor_positives = []
 
-        for ap_possibilities in tqdm(ap_possibilities_chunked, desc="Build AP"):
+        for ap_possibilities in tqdm(ap_possibilities_chunked, desc=f"Build AP "
+                                                                    f"(BS: {self.batch_size}. C: {self.n_chunks})"):
             batch_encodings = self.encode_paths(ap_possibilities, image_paths_from_pair)
 
             for pair_id, cat_idx, anchor_image, possibilities in ap_possibilities:
@@ -185,7 +186,8 @@ class DeepFashion1PairsGenerator:
         apns = []
         is_none, not_none, len_one = 0, 0, 0
 
-        for apn_possibilities in tqdm(apn_possibilities_chunked, desc="Build APN"):
+        for apn_possibilities in tqdm(apn_possibilities_chunked, desc=f"Build APN "
+                                                                      f"(BS: {self.batch_size}. C: {self.n_chunks})"):
             batch_encodings = self.encode_paths(apn_possibilities, image_paths_from_pair)
 
             for pair_id, ap_cat_idx, a_img, p_img, n_possibilities in apn_possibilities:
@@ -217,7 +219,8 @@ class DeepFashion1PairsGenerator:
 
         apnn_possibilities_chunked = np.array_split(apnn_possibilities_all, self.n_chunks)
         apnns = []
-        for apnn_possibilities in tqdm(apnn_possibilities_chunked, desc="Build APNN"):
+        for apnn_possibilities in tqdm(apnn_possibilities_chunked, desc=f"Build APNN "
+                                                                        f"(BS: {self.batch_size}. C: {self.n_chunks})"):
             batch_encodings = self.encode_paths(apnn_possibilities, image_paths_from_pair)
 
             for a, p, n, n2_possibilities in apnn_possibilities:
