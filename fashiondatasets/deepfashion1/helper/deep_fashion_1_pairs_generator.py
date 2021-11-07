@@ -13,7 +13,7 @@ import numpy as np
 
 assert tf is not None or True  # PyCharm removes the Imports, even tho the Function/Classes are used
 assert preprocess_image is not None or True  # PyCharm removes the Imports, even tho the Function/Classes are used
-
+assert np is not None or True
 
 class DeepFashion1PairsGenerator:
     def __init__(self,
@@ -22,7 +22,8 @@ class DeepFashion1PairsGenerator:
                  image_suffix="",
                  number_possibilities=32,
                  nrows=None,
-                 batch_size=64):
+                 batch_size=64,
+                 n_chunks=50):
         self.base_path = base_path
         self.model = model
         self.split_helper = DF1_Split_Extractor(self.base_path).load_helper()
@@ -34,9 +35,10 @@ class DeepFashion1PairsGenerator:
         img_folder_name = "img" + image_suffix
         self.image_base_path = Path(base_path, img_folder_name)
         self.nrows = nrows
-        self.encodings = {}
+
         self.batch_size = batch_size
         self.number_possibilities = number_possibilities
+        self.n_chunks = n_chunks
 
     def load(self, split, force=False, validate=True):
         # force only for train
@@ -55,18 +57,18 @@ class DeepFashion1PairsGenerator:
     def encode_paths(self, pairs, retrieve_paths_fn):
         map_full_path = lambda p: str((self.image_base_path / p).resolve())
 
-        encodings_keys = self.encodings.keys()
+        #encodings_keys = self.batch_encodings.keys()
         paths = (map(retrieve_paths_fn, pairs))
         paths = flatten(paths)
         paths = distinct(paths)
 
-        paths = filter(lambda p: p not in encodings_keys, paths)
+        #paths = filter(lambda p: p not in encodings_keys, paths)
         paths = list(paths)
         paths_full = map(map_full_path, paths)
         paths_full = list(paths_full)
 
         if len(paths_full) < 1:
-            return
+            return None
 
         images = tf.data.Dataset.from_tensor_slices(paths_full) \
             .map(preprocess_image((224, 224))) \
@@ -74,12 +76,19 @@ class DeepFashion1PairsGenerator:
             .prefetch(tf.data.AUTOTUNE)
 
         embeddings = []
+
         for batch in tqdm(images, desc=f"Build-Embeddings ({self.batch_size} Batch-Size)"):
-            batch_embeddings = self.model.predict(batch)
+            batch_embeddings = self.model(batch)
             embeddings.extend(batch_embeddings)
 
+        assert len(embeddings) == len(paths), f"{len(embeddings)} {len(paths)}"
+
+        batch_encodings = {}
+
         for p, model_embedding in zip(paths, embeddings):
-            self.encodings[p] = model_embedding
+            batch_encodings[p] = model_embedding
+
+        return batch_encodings
 
     @staticmethod
     def walk_anchor_positive_possibilities(split_data):
@@ -143,16 +152,16 @@ class DeepFashion1PairsGenerator:
         ap_possibilities_all = list(self.walk_anchor_positive_possibilities(splits))
         image_paths_from_pair = lambda d: [d[2], *d[-1]]
 
-        ap_possibilities_chunked = np.array_split(ap_possibilities_all, 10)
+        ap_possibilities_chunked = np.array_split(ap_possibilities_all, self.n_chunks)
 
         anchor_positives = []
 
         for ap_possibilities in ap_possibilities_chunked:
-            self.encode_paths(ap_possibilities, image_paths_from_pair)
+            batch_encodings = self.encode_paths(ap_possibilities, image_paths_from_pair)
 
             for pair_id, cat_idx, anchor_image, possibilities in ap_possibilities:
-                anchor_embedding = self.encodings[anchor_image]
-                positive_embeddings = [self.encodings[x] for x in possibilities]
+                anchor_embedding = batch_encodings[anchor_image]
+                positive_embeddings = [batch_encodings[x] for x in possibilities]
 
                 if (len(positive_embeddings)) == 1:
                     idx = 0
@@ -161,32 +170,28 @@ class DeepFashion1PairsGenerator:
 
                 ap = (pair_id, cat_idx, anchor_image, possibilities[idx])
                 anchor_positives.append(ap)
-
-            del self.encodings
-            self.encodings = {}
-
         return anchor_positives
 
     def build_anchor_positive_negatives(self, anchor_positives, split_data, ids_by_cat_idx):
-        image_paths_from_pair = lambda d: d[-1]
+        image_paths_from_pair = lambda d: [d[2], *d[-1]]
         apn_possibilities_all = list(self.walk_anchor_positive_negative_possibilities(anchor_positives,
                                                                                   ids_by_cat_idx, split_data))
 
-        apn_possibilities_chunked = np.array_split(apn_possibilities_all, 10)
+        apn_possibilities_chunked = np.array_split(apn_possibilities_all, self.n_chunks)
         apns = []
         is_none, not_none, len_one = 0, 0, 0
 
         for apn_possibilities in apn_possibilities_chunked:
-            self.encode_paths(apn_possibilities, image_paths_from_pair)
+            batch_encodings = self.encode_paths(apn_possibilities, image_paths_from_pair)
 
             for pair_id, ap_cat_idx, a_img, p_img, n_possibilities in tqdm(apn_possibilities, desc="Build APN"):
-                negative_embeddings = [self.encodings[x] for x in n_possibilities]
+                negative_embeddings = [batch_encodings[x] for x in n_possibilities]
 
                 if (len(negative_embeddings)) == 1:
                     negative = n_possibilities[0]
                     len_one += 1
                 elif (len(negative_embeddings)) > 1:
-                    anchor_embedding = self.encodings[a_img]
+                    anchor_embedding = batch_encodings[a_img]
                     idx = find_top_k([anchor_embedding], negative_embeddings, reverse=True, k=1)[0]
                     negative = n_possibilities[idx]
                 else:
@@ -196,36 +201,30 @@ class DeepFashion1PairsGenerator:
                 apns.append((pair_id, ap_cat_idx, a_img, p_img, negative))
                 not_none += 1
 
-            del self.encodings
-            self.encodings = {}
-
         print(f"Build APN. Not None {not_none}. Is None {is_none}. len_one {len_one}")
 
         return apns
 
     def build_anchor_positive_negative_negatives(self, anchor_positive_negatives, split_data, ids_by_cat_idx):
-        image_paths_from_pair = lambda d: d[-1]
+        image_paths_from_pair = lambda d: [d[-2], *d[-1]]
         apnn_possibilities_all = list(
             self.walk_anchor_positive_negative_negative_possibilities(anchor_positive_negatives, split_data,
                                                                       ids_by_cat_idx))
 
-        apnn_possibilities_chunked = np.array_split(apnn_possibilities_all, 10)
+        apnn_possibilities_chunked = np.array_split(apnn_possibilities_all, self.n_chunks)
         apnns = []
         for apnn_possibilities in apnn_possibilities_chunked:
-            self.encode_paths(apnn_possibilities, image_paths_from_pair)
+            batch_encodings = self.encode_paths(apnn_possibilities, image_paths_from_pair)
 
             for a, p, n, n2_possibilities in apnn_possibilities:
-                negative_embedding = self.encodings[n]
-                negative2_embeddings = [self.encodings[x] for x in n2_possibilities]
+                negative_embedding = batch_encodings[n]
+                negative2_embeddings = [batch_encodings[x] for x in n2_possibilities]
                 if (len(negative2_embeddings)) == 1:
                     idx = 0
                 else:
                     idx = find_top_k([negative_embedding], negative2_embeddings, reverse=True, k=1)[0]
                 apnn = (a, p, n, n2_possibilities[idx])
                 apnns.append(apnn)
-
-            del self.encodings
-            self.encodings = {}
 
         return apnns
 
@@ -366,16 +365,25 @@ if __name__ == "__main__":
     rand_emb = lambda: list(np.random.rand(5))
 
 
-    class FakeEmbedder:
-        def __call__(self, batch):
-            return [rand_emb() for _ in range(5)]
+#    class FakeEmbedder:
+#        def __call__(self, batch):
+#            return [rand_emb() for _ in range(5)]
+#        def predict(self, batch):
+#            return self(batch)
 
 
-    embedding = FakeEmbedder()
+    embedding_model = tf.keras.Sequential([
+        tf.keras.layers.Conv2D(filters=64, kernel_size=2, padding='same', activation='relu',
+                               input_shape=(224, 224, 3)),
+        tf.keras.layers.Flatten(),
+        tf.keras.layers.Dense(5, activation=None),  # No activation on final dense layer
+    ])
+
     base_path = r"F:\workspace\datasets\deep_fashion_1_256"
 
     for split in ["val", "train", "test"]:
-        generator = DeepFashion1PairsGenerator(base_path, FakeEmbedder(), "_256")
+        generator = DeepFashion1PairsGenerator(base_path, embedding_model, "_256")
         force = split == "val"  # <- for debugging just take the smallest split lul
         df = generator.load(split, force=force)
         DeepFashion1PairsGenerator.validate_dataframe(df)
+        break
