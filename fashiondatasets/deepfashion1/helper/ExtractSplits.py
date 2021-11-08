@@ -29,7 +29,7 @@ class DF1_Split_Extractor:
 
     def dump_split(self):
         entries = self._retrieve_entries()
-        grouped_entries = self._group_entries(entries)
+        grouped_entries = self.group_by_split(entries)
         grouped_entries, cat_name_by_idxs, cat_idx_by_name = self.encode_labels(grouped_entries)
         ids_by_cat_idx = self.generate_ids_by_cat(grouped_entries)
 
@@ -61,40 +61,15 @@ class DF1_Split_Extractor:
         return entries
 
     @staticmethod
-    def _group_entries(entries):
-        item_ids_by_split = defaultdict(lambda: [])
-        split_by_id = defaultdict(lambda: [])
-        images_by_id = defaultdict(lambda: defaultdict(lambda: []))
-
-        for entry in entries:
-            image_1, image_2, _id, split = entry
-            item_ids_by_split[split].append(_id)
-            split_by_id[_id].append(split)
-
-            images = [image_1, image_2]
-            for image_group in [CONSUMER, "shop"]:
-                imgs_by_group = list(filter(lambda i: image_group in i, images))
-                images_by_id[_id][image_group].extend(imgs_by_group)
-
-        images_by_id_distinct = {}
-
-        for article_id, img_dict in images_by_id.items():
-            clean_img_dict = {
-                k: distinct(v) for k, v in img_dict.items()
-            }
-
-            images_by_id_distinct[article_id] = clean_img_dict
-
-        grouped_data = defaultdict(lambda: [])
-        for _id, c2s in images_by_id_distinct.items():
-            splits = distinct(split_by_id[_id])
-            assert len(splits) == 1
-            split = splits[0]
-            grouped_data[split].append({_id: c2s})
-
-        flatten_split = lambda split_data: {k: v for d in split_data for k, v in d.items()}
-
-        return {k: flatten_split(v) for k, v in grouped_data.items()}
+    def group_by_split(entries):
+        r = defaultdict(lambda: [])
+        for i1, i2, _id, split in entries:
+            assert (CONSUMER in i1)
+            assert ("shop" in i2)
+            assert _id in i1
+            assert _id in i2
+            r[split].append((i1, i2, _id))
+        return dict(r)
 
     def category_mappings(self):
         img_base_path = Path(self.base_path, "Img", "img")
@@ -106,37 +81,34 @@ class DF1_Split_Extractor:
             cat_name = tl_cat  # "/".join([tl_cat, cat])
             cat_name_by_idxs[tl_idx] = cat_name
             cat_idx_by_name[cat_name] = tl_idx
-#            for idx, cat in enumerate(os.listdir(img_base_path / tl_cat)):
-#                # cat_name_by_idxs[tl_idx][idx] = cat_name
-#                # cat_idx_by_name[cat_name] = (tl_idx, idx)
 
         return cat_name_by_idxs, cat_idx_by_name
 
     def encode_labels(self, grouped_entries):
         cat_name_by_idxs, cat_idx_by_name = self.category_mappings()
 
+        r = {}
         for split, split_data in grouped_entries.items():
-            for pair_id, images in split_data.items():
-                sample_img = images["shop"][0]
-                # cat_groups = sample_img.split("/")[-4:-2]
-                cat_groups = sample_img.split("/")[1]
-
-                # images["cat_name"] = "/".join(cat_groups)
-                images["cat_name"] = cat_groups
-                images["cat_idx"] = cat_idx_by_name[images["cat_name"]]
-
-        return grouped_entries, cat_name_by_idxs, cat_idx_by_name
+            r[split] = []
+            for c_img, s_img, pair_id in split_data:
+                cat_name = c_img.split("/")[1]
+                cat_idx = cat_idx_by_name[cat_name]
+                r[split].append({
+                    "anchor": c_img,
+                    "positive": s_img,
+                    "cat_idx": cat_idx,
+                    "cat_name": cat_name,
+                    "pair_id": pair_id
+                })
+        return r, cat_name_by_idxs, cat_idx_by_name
 
     @staticmethod
     def generate_ids_by_cat(grouped_entries):
-        # ids_by_cat_split = defaultdict(lambda: defaultdict(lambda: defaultdict(lambda: [])))
         ids_by_cat_split = defaultdict(lambda: defaultdict(lambda: []))
 
         for split, split_data in grouped_entries.items():
-            for _id, data in split_data.items():
-                cat_idx = data["cat_idx"]
-                ids_by_cat_split[split][cat_idx].append(_id)
-                # ids_by_cat_split[split][cat_idx[0]][cat_idx[1]].append(_id)
+            for data in split_data:
+                ids_by_cat_split[split][data["cat_idx"]].append(data)
 
         return ids_by_cat_split
 

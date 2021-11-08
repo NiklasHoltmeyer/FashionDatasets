@@ -19,6 +19,7 @@ def visualize(anchors, positive, negatives1, negatives2=None, fig_size=(9, 9), b
         ax.imshow(image)
         ax.get_xaxis().set_visible(False)
         ax.get_yaxis().set_visible(False)
+        ax.autoscale_view('tight')
 
     fig = plt.figure(figsize=fig_size)
     if negatives2:
