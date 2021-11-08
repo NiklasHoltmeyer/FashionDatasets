@@ -100,9 +100,7 @@ class DeepFashion1PairsGenerator:
         return batch_encodings
 
     @staticmethod
-    def walk_anchor_positive_possibilities(split_data, force_cat_level=0):
-        column_keys = ["pair_id", "cat_idx", "anchor", "positive"]
-
+    def is_valid_category(force_cat_level):
         def is_valid_category(a, p):
             if force_cat_level == 0:
                 return True
@@ -114,52 +112,83 @@ class DeepFashion1PairsGenerator:
 
             raise Exception("Unknown Cat Level")
 
+        return is_valid_category
+
+    @staticmethod
+    def walk_anchor_positive_possibilities(split_data, force_cat_level=0):
+        column_keys = ["pair_id", "cat_idx", "anchor", "positive"]
+        _is_valid_cat = DeepFashion1PairsGenerator.is_valid_category(force_cat_level)
         for d in split_data:
             pair_id, cat_idx, anchor_image, positive = [d[k] for k in column_keys]
 
-            if is_valid_category(anchor_image, positive):
+            if _is_valid_cat(anchor_image, positive):
                 yield pair_id, str(cat_idx), anchor_image, positive
 
-    def walk_anchor_positive_negative_possibilities(self, anchor_positives, ids_by_cat_idx):
+    def walk_anchor_positive_negative_possibilities(self, anchor_positives, ids_by_cat_idx, force_cat_level=0):
         # random.sample(split_data[possible_ids[0]][CONSUMER], 1)[0]
-        for idx, (pair_id, cat_idxs, anchor, positive) in tqdm(enumerate(anchor_positives),
-                                                               desc="Sample Possible Negative1's"):
-            cat_name = self.cat_name_by_idxs[cat_idxs]
+        _is_valid_cat = DeepFashion1PairsGenerator.is_valid_category(force_cat_level)
 
+        n_ap_pairs = len(anchor_positives)
+
+        image_source = (["positive"] * 4 + ["anchor"] * 4) * ((n_ap_pairs // 8) + 1)  # In-Shop vs Consumer
+        image_source = image_source[:n_ap_pairs]
+        # 50/50 split
+        assert len(image_source) == n_ap_pairs, [len(image_source), n_ap_pairs]  # <- Per AP-Pair
+
+        for idx, ((pair_id, cat_idxs, anchor, positive), target_img_source) in tqdm(
+                enumerate((zip(anchor_positives, image_source))),
+                desc="Sample Possible Negative1's",
+                total=n_ap_pairs):
             random_possibilities = ids_by_cat_idx[cat_idxs]
             n_samples = min((self.number_possibilities + 20), len(random_possibilities))
             possible_negatives = random.sample(random_possibilities, n_samples)
 
             possible_negatives = filter(lambda d: d["pair_id"] != pair_id, possible_negatives)
-            possible_negatives = map(lambda d: d["positive"],
+            possible_negatives = map(lambda d: d[target_img_source],
                                      possible_negatives)  # <- Positive only means Shop Images - for this Statement
-            possible_negatives = filter(lambda i: cat_name in i, possible_negatives)
+            possible_negatives = filter(lambda i: _is_valid_cat(positive, i), possible_negatives)
             possible_negatives = list(possible_negatives)[:self.number_possibilities]
 
             if len(possible_negatives) > 0:
                 yield pair_id, cat_idxs, anchor, positive, possible_negatives
 
     def walk_anchor_positive_negative_negative_possibilities(self, anchor_positive_negatives,
-                                                             split_data, ids_by_cat_idx):
+                                                             ids_by_cat_idx, force_cat_level=0):
         random_cat_gen = DeepFashion1PairsGenerator.random_cat_generator(ids_by_cat_idx)
+        _is_valid_cat = DeepFashion1PairsGenerator.is_valid_category(force_cat_level)
 
-        for pair_id, ap_cat_idx, a_img, p_img, n_img in tqdm(anchor_positive_negatives, desc="Sample Possible "
-                                                                                             "Negative2's"):
+        assert force_cat_level != 2, "Force Cat Level 2 is redundant for Negative 2 use 0 or 1"
+
+        n_apn_pairs = len(anchor_positive_negatives)
+        image_source = (["positive"] * 4 + ["anchor"] * 4) * ((n_apn_pairs // 8) + 1)  # In-Shop vs Consumer
+        image_source = image_source[:n_apn_pairs]
+        assert len(image_source) == n_apn_pairs, [len(image_source), n_apn_pairs]
+
+        for (pair_id, ap_cat_idx, a_img, p_img, n_img), target_img_source in tqdm(zip(anchor_positive_negatives,
+                                                                                      image_source),
+                                                                                  desc="Sample Possible Negative2's",
+                                                                                  total=n_apn_pairs):
             n_p_id = n_img.split("/")[-2]
 
             r_cat = random_cat_gen(ap_cat_idx)
             possible_ids = ids_by_cat_idx[r_cat]
             n_samples = min((self.number_possibilities + 20), len(possible_ids))
             possible_negative2 = random.sample(possible_ids, n_samples)
-            possible_negative2 = filter(lambda d: d["pair_id"] != pair_id and d["pair_id"]!=n_p_id, possible_negative2)
-            possible_negative2 = map(lambda d: d["anchor"],
+            possible_negative2 = filter(lambda d: d["pair_id"] != pair_id and d["pair_id"] != n_p_id,
+                                        possible_negative2)
+
+            possible_negative2 = map(lambda d: d[target_img_source],
                                      possible_negative2)  # Anchor only refers to Consumer Images in this Case
+
+            possible_negative2 = filter(lambda i: not _is_valid_cat(n_img, i), possible_negative2)
+
             possible_negative2 = list(possible_negative2)[:self.number_possibilities]
 
-            yield a_img, p_img, n_img, possible_negative2
+            if len(possible_negative2) > 0:
+                yield a_img, p_img, n_img, possible_negative2
 
-    def build_anchor_positives(self, splits):
-        ap_possibilities_all = list(self.walk_anchor_positive_possibilities(splits, 2))
+    def build_anchor_positives(self, splits, force_cat_level):
+        ap_possibilities_all = list(self.walk_anchor_positive_possibilities(splits, force_cat_level))
 
         # image_paths_from_pair = lambda d: [d[2], d[-1]]
 
@@ -187,10 +216,10 @@ class DeepFashion1PairsGenerator:
         #                anchor_positives.append(ap)
         return anchor_positives
 
-    def build_anchor_positive_negatives(self, anchor_positives, split_data, ids_by_cat_idx):
+    def build_anchor_positive_negatives(self, anchor_positives, ids_by_cat_idx, force_cat_level):
         image_paths_from_pair = lambda d: [d[2], *d[-1]]
         apn_possibilities_all = list(self.walk_anchor_positive_negative_possibilities(anchor_positives,
-                                                                                      ids_by_cat_idx))
+                                                                                      ids_by_cat_idx, force_cat_level))
 
         apn_possibilities_chunked = np.array_split(apn_possibilities_all, self.n_chunks)
         apns = []
@@ -227,11 +256,11 @@ class DeepFashion1PairsGenerator:
 
         return apns
 
-    def build_anchor_positive_negative_negatives(self, anchor_positive_negatives, split_data, ids_by_cat_idx):
+    def build_anchor_positive_negative_negatives(self, anchor_positive_negatives, ids_by_cat_idx, force_cat_level):
         image_paths_from_pair = lambda d: [d[-2], *d[-1]]
         apnn_possibilities_all = list(
-            self.walk_anchor_positive_negative_negative_possibilities(anchor_positive_negatives, split_data,
-                                                                      ids_by_cat_idx))
+            self.walk_anchor_positive_negative_negative_possibilities(anchor_positive_negatives, ids_by_cat_idx,
+                                                                      force_cat_level))
 
         apnn_possibilities_chunked = np.array_split(apnn_possibilities_all, self.n_chunks)
         apnns = []
@@ -273,20 +302,30 @@ class DeepFashion1PairsGenerator:
     #        return apnns
 
     def build(self, split, validate=True):
+        force_cat_level = 2
+
         split_data, ids_by_cat_idx = self.splits[split], self.ids_by_cat_idx[split]
 
-        anchor_positives = self.build_anchor_positives(split_data)
+        anchor_positives = self.build_anchor_positives(split_data, force_cat_level)
 
         if validate:
             self.validate_anchor_positives(anchor_positives)
 
-        anchor_positive_negatives = self.build_anchor_positive_negatives(anchor_positives, split_data, ids_by_cat_idx)
+        anchor_positive_negatives = self.build_anchor_positive_negatives(anchor_positives, ids_by_cat_idx,
+                                                                         force_cat_level)
 
         if validate:
             self.validate_anchor_positive_negatives(anchor_positive_negatives)
 
-        anchor_positive_negative_negatives = self.build_anchor_positive_negative_negatives(anchor_positive_negatives,
-                                                                                           split_data, ids_by_cat_idx)
+        if force_cat_level == 2:
+            anchor_positive_negative_negatives = self.build_anchor_positive_negative_negatives(
+                anchor_positive_negatives,
+                ids_by_cat_idx, 1)
+        else:
+            anchor_positive_negative_negatives = self.build_anchor_positive_negative_negatives(
+                anchor_positive_negatives,
+                ids_by_cat_idx, force_cat_level)
+
         if validate:
             self.validate_anchor_positive_negative_negatives(anchor_positive_negative_negatives)
 
@@ -397,5 +436,5 @@ if __name__ == "__main__":
     for split in ["val", "train", "test"]:
         generator = DeepFashion1PairsGenerator(base_path, None, "_256")
         force = split == "val"  # <- for debugging just take the smallest split lul
-        df = generator.load(split, force=True)
+        df = generator.load(split, force=force)
         DeepFashion1PairsGenerator.validate_dataframe(df)

@@ -22,7 +22,7 @@ def visualize(anchors, positive, negatives1, negatives2=None, fig_size=(9, 9), b
         ax.autoscale_view('tight')
 
     fig = plt.figure(figsize=fig_size)
-    if negatives2:
+    if negatives2 is not None:  #if negative2 does not work
         axs = fig.subplots(n_samples, 4)
     else:
         axs = fig.subplots(n_samples, 3)
@@ -31,7 +31,7 @@ def visualize(anchors, positive, negatives1, negatives2=None, fig_size=(9, 9), b
         show(axs[i, 0], load_image(anchors[i]))
         show(axs[i, 1], load_image(positive[i]))
         show(axs[i, 2], load_image(negatives1[i]))
-        if negatives2:
+        if negatives2 is not None:
             show(axs[i, 3], load_image(negatives2[i]))
 
 
