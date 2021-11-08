@@ -100,11 +100,25 @@ class DeepFashion1PairsGenerator:
         return batch_encodings
 
     @staticmethod
-    def walk_anchor_positive_possibilities(split_data):
+    def walk_anchor_positive_possibilities(split_data, force_cat_level=0):
         column_keys = ["pair_id", "cat_idx", "anchor", "positive"]
+
+        def is_valid_category(a, p):
+            if force_cat_level == 0:
+                return True
+            if force_cat_level == 1:
+                return a.split("/")[1] == p.split("/")[1]
+
+            if force_cat_level == 2:
+                return "".join((a.split("/")[1:3])) == "".join((p.split("/")[1:3]))
+
+            raise Exception("Unknown Cat Level")
+
         for d in split_data:
             pair_id, cat_idx, anchor_image, positive = [d[k] for k in column_keys]
-            yield pair_id, str(cat_idx), anchor_image, positive
+
+            if is_valid_category(anchor_image, positive):
+                yield pair_id, str(cat_idx), anchor_image, positive
 
     def walk_anchor_positive_negative_possibilities(self, anchor_positives, ids_by_cat_idx):
         # random.sample(split_data[possible_ids[0]][CONSUMER], 1)[0]
@@ -131,11 +145,13 @@ class DeepFashion1PairsGenerator:
 
         for pair_id, ap_cat_idx, a_img, p_img, n_img in tqdm(anchor_positive_negatives, desc="Sample Possible "
                                                                                              "Negative2's"):
+            n_p_id = n_img.split("/")[-2]
+
             r_cat = random_cat_gen(ap_cat_idx)
             possible_ids = ids_by_cat_idx[r_cat]
             n_samples = min((self.number_possibilities + 20), len(possible_ids))
             possible_negative2 = random.sample(possible_ids, n_samples)
-            possible_negative2 = filter(lambda d: d["pair_id"] != pair_id, possible_negative2)
+            possible_negative2 = filter(lambda d: d["pair_id"] != pair_id and d["pair_id"]!=n_p_id, possible_negative2)
             possible_negative2 = map(lambda d: d["anchor"],
                                      possible_negative2)  # Anchor only refers to Consumer Images in this Case
             possible_negative2 = list(possible_negative2)[:self.number_possibilities]
@@ -143,7 +159,8 @@ class DeepFashion1PairsGenerator:
             yield a_img, p_img, n_img, possible_negative2
 
     def build_anchor_positives(self, splits):
-        ap_possibilities_all = list(self.walk_anchor_positive_possibilities(splits))
+        ap_possibilities_all = list(self.walk_anchor_positive_possibilities(splits, 2))
+
         # image_paths_from_pair = lambda d: [d[2], d[-1]]
 
         anchor_positives = []
@@ -207,8 +224,6 @@ class DeepFashion1PairsGenerator:
                     apns.append((pair_id, ap_cat_idx, a_img, p_img, negative))
                     len_one += 1
                     not_none += 1
-
-        print(f"Build APN. Not None {not_none}. Is None {is_none}. len_one {len_one}")
 
         return apns
 
@@ -279,6 +294,8 @@ class DeepFashion1PairsGenerator:
         success_ratio = 100 * len(anchor_positive_negative_negatives) / total_number_possible_anchors
         assert success_ratio >= 88, f"{success_ratio:.2f}% < 88.00%"
 
+        print(f"Building Pairs Success Ratio: {success_ratio}")
+
         return anchor_positive_negative_negatives
 
     @staticmethod
@@ -312,7 +329,8 @@ class DeepFashion1PairsGenerator:
             a_cat, p_cat, n1_cat, n2_cat = [x[0] for x in [a, p, n1, n2]]
 
             cats_valid = all([
-                a_cat == p_cat, p_cat == n1_cat, n1_cat != n2_cat
+                a_cat == n1_cat, a_cat == p_cat, a_cat != n2_cat,
+                n1_cat != n2_cat,
             ])
 
             if not pids_valid or not cats_valid:
@@ -323,6 +341,7 @@ class DeepFashion1PairsGenerator:
                     msg += "Categories Failed. "
                 print(msg)
                 [print(x, *y) for x, y in zip(["a", "p", "n1", "n2"], [a, p, n1, n2])]
+                print(a_cat, p_cat, n1_cat, n2_cat)
                 assert False
 
     # pair_id, cat_idx, anchor_image, possibilities[idx]
@@ -373,33 +392,10 @@ class DeepFashion1PairsGenerator:
 
 
 if __name__ == "__main__":
-    import tensorflow as tf
-    from fashiondatasets.own.helper.mappings import preprocess_image
-
-    import numpy as np
-
-    rand_emb = lambda: list(np.random.rand(5))
-
-
-    class FakeEmbedder:
-        def __call__(self, batch):
-            return [rand_emb() for _ in range(5)]
-
-        def predict(self, batch):
-            return self(batch)
-
-
-    embedding_model = tf.keras.Sequential([
-        tf.keras.layers.Conv2D(filters=64, kernel_size=2, padding='same', activation='relu',
-                               input_shape=(224, 224, 3)),
-        tf.keras.layers.Flatten(),
-        tf.keras.layers.Dense(5, activation=None),  # No activation on final dense layer
-    ])
-
     base_path = r"F:\workspace\datasets\deep_fashion_1_256"
 
     for split in ["val", "train", "test"]:
         generator = DeepFashion1PairsGenerator(base_path, None, "_256")
         force = split == "val"  # <- for debugging just take the smallest split lul
-        df = generator.load(split, force=force)
+        df = generator.load(split, force=True)
         DeepFashion1PairsGenerator.validate_dataframe(df)
