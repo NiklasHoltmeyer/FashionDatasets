@@ -46,7 +46,7 @@ def save_batch_encodings(batch_encodings, embedding_path):
     for path, embedding in batch_encodings.items():
         clean_f_name = path.replace("img/", "").replace("/", "-") + ".npy"
         emb_path = Path(embedding_path, clean_f_name)
-        save_jobs.append(emb_path, embedding)
+        save_jobs.append((emb_path, embedding))
 
     parallel_map(lst=save_jobs, fn=save_job, desc="Saving Encoding Batch")
 
