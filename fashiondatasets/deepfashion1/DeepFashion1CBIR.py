@@ -10,7 +10,7 @@ import tensorflow as tf
 from fashiondatasets.own.helper.mappings import preprocess_image
 
 class DeepFashion1CBIR:
-    def __init__(self, base_path, model, split_keys=None, batch_size=64):
+    def __init__(self, base_path, model, image_suffix="", split_keys=None, batch_size=64):
         if split_keys is None:
             split_keys = ["val", "test"]  # <- default Splits for CBIR Benckmark according to the ReadMe
 
@@ -27,7 +27,9 @@ class DeepFashion1CBIR:
         self.gallery = build_gallery(list_of_splits)
         self.queries = build_queries(list_of_splits)
 
-        self.full_path = lambda p: str(Path(base_path, p).resolve())
+        img_folder_name = "img" + image_suffix
+        self.image_base_path = Path(base_path, img_folder_name)
+        self.full_path = lambda p: str(Path(self.image_base_path, p).resolve())
         self.batch_size = batch_size
         self.model = model
 
