@@ -37,6 +37,18 @@ def build_queries(splits):
 def flatten_distinct_values(dictionary):
     return distinct(flatten(dictionary.values()))
 
+
+def jpg_to_npy_path(embedding_path, img_path):
+    clean_f_name = img_path.replace("img/", "").replace("/", "-").replace(".jpg", ".npy")
+    return str(Path(embedding_path, clean_f_name).resolve())
+
+#def npy_to_jpg_path(embedding_path, npy_path):
+#    if not type(embedding_path) == str:
+#        embedding_path = str(embedding_path.resolve())
+
+#    jpg_path = "/img/" + npy_path.replace(embedding_path, "").replace("-", "/").replace(".npy", ".jpg")
+#    return jpg_path
+
 def save_batch_encodings(batch_encodings, embedding_path):
     def save_job(d):
         emb_path, embedding = d
@@ -44,8 +56,7 @@ def save_batch_encodings(batch_encodings, embedding_path):
 
     save_jobs = []
     for path, embedding in batch_encodings.items():
-        clean_f_name = path.replace("img/", "").replace("/", "-") + ".npy"
-        emb_path = Path(embedding_path, clean_f_name)
+        emb_path = jpg_to_npy_path(embedding_path, path)
         save_jobs.append((emb_path, embedding))
 
     parallel_map(lst=save_jobs, fn=save_job, desc="Saving Encoding Batch")

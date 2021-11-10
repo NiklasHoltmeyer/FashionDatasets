@@ -1,3 +1,5 @@
+import os
+import shutil
 from pathlib import Path
 
 from fashionscrapper.utils.list import distinct
@@ -6,8 +8,9 @@ from fashiondatasets.deepfashion1.helper.ExtractSplits import DF1_Split_Extracto
 from fashiondatasets.deepfashion1.helper.cbir_helper import build_gallery, build_queries, flatten_distinct_values, \
     save_batch_encodings
 import tensorflow as tf
-
+from tqdm.auto import tqdm
 from fashiondatasets.own.helper.mappings import preprocess_image
+
 
 class DeepFashion1CBIR:
     def __init__(self, base_path, model, image_suffix="", split_keys=None, batch_size=64):
@@ -33,7 +36,7 @@ class DeepFashion1CBIR:
         self.batch_size = batch_size
         self.model = model
 
-    def bulk_embed(self, embedding_path):
+    def bulk_embed(self, embedding_path, zip=False):
         embedding_path = Path(embedding_path)
         embedding_path.mkdir(parents=True, exist_ok=True)
 
@@ -42,8 +45,9 @@ class DeepFashion1CBIR:
 
         image_chunks = np.array_split(list(zip(images_paths, image_full_paths)), 10)
 
-        for image_chunk in image_chunks:
+        for image_chunk in tqdm(image_chunks, desc="Build Encodings (Outer)"):
             img_paths, img_full_paths = list(zip(*image_chunk))
+            img_paths, img_full_paths = list(img_paths), list(img_full_paths)
             assert len(img_paths) == len(img_full_paths)
 
             images = tf.data.Dataset.from_tensor_slices(img_full_paths) \
@@ -53,7 +57,7 @@ class DeepFashion1CBIR:
 
             embeddings = []
 
-            for batch in images:
+            for batch in tqdm(images, desc="Build Encodings (Inner)"):
                 batch_embeddings = self.model(batch)
                 embeddings.extend(batch_embeddings)
 
@@ -66,7 +70,11 @@ class DeepFashion1CBIR:
 
             save_batch_encodings(batch_encodings, embedding_path)
 
-        return embedding_path
+        assert len(os.listdir(embedding_path)) == len(images_paths)
+
+        if zip:
+            return embedding_path
+        return shutil.make_archive(embedding_path, 'zip', embedding_path)
 
     def distinct_images(self):
         gallery_flattened = flatten_distinct_values(self.gallery)
