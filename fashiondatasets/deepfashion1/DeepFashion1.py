@@ -19,7 +19,7 @@ class DeepFashion1Dataset:
         self.image_suffix = image_suffix
         self.number_possibilities = number_possibilities
         self.nrows = nrows
-        self.batch_size=batch_size
+        self.batch_size = batch_size
         self.pair_gen = DeepFashion1PairsGenerator(base_path, model=model,
                                                    image_suffix=image_suffix,
                                                    number_possibilities=number_possibilities,

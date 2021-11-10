@@ -60,17 +60,17 @@ class DeepFashion2PairsGenerator:
             return choice
 
     @staticmethod
-    def choose_possibility_by_distance(pivot, possibilities, reverse):
+    def choose_possibility_by_distance(pivot, possibilities, most_similar):
         possibilites_embeddings = [x["embedding"] for x in possibilities]
         pivot_embedding = [pivot["embedding"]]
 
-        idx = find_top_k(pivot_embedding, possibilites_embeddings, reverse=reverse, k=1)[0]
+        idx = find_top_k(pivot_embedding, possibilites_embeddings, most_similar=most_similar, k=1)[0]
         return possibilities[idx]
 
-    def choose_possibility(self, pivot, possibilities, reverse):
+    def choose_possibility(self, pivot, possibilities, most_similar):
         if not self.embedding or len(possibilities) == 1:
             return self.choose_possibility_by_round_robin(possibilities)
-        return self.choose_possibility_by_distance(pivot, possibilities, reverse=reverse)
+        return self.choose_possibility_by_distance(pivot, possibilities, reverse=most_similar)
 
     def build_anchor_positives(self, split):
         self._load(split)
@@ -120,7 +120,7 @@ class DeepFashion2PairsGenerator:
             anchor["embedding"] = embedding
             for pp in possibles_positives:
                 pp["embedding"] = self.embedding_storage[pp["image_id"]]
-            positive = self.choose_possibility(anchor, possibles_positives, reverse=False)
+            positive = self.choose_possibility(anchor, possibles_positives, most_similar=False)
             anchor_positives.append((anchor, positive))
 
         assert len(anchor_positives) == len(anchor_possible_positives)
@@ -173,7 +173,7 @@ class DeepFashion2PairsGenerator:
             for pp in possible_negatives:
                 pp["embedding"] = self.embedding_storage[pp["image_id"]]
             if len(possible_negatives) > 1:
-                negative = self.choose_possibility(a, possible_negatives, reverse=True)
+                negative = self.choose_possibility(a, possible_negatives, most_similar=True)
             else:
                 negative = possible_negatives
             if all([a, p, negative]):
@@ -267,7 +267,7 @@ class DeepFashion2PairsGenerator:
             if len(possible_negatives2) == 1:
                 negative2 = possible_negatives2[0]
             elif len(possible_negatives2) > 1:
-                negative2 = self.choose_possibility(negative, possible_negatives2, reverse=True)
+                negative2 = self.choose_possibility(negative, possible_negatives2, most_similar=True)
             else:
                 negative2 = None
             if all([anchor, positive, negative, negative2]):

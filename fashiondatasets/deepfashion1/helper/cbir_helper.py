@@ -61,7 +61,7 @@ def save_batch_encodings(batch_encodings, embedding_path):
     parallel_map(lst=save_jobs, fn=save_job, desc="Saving Encoding Batch")
 
 def flatten_gallery(gallery_items):
-    data = [[(pair_id, i) for i in images] for pair_id, images in (gallery_items)]
+    data = [[(pair_id, i) for i in images] for pair_id, images in gallery_items]
     data = flatten(data)
 
     pair_ids, images = list(zip(*data))

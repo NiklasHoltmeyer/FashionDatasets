@@ -1,10 +1,9 @@
 from multiprocessing import RLock
 from pathlib import Path
 
+from fashiondatasets.utils.io import list_dir_abs_path
 from fashionscrapper.utils.io import json_load
 from tqdm.auto import tqdm
-from fashiondatasets.utils.io import list_dir_abs_path
-from fashiondatasets.utils.notebook.visualize import image
 
 tqdm.set_lock(RLock())
 

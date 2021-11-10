@@ -1,8 +1,7 @@
+import json
 import os
 from collections import defaultdict
 from pathlib import Path
-import json
-from fashionscrapper.utils.list import distinct
 
 CONSUMER = "comsumer"  # <- they mis spelled it. so to make sure everyting works just use this const
 

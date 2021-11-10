@@ -189,32 +189,8 @@ class DeepFashion1PairsGenerator:
 
     def build_anchor_positives(self, splits, force_cat_level):
         ap_possibilities_all = list(self.walk_anchor_positive_possibilities(splits, force_cat_level))
-
-        # image_paths_from_pair = lambda d: [d[2], d[-1]]
-
-        anchor_positives = []
-
         return [(pair_id, cat_idx, anchor_image, positive)  # just build all AP pairs
                 for pair_id, cat_idx, anchor_image, positive in ap_possibilities_all]
-
-        #        ap_possibilities_chunked = np.array_split(ap_possibilities_all, self.n_chunks)
-        #        for ap_possibilities in tqdm(ap_possibilities_chunked, desc=f"Build AP "
-        #                                                                    f"(BS: {self.batch_size}. C: {self.n_chunks})"):
-        #            batch_encodings = self.encode_paths(ap_possibilities, image_paths_from_pair)
-
-        #            for pair_id, cat_idx, anchor_image, possibilities in ap_possibilities:
-
-        #                anchor_embedding = batch_encodings[anchor_image]
-        #                positive_embeddings = [batch_encodings[x] for x in possibilities]
-
-        #                if (len(positive_embeddings)) == 1:
-        #                    idx = 0
-        #                else:
-        #                    idx = find_top_k([anchor_embedding], positive_embeddings, reverse=False, k=1)[0]
-
-        #                ap = (pair_id, cat_idx, anchor_image, possibilities[idx])
-        #                anchor_positives.append(ap)
-        return anchor_positives
 
     def build_anchor_positive_negatives(self, anchor_positives, ids_by_cat_idx, force_cat_level):
         image_paths_from_pair = lambda d: [d[2], *d[-1]]
@@ -238,7 +214,7 @@ class DeepFashion1PairsGenerator:
                         len_one += 1
                     elif (len(negative_embeddings)) > 1:
                         anchor_embedding = batch_encodings[a_img]
-                        idx = find_top_k([anchor_embedding], negative_embeddings, reverse=True, k=1)[0]
+                        idx = find_top_k([anchor_embedding], negative_embeddings, most_similar=True, k=1)[0]
                         negative = n_possibilities[idx]
                     else:
                         is_none += 1
@@ -275,7 +251,7 @@ class DeepFashion1PairsGenerator:
                     if (len(negative2_embeddings)) == 1:
                         idx = 0
                     else:
-                        idx = find_top_k([negative_embedding], negative2_embeddings, reverse=True, k=1)[0]
+                        idx = find_top_k([negative_embedding], negative2_embeddings, most_similar=True, k=1)[0]
                     apnn = (a, p, n, n2_possibilities[idx])
                     apnns.append(apnn)
             else:
