@@ -42,7 +42,10 @@ class DeepFashion1CBIR:
 
         image_chunks = np.array_split(list(zip(images_paths, image_full_paths)), 10)
 
-        for img_paths, img_full_paths in image_chunks:
+        for image_chunk in image_chunks:
+            img_paths, img_full_paths = list(zip(*image_chunk))
+            assert len(img_paths) == len(img_full_paths)
+
             images = tf.data.Dataset.from_tensor_slices(img_full_paths) \
                 .map(preprocess_image((224, 224))) \
                 .batch(self.batch_size, drop_remainder=False) \
