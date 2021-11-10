@@ -2,13 +2,14 @@ import os
 import shutil
 from pathlib import Path
 
-from fashionscrapper.utils.list import distinct
 import numpy as np
+import tensorflow as tf
+from fashionscrapper.utils.list import distinct
+from tqdm.auto import tqdm
+
 from fashiondatasets.deepfashion1.helper.ExtractSplits import DF1_Split_Extractor
 from fashiondatasets.deepfashion1.helper.cbir_helper import build_gallery, build_queries, flatten_distinct_values, \
-    save_batch_encodings
-import tensorflow as tf
-from tqdm.auto import tqdm
+    save_batch_encodings, flatten_gallery
 from fashiondatasets.own.helper.mappings import preprocess_image
 
 
@@ -25,7 +26,6 @@ class DeepFashion1CBIR:
                                                                                                'cat_name_by_idxs',
                                                                                                'cat_idx_by_name',
                                                                                                'ids_by_cat_idx']]
-
         list_of_splits = [self.splits_data[k] for k in self.split_keys]
         self.gallery = build_gallery(list_of_splits)
         self.queries = build_queries(list_of_splits)
@@ -85,6 +85,18 @@ class DeepFashion1CBIR:
         assert distinct_values, "There should NOT be an intersection between Query and Gallery!"
 
         return gallery_flattened + queries_flattened
+
+    def validate_query_image_in_gallery(self):
+        q_ids, _ = flatten_gallery(self.queries.items())
+        g_ids, _ = flatten_gallery(self.gallery.items())
+        q_ids = sorted(q_ids)
+        g_ids = sorted(g_ids)
+
+        for q in q_ids:
+            idx = g_ids.index(q)
+            del g_ids[idx]
+
+        assert len(g_ids) == 0, "Gallery contains IDS which are not in Query"
 
 
 if __name__ == "__main__":

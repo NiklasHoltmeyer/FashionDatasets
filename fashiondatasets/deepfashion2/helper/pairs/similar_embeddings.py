@@ -1,9 +1,8 @@
 from scipy.spatial import distance as distance_metric
 
-
 def find_top_k(queries, gallery, reverse, k=20):
     """ Reverse=True -> return Top-K most Sim. Reverse=False -> Top-k most dissimilar"""
-    distances = distance_metric.cdist(queries, gallery, "cosine")
+    distances = distance_metric.cdist(queries, gallery, "sqeuclidean")
     most_similar_idxs = []
     for distance in distances:
         distance = 1 - distance

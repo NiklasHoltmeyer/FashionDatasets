@@ -6,7 +6,6 @@ from fashionscrapper.utils.list import flatten, distinct
 
 from fashiondatasets.utils.list import parallel_map
 
-
 def group_images_by_ids(list_split_data, image_key):
     images_by_id = defaultdict(lambda: [])
     for split_data in list_split_data:
@@ -60,4 +59,19 @@ def save_batch_encodings(batch_encodings, embedding_path):
         save_jobs.append((emb_path, embedding))
 
     parallel_map(lst=save_jobs, fn=save_job, desc="Saving Encoding Batch")
+
+def flatten_gallery(gallery_items):
+    data = [[(pair_id, i) for i in images] for pair_id, images in (gallery_items)]
+    data = flatten(data)
+
+    pair_ids, images = list(zip(*data))
+    assert len(pair_ids) == len(images)
+    return pair_ids, images
+
+def load_embedding_from_image_path(embedding_path, image_path):
+    npy_path = jpg_to_npy_path(embedding_path, image_path)
+    return np.load(npy_path)
+
+
+
 
