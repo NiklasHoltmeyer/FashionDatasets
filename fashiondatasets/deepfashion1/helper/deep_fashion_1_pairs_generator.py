@@ -44,7 +44,6 @@ class DeepFashion1PairsGenerator:
         self.batch_size = batch_size
         self.number_possibilities = number_possibilities
         self.n_chunks = n_chunks
-        assert augmentation
 
         self.augmentation = augmentation
 
@@ -52,6 +51,9 @@ class DeepFashion1PairsGenerator:
             print("WARNING " * 72)
             print("Model is None. Will only build Random Pairs!")
             print("WARNING" * 72)
+        elif not augmentation:
+            raise Exception("Augmentation missing")
+
 
     def load(self, split, force=False, validate=True):
         # force only for train
