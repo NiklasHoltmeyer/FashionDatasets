@@ -27,6 +27,13 @@ class CentroidBuilder:
         self.augmentation = augmentation
         self.model = model
 
+        if not model:
+            print("WARNING " * 72)
+            print("Model is None. Will only build Random Pairs!")
+            print("WARNING" * 72)
+        elif not augmentation:
+            raise Exception("Augmentation missing")
+
     def build_centroid(self, images, augmentation):
         map_full_path = lambda p: str((self.pair_gen.image_base_path / p).resolve())
 
