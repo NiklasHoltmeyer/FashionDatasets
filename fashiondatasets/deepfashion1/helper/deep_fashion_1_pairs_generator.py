@@ -54,7 +54,6 @@ class DeepFashion1PairsGenerator:
         elif not augmentation:
             raise Exception("Augmentation missing")
 
-
     def load(self, split, force=False, validate=True):
         # force only for train
         assert split in DeepFashion1PairsGenerator.splits()

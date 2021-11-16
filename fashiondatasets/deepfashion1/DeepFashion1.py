@@ -4,11 +4,15 @@ from fashiondatasets.deepfashion1.helper.deep_fashion_1_pairs_generator import D
 from fashiondatasets.own.helper.quad_to_ds import build_pairs_ds_fn
 from tqdm.auto import tqdm
 
+from fashiondatasets.utils.centroid_builder.Centroid_Builder import CentroidBuilder
+
 
 class DeepFashion1Dataset:
     def __init__(self,
                  base_path,
                  model,
+                 generator_type,
+                 augmentation,
                  image_suffix="",
                  number_possibilities=32,
                  nrows=None,
@@ -20,13 +24,24 @@ class DeepFashion1Dataset:
         self.number_possibilities = number_possibilities
         self.nrows = nrows
         self.batch_size = batch_size
-        self.pair_gen = DeepFashion1PairsGenerator(base_path, model=model,
-                                                   image_suffix=image_suffix,
-                                                   number_possibilities=number_possibilities,
-                                                   nrows=nrows,
-                                                   batch_size=batch_size,
-                                                   n_chunks=n_chunks
-                                                   )
+
+        assert generator_type in ["ctl", "apn"]
+
+        apn_pair_gen = DeepFashion1PairsGenerator(base_path, model=model,
+                                                  image_suffix=image_suffix,
+                                                  number_possibilities=number_possibilities,
+                                                  nrows=nrows,
+                                                  batch_size=batch_size,
+                                                  n_chunks=n_chunks,
+                                                  augmentation=augmentation
+                                                  )
+
+        if generator_type == "apn":
+            self.pair_gen = apn_pair_gen
+        elif generator_type == "ctl":
+            self.pair_gen = CentroidBuilder(apn_pair_gen, "./ctl", model=model,
+                                            augmentation=augmentation,
+                                            batch_size=batch_size, )
 
     def load_split(self, split, is_triplet, force):
         assert split in DeepFashion1PairsGenerator.splits()
@@ -43,9 +58,15 @@ class DeepFashion1Dataset:
         a, p, n1, n2 = [load_values(c) for c in tqdm(cols, f"{split}: Map full Paths")]
         assert len(a) == len(p) and len(p) == len(n1) and len(n1) == len(n2)
 
-        pair_builder = build_pairs_ds_fn(is_triplet)
+        is_ctl = len(df.keys()) == 8
+        pair_builder = build_pairs_ds_fn(is_triplet, is_ctl)
 
-        return pair_builder(a, p, n1, n2), len(a)
+        if is_ctl:
+            cols_ctl = [x + "_ctl" for x in cols]
+            ctls = [df[c].values for c in cols_ctl]
+            return pair_builder(a, p, n1, n2, ctls=ctls), len(a)
+        else:
+            return pair_builder(a, p, n1, n2), len(a)
 
     def load(self, is_triplet, force_train_recreate, splits=None):
         datasets = {}
