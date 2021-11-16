@@ -52,7 +52,7 @@ class CentroidBuilder:
 
         for batch in images:
             # batch_embeddings = self.model(batch)
-            batch_embeddings = [[0, 1, 2] for b in batch]
+            batch_embeddings = [np.random.rand(2048) for b in batch]
             embeddings.extend(batch_embeddings)
 
         embedding_center = average_vectors(embeddings)
@@ -73,7 +73,8 @@ class CentroidBuilder:
         for p_id, imgs in tqdm(imgs_by_id.items()):
             f_path = str((split_path / p_id).resolve())
             f_path_full = f_path + ".npy"
-            if not force and Path(f_path_full).exists():
+
+            if force or not Path(f_path_full).exists():
                 f_path = str((split_path / p_id).resolve())
                 centroid = self.build_centroid(imgs, lambda d: d)
 
@@ -81,7 +82,7 @@ class CentroidBuilder:
                     continue
 
                 np.save(f_path, centroid)
-
+        split_path = str(split_path.resolve())
         map_npy_path = lambda _id: os.path.join(split_path, _id + ".npy")
 
         for k in pairs.keys():
@@ -97,7 +98,8 @@ def average_vectors(list_of_vectors, axis=0):
 if __name__ == "__main__":
     base_path = r"F:\workspace\datasets\deep_fashion_1_256"
     pair_gen = DeepFashion1PairsGenerator(base_path, None, "_256")
-    x = CentroidBuilder(pair_gen, "./ctl", None, augmentation=lambda d: d).load("val", False, False)
-    for row in x.values:
-        print(row)
-        break
+    splits = ["train", "val"]
+    builder = CentroidBuilder(pair_gen, r"F:\workspace\FashNets\runs\1337_resnet50_imagenet_triplet\ctl", None, augmentation=lambda d: d)
+    for split in splits:
+        builder.load(split, True, False)
+

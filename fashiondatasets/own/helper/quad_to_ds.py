@@ -9,10 +9,11 @@ def build_pairs_ds_fn(is_triplet, is_ctl):
 
     def zip_triplets(a, p, n, ctls=None):
         a_ds = tf.data.Dataset.from_tensor_slices(a)
-        p_ds = tf.data.Dataset.from_tensor_slices(p)
-        n_ds = tf.data.Dataset.from_tensor_slices(n)
 
         if not ctls:
+            p_ds = tf.data.Dataset.from_tensor_slices(p)
+            n_ds = tf.data.Dataset.from_tensor_slices(n)
+
             return tf.data.Dataset.zip((a_ds, p_ds, n_ds))
 
         a_ctl, p_ctl, n_ctl = ctls
@@ -20,15 +21,17 @@ def build_pairs_ds_fn(is_triplet, is_ctl):
         p_ctl_ds = tf.data.Dataset.from_tensor_slices(p_ctl)
         n_ctl_ds = tf.data.Dataset.from_tensor_slices(n_ctl)
 
-        return tf.data.Dataset.zip((a_ds, p_ds, n_ds, a_ctl_ds, p_ctl_ds, n_ctl_ds))
+        #return tf.data.Dataset.zip((a_ds, p_ds, n_ds, a_ctl_ds, p_ctl_ds, n_ctl_ds))
+        return tf.data.Dataset.zip((a_ds, a_ctl_ds, p_ctl_ds, n_ctl_ds))
 
     def zip_quadruplets(a, p, n1, n2, ctls=None):
         a_ds = tf.data.Dataset.from_tensor_slices(a)
-        p_ds = tf.data.Dataset.from_tensor_slices(p)
         n1_ds = tf.data.Dataset.from_tensor_slices(n1)
-        n2_ds = tf.data.Dataset.from_tensor_slices(n2)
 
         if not ctls:
+            p_ds = tf.data.Dataset.from_tensor_slices(p)
+            n2_ds = tf.data.Dataset.from_tensor_slices(n2)
+
             return tf.data.Dataset.zip((a_ds, p_ds, n1_ds, n2_ds))
 
         a_ctl, p_ctl, n1_ctl, n2_ctl = ctls
@@ -37,7 +40,7 @@ def build_pairs_ds_fn(is_triplet, is_ctl):
         n1_ctl_ds = tf.data.Dataset.from_tensor_slices(n1_ctl)
         n2_ctl_ds = tf.data.Dataset.from_tensor_slices(n2_ctl)
 
-        return tf.data.Dataset.zip((a_ds, p_ds, n1_ds, n2_ds, a_ctl_ds, p_ctl_ds, n1_ctl_ds, n2_ctl_ds))
+        return tf.data.Dataset.zip((a_ds, n1_ds, a_ctl_ds, p_ctl_ds, n1_ctl_ds, n2_ctl_ds))
 
     def apnn_pairs(a, p, n1, n2, ctls=None):
         if is_ctl and not ctls:
