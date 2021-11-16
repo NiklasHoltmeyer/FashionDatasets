@@ -54,8 +54,9 @@ class DeepFashion1PairsGenerator:
         elif not augmentation:
             raise Exception("Augmentation missing")
 
-    def load(self, split, force=False, validate=True):
+    def load(self, split, force=False, force_hard_sampling=False, validate=True):
         # force only for train
+        force = force or force_hard_sampling
         assert split in DeepFashion1PairsGenerator.splits()
 
         csv_path = Path(self.base_path, split + ".csv")
