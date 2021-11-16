@@ -43,10 +43,10 @@ class DeepFashion1Dataset:
                                             augmentation=augmentation,
                                             batch_size=batch_size, )
 
-    def load_split(self, split, is_triplet, force):
+    def load_split(self, split, is_triplet, force, force_hard_sampling):
         assert split in DeepFashion1PairsGenerator.splits()
 
-        df = self.pair_gen.load(split, force=force)
+        df = self.pair_gen.load(split, force=force, force_hard_sampling=force_hard_sampling)
 
         cols = ['anchor', 'positive', 'negative1', 'negative2']
         img_base_path = Path(self.base_path, f"img{self.image_suffix}")
