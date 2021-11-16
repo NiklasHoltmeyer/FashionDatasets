@@ -1,5 +1,5 @@
 import tensorflow as tf
-
+import numpy as np
 
 def build_pairs_ds_fn(is_triplet, is_ctl):
     """
