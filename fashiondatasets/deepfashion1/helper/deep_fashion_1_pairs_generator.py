@@ -24,6 +24,7 @@ class DeepFashion1PairsGenerator:
                  number_possibilities=32,
                  nrows=None,
                  batch_size=64,
+                 augmentation=None,
                  n_chunks=None):
         if n_chunks is None:
             n_chunks = 1
@@ -43,6 +44,9 @@ class DeepFashion1PairsGenerator:
         self.batch_size = batch_size
         self.number_possibilities = number_possibilities
         self.n_chunks = n_chunks
+        assert augmentation
+
+        self.augmentation = augmentation
 
         if not model:
             print("WARNING " * 72)
@@ -80,7 +84,7 @@ class DeepFashion1PairsGenerator:
             return None
 
         images = tf.data.Dataset.from_tensor_slices(paths_full) \
-            .map(preprocess_image((224, 224))) \
+            .map(preprocess_image((224, 224), augmentation=self.augmentation)) \
             .batch(self.batch_size, drop_remainder=False) \
             .prefetch(tf.data.AUTOTUNE)
 
