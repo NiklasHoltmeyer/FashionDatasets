@@ -42,7 +42,8 @@ class CentroidBuilder:
 
         if len(paths_full) < 1:
             return None
-
+        print(paths_full[0])
+        exit(0)
         images = tf.data.Dataset.from_tensor_slices(paths_full) \
             .map(preprocess_image((224, 224), augmentation=augmentation)) \
             .batch(self.batch_size, drop_remainder=False) \
@@ -51,8 +52,7 @@ class CentroidBuilder:
         embeddings = []
 
         for batch in images:
-            # batch_embeddings = self.model(batch)
-            batch_embeddings = [np.random.rand(2048) for b in batch]
+            batch_embeddings = self.model(batch)
             embeddings.extend(batch_embeddings)
 
         embedding_center = average_vectors(embeddings)
@@ -76,7 +76,7 @@ class CentroidBuilder:
 
             if force or not Path(f_path_full).exists():
                 f_path = str((split_path / p_id).resolve())
-                centroid = self.build_centroid(imgs, lambda d: d)
+                centroid = self.build_centroid(imgs, self.augmentation)
 
                 if centroid is None:
                     continue
