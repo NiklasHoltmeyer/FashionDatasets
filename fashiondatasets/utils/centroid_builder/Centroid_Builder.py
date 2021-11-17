@@ -34,20 +34,31 @@ class CentroidBuilder:
         elif not augmentation:
             raise Exception("Augmentation missing")
 
-    def build_centroid(self, images, augmentation):
+        print("WARNING*100")
+        print("RANDOM EMBEDDINGS"*100)
+
+    def build_centroid(self, images, augmentation, embedding_path):
         map_full_path = lambda p: str((self.pair_gen.image_base_path / p).resolve())
 
-        paths_full = map(map_full_path, images)
-        paths_full = list(paths_full)
+        paths = list(images)
+        npy_full_paths = map(self.pair_gen.build_npy_path, paths)
+        npy_full_paths = list(npy_full_paths)
 
-        if len(paths_full) < 1:
-            return None
-        print(paths_full[0])
-        exit(0)
-        images = tf.data.Dataset.from_tensor_slices(paths_full) \
-            .map(preprocess_image((224, 224), augmentation=augmentation)) \
-            .batch(self.batch_size, drop_remainder=False) \
-            .prefetch(tf.data.AUTOTUNE)
+        paths_with_npy_with_exist = zip(paths, npy_full_paths) # pack and check if embeddings exist
+        paths_with_npy_with_exist = filter(lambda d: d[1].exists(), paths_with_npy_with_exist)
+        paths_with_npy_with_not_exist = filter(lambda d: d[1].exists(), paths_with_npy_with_exist)
+        paths_with_npy_with_exist = list(paths_with_npy_with_exist)
+        paths_with_npy_with_not_exist = list(paths_with_npy_with_not_exist)
+
+        paths_not_exist = map(lambda d: d[0], paths_with_npy_with_not_exist)
+        paths_full_not_exist = map(map_full_path, paths_not_exist)
+        paths_full_not_exist = list(paths_full_not_exist)
+
+        if len(paths_full_not_exist) > 1:
+            images = tf.data.Dataset.from_tensor_slices(paths_full_not_exist) \
+                .map(preprocess_image((224, 224), augmentation=self.augmentation)) \
+                .batch(self.batch_size, drop_remainder=False) \
+                .prefetch(tf.data.AUTOTUNE)
 
         embeddings = []
 
@@ -55,13 +66,25 @@ class CentroidBuilder:
             batch_embeddings = self.model(batch)
             embeddings.extend(batch_embeddings)
 
+        for img_path, npy_path in paths_with_npy_with_exist:
+            embeddings.append(np.load(npy_path))
+
         embedding_center = average_vectors(embeddings)
         return embedding_center
 
-    def load(self, split, force=False, force_hard_sampling=False, validate=False):
-        pairs = self.pair_gen.load(split, force=force_hard_sampling, validate=validate)
+    def load(self, split, force=False, force_hard_sampling=False, validate=False, **kwargs):
+        embedding_path = kwargs.get("embedding_path", None)
+        pairs = self.pair_gen.load(split, force=force_hard_sampling, validate=validate,
+                                   overwrite_embeddings=kwargs.get("overwrite_embeddings", False),
+                                   embedding_path=embedding_path)
         split_path = self.centroids_path / split
         split_path.mkdir(parents=True, exist_ok=True)
+
+        if kwargs != {}:
+            print("WARNING", "unused Parameter!")
+            print(kwargs)
+            print("*"*(len("WARNING unused Parameter!")))
+
         imgs_by_id = defaultdict(lambda: [])
 
         distinct_imgs = distinct(flatten(pairs.values))
@@ -76,7 +99,7 @@ class CentroidBuilder:
 
             if force or not Path(f_path_full).exists():
                 f_path = str((split_path / p_id).resolve())
-                centroid = self.build_centroid(imgs, self.augmentation)
+                centroid = self.build_centroid(imgs, self.augmentation, embedding_path)
 
                 if centroid is None:
                     continue
@@ -87,7 +110,7 @@ class CentroidBuilder:
 
         for k in pairs.keys():
             pairs[k + "_ctl"] = pairs[k].map(lambda i: i.split("/")[-2]).map(map_npy_path)
-
+            pairs[k] = pairs[k].map(lambda i: self.pair_gen.build_npy_path(i, suffix=".npy"))
         pairs.to_csv(Path(self.pair_gen.base_path, split + "_ctl.csv"), index=False)
         return pairs
 

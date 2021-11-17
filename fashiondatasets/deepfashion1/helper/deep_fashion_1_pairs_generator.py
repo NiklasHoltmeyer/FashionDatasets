@@ -1,4 +1,5 @@
 import random
+import shutil
 from pathlib import Path
 
 import pandas as pd
@@ -25,7 +26,8 @@ class DeepFashion1PairsGenerator:
                  nrows=None,
                  batch_size=64,
                  augmentation=None,
-                 n_chunks=None):
+                 n_chunks=None,
+                 ):
         if n_chunks is None:
             n_chunks = 1
 
@@ -47,6 +49,8 @@ class DeepFashion1PairsGenerator:
 
         self.augmentation = augmentation
 
+        self.embedding_path = None
+
         if not model:
             print("WARNING " * 72)
             print("Model is None. Will only build Random Pairs!")
@@ -54,21 +58,60 @@ class DeepFashion1PairsGenerator:
         elif not augmentation:
             raise Exception("Augmentation missing")
 
-    def load(self, split, force=False, force_hard_sampling=False, validate=True):
+    def load(self, split,
+             force=False,
+             force_hard_sampling=False,
+             validate=True,
+             embedding_path=None,
+             overwrite_embeddings=None,
+             **kwargs):
         # force only for train
         if force_hard_sampling and not self.model:
             raise Exception("Model is None. Cannot Hard Sample")
         assert split in DeepFashion1PairsGenerator.splits()
+        if overwrite_embeddings and embedding_path is None:
+            raise Exception("embedding_path must be set if overwrite_embeddings")
+
+        if overwrite_embeddings:
+            self.delete_path(embedding_path)
+
+        if embedding_path:
+            self.embedding_path = Path(embedding_path)
+            self.embedding_path.mkdir(parents=True, exist_ok=True)
+
+        if kwargs != {}:
+            print("WARNING", "unused Parameter!")
+            print(kwargs)
+            print("*" * (len("WARNING unused Parameter!")))
 
         csv_path = Path(self.base_path, split + ".csv")
         if force or not csv_path.exists():
-            anchor_positive_negative_negatives = self.build(split, validate=validate)
+            anchor_positive_negative_negatives = self.build(split, validate=validate, embedding_path=embedding_path)
             quadruplets_df = pd.DataFrame(anchor_positive_negative_negatives,
                                           columns=["anchor", "positive", "negative1", "negative2"])
 
             quadruplets_df.to_csv(csv_path, index=False)
 
         return pd.read_csv(csv_path, nrows=self.nrows).sample(frac=1).reset_index(drop=True)
+
+    @staticmethod
+    def delete_path(path):
+        blacklist = [".csv", ".json"]
+        path = Path(path)
+        path_str = str(path.resolve())
+
+        if any(filter(lambda bl: path_str.endswith(bl), blacklist)):
+            return True
+        try:
+            path.unlink()
+            return True
+        except:
+            pass
+        try:
+            shutil.rmtree(path_str)
+            return True
+        except:
+            return False
 
     def encode_paths(self, pairs, retrieve_paths_fn):
         map_full_path = lambda p: str((self.image_base_path / p).resolve())
@@ -80,16 +123,24 @@ class DeepFashion1PairsGenerator:
 
         # paths = filter(lambda p: p not in encodings_keys, paths)
         paths = list(paths)
-        paths_full = map(map_full_path, paths)
-        paths_full = list(paths_full)
+        npy_full_paths = map(self.build_npy_path, paths)
+        npy_full_paths = list(npy_full_paths)
 
-        if len(paths_full) < 1:
-            return None
+        paths_with_npy_with_exist = zip(paths, npy_full_paths) # pack and check if embeddings exist
+        paths_with_npy_with_exist = filter(lambda d: d[1].exists(), paths_with_npy_with_exist)
+        paths_with_npy_with_not_exist = filter(lambda d: d[1].exists(), paths_with_npy_with_exist)
+        paths_with_npy_with_exist = list(paths_with_npy_with_exist)
+        paths_with_npy_with_not_exist = list(paths_with_npy_with_not_exist)
 
-        images = tf.data.Dataset.from_tensor_slices(paths_full) \
-            .map(preprocess_image((224, 224), augmentation=self.augmentation)) \
-            .batch(self.batch_size, drop_remainder=False) \
-            .prefetch(tf.data.AUTOTUNE)
+        paths_not_exist = map(lambda d: d[0], paths_with_npy_with_not_exist)
+        paths_full_not_exist = map(map_full_path, paths_not_exist)
+        paths_full_not_exist = list(paths_full_not_exist)
+
+        if len(paths_full_not_exist) > 1:
+            images = tf.data.Dataset.from_tensor_slices(paths_full_not_exist) \
+                .map(preprocess_image((224, 224), augmentation=self.augmentation)) \
+                .batch(self.batch_size, drop_remainder=False) \
+                .prefetch(tf.data.AUTOTUNE)
 
         embeddings = []
 
@@ -101,10 +152,20 @@ class DeepFashion1PairsGenerator:
 
         batch_encodings = {}
 
-        for p, model_embedding in zip(paths, embeddings):
+        for p, model_embedding in zip(paths_not_exist, embeddings):
             batch_encodings[p] = model_embedding
+            if self.embedding_path:
+                npy_path = self.build_npy_path(p)
+                np.save(npy_path, model_embedding)
+
+        for img_path, npy_path in paths_with_npy_with_exist:
+            batch_encodings[img_path] = np.load(npy_path)
 
         return batch_encodings
+
+    def build_npy_path(self, img_relative_path, suffix=""):
+        assert self.embedding_path
+        return self.embedding_path / img_relative_path.replace(".jpg", suffix).replace("/", "_")
 
     @staticmethod
     def is_valid_category(force_cat_level):
@@ -284,7 +345,7 @@ class DeepFashion1PairsGenerator:
 
     #        return apnns
 
-    def build(self, split, validate=True):
+    def build(self, split, embedding_path, validate=True):
         force_cat_level = 2
 
         split_data, ids_by_cat_idx = self.splits[split], self.ids_by_cat_idx[split]
