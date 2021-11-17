@@ -59,7 +59,7 @@ class CentroidBuilder:
         return embedding_center
 
     def load(self, split, force=False, force_hard_sampling=False, validate=False):
-        pairs = self.pair_gen.load(split, force_hard_sampling=force_hard_sampling, validate=validate)
+        pairs = self.pair_gen.load(split, force=force_hard_sampling, validate=validate)
         split_path = self.centroids_path / split
         split_path.mkdir(parents=True, exist_ok=True)
         imgs_by_id = defaultdict(lambda: [])

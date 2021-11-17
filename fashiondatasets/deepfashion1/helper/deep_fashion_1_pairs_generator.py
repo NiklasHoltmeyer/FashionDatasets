@@ -56,8 +56,8 @@ class DeepFashion1PairsGenerator:
 
     def load(self, split, force=False, force_hard_sampling=False, validate=True):
         # force only for train
-        if force_hard_sampling:
-            print("WARNING: force_hard_sampling=True has no Impact within DF pair Gen")
+        if force_hard_sampling and not self.model:
+            raise Exception("Model is None. Cannot Hard Sample")
         assert split in DeepFashion1PairsGenerator.splits()
 
         csv_path = Path(self.base_path, split + ".csv")
