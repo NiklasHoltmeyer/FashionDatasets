@@ -150,7 +150,7 @@ class DeepFashion1PairsGenerator:
             batch_embeddings = self.model(batch)
             embeddings.extend(batch_embeddings)
 
-        assert len(embeddings) == len(paths), f"{len(embeddings)} {len(paths)}"
+        assert len(embeddings) == len(paths_full_not_exist), f"{len(embeddings)} {len(paths)}"
 
         batch_encodings = {}
 
