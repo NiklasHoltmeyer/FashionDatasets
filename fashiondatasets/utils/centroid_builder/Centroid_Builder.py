@@ -73,7 +73,7 @@ class CentroidBuilder:
         return embedding_center
 
     def load(self, split, force=False, force_hard_sampling=False, validate=False, **kwargs):
-        embedding_path = kwargs.get("embedding_path", None)
+        embedding_path = kwargs.pop("embedding_path", None)
         pairs = self.pair_gen.load(split, force=force_hard_sampling, validate=validate,
                                    overwrite_embeddings=kwargs.get("overwrite_embeddings", False),
                                    embedding_path=embedding_path)
@@ -105,6 +105,7 @@ class CentroidBuilder:
                     continue
 
                 np.save(f_path, centroid)
+
         split_path = str(split_path.resolve())
         map_npy_path = lambda _id: os.path.join(split_path, _id + ".npy")
 

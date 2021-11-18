@@ -1,7 +1,9 @@
+import os
 import random
 import shutil
 from pathlib import Path
 
+import fashionnets
 import pandas as pd
 from fashiondatasets.deepfashion1.helper.ExtractSplits import DF1_Split_Extractor, CONSUMER
 from fashiondatasets.deepfashion2.helper.pairs.similar_embeddings import find_top_k
@@ -11,6 +13,8 @@ import tensorflow as tf
 from fashiondatasets.own.helper.mappings import preprocess_image
 
 import numpy as np
+
+from fashiondatasets.utils.list import filter_not_exist
 
 assert tf is not None or True  # PyCharm removes the Imports, even tho the Function/Classes are used
 assert preprocess_image is not None or True  # PyCharm removes the Imports, even tho the Function/Classes are used
@@ -126,11 +130,18 @@ class DeepFashion1PairsGenerator:
         npy_full_paths = map(self.build_npy_path, paths)
         npy_full_paths = list(npy_full_paths)
 
-        paths_with_npy_with_exist = zip(paths, npy_full_paths) # pack and check if embeddings exist
-        paths_with_npy_with_exist = filter(lambda d: d[1].exists(), paths_with_npy_with_exist)
-        paths_with_npy_with_not_exist = filter(lambda d: d[1].exists(), paths_with_npy_with_exist)
-        paths_with_npy_with_exist = list(paths_with_npy_with_exist)
-        paths_with_npy_with_not_exist = list(paths_with_npy_with_not_exist)
+        paths_with_npy_with_exist = list(zip(paths, npy_full_paths))  # pack and check if embeddings exist
+
+        paths_with_npy_with_not_exist = filter_not_exist(paths_with_npy_with_exist,
+                                                         not_exist=True, key=lambda d: d[1], disable_output=True)
+        paths_with_npy_with_exist = filter_not_exist(paths_with_npy_with_exist,
+                                                     not_exist=False, key=lambda d: d[1], disable_output=True)
+
+        # paths_with_npy_with_exist = filter(lambda d: d[1].exists(), paths_with_npy_with_exist)
+        # paths_with_npy_with_not_exist = filter(lambda d: d[1].exists(), paths_with_npy_with_exist)
+
+        # paths_with_npy_with_exist = list(paths_with_npy_with_exist)
+        # paths_with_npy_with_not_exist = list(paths_with_npy_with_not_exist)
 
         paths_not_exist = map(lambda d: d[0], paths_with_npy_with_not_exist)
         paths_full_not_exist = map(map_full_path, paths_not_exist)
@@ -165,7 +176,10 @@ class DeepFashion1PairsGenerator:
 
     def build_npy_path(self, img_relative_path, suffix=""):
         assert self.embedding_path
-        return self.embedding_path / img_relative_path.replace(".jpg", suffix).replace("/", "_")
+        return self.embedding_path / img_relative_path.replace(".jpg", suffix).replace("/", "-")
+
+    def build_jpg_path(self, npy_full_path):
+        return self.image_base_path / npy_full_path.split(os.path.sep)[-1].replace(".npy", ".jpg").replace("-", "/")
 
     @staticmethod
     def is_valid_category(force_cat_level):
@@ -476,9 +490,58 @@ class DeepFashion1PairsGenerator:
 
 if __name__ == "__main__":
     base_path = r"F:\workspace\datasets\deep_fashion_1_256"
+    def build_splits():
+        for split in ["val", "train", "test"]:
+            generator = DeepFashion1PairsGenerator(base_path, None, "_256")
+            force = split == "val"  # <- for debugging just take the smallest split lul
+            df = generator.load(split, force=force)
+            DeepFashion1PairsGenerator.validate_dataframe(df)
+    x = ['F:\\workspace\\datasets\\deep_fashion_1_256\\img_256\\img\\TOPS\\T_Shirt\\id_00000218\\comsumer_01.jpg',
+         'F:\\workspace\\datasets\\deep_fashion_1_256\\img_256\\img\\TOPS\\T_Shirt\\id_00000218\\comsumer_02.jpg',
+         'F:\\workspace\\datasets\\deep_fashion_1_256\\img_256\\img\\TOPS\\T_Shirt\\id_00000218\\comsumer_03.jpg',
+         'F:\\workspace\\datasets\\deep_fashion_1_256\\img_256\\img\\TOPS\\T_Shirt\\id_00000218\\comsumer_04.jpg',
+         'F:\\workspace\\datasets\\deep_fashion_1_256\\img_256\\img\\TOPS\\T_Shirt\\id_00000218\\comsumer_05.jpg',
+         'F:\\workspace\\datasets\\deep_fashion_1_256\\img_256\\img\\TOPS\\T_Shirt\\id_00000218\\comsumer_06.jpg',
+         'F:\\workspace\\datasets\\deep_fashion_1_256\\img_256\\img\\TOPS\\T_Shirt\\id_00000218\\comsumer_07.jpg',
+         'F:\\workspace\\datasets\\deep_fashion_1_256\\img_256\\img\\TOPS\\T_Shirt\\id_00000218\\comsumer_08.jpg',
+         'F:\\workspace\\datasets\\deep_fashion_1_256\\img_256\\img\\TOPS\\T_Shirt\\id_00000218\\comsumer_09.jpg',
+         'F:\\workspace\\datasets\\deep_fashion_1_256\\img_256\\img\\TOPS\\T_Shirt\\id_00000218\\comsumer_10.jpg',
+         'F:\\workspace\\datasets\\deep_fashion_1_256\\img_256\\img\\TOPS\\T_Shirt\\id_00003453\\comsumer_10.jpg',
+         'F:\\workspace\\datasets\\deep_fashion_1_256\\img_256\\img\\TOPS\\T_Shirt\\id_00006499\\comsumer_03.jpg',
+         'F:\\workspace\\datasets\\deep_fashion_1_256\\img_256\\img\\TOPS\\T_Shirt\\id_00007562\\shop_01.jpg',
+         'F:\\workspace\\datasets\\deep_fashion_1_256\\img_256\\img\\TOPS\\T_Shirt\\id_00010145\\shop_01.jpg',
+         'F:\\workspace\\datasets\\deep_fashion_1_256\\img_256\\img\\TOPS\\T_Shirt\\id_00010236\\shop_01.jpg',
+         'F:\\workspace\\datasets\\deep_fashion_1_256\\img_256\\img\\TOPS\\T_Shirt\\id_00011436\\comsumer_03.jpg',
+         'F:\\workspace\\datasets\\deep_fashion_1_256\\img_256\\img\\TOPS\\T_Shirt\\id_00012494\\comsumer_01.jpg',
+         'F:\\workspace\\datasets\\deep_fashion_1_256\\img_256\\img\\TOPS\\T_Shirt\\id_00014247\\shop_02.jpg',
+         'F:\\workspace\\datasets\\deep_fashion_1_256\\img_256\\img\\TOPS\\T_Shirt\\id_00015525\\shop_02.jpg',
+         'F:\\workspace\\datasets\\deep_fashion_1_256\\img_256\\img\\TOPS\\T_Shirt\\id_00020957\\shop_01.jpg']
+    import tensorflow as tf
 
-    for split in ["val", "train", "test"]:
-        generator = DeepFashion1PairsGenerator(base_path, None, "_256")
-        force = split == "val"  # <- for debugging just take the smallest split lul
-        df = generator.load(split, force=force)
-        DeepFashion1PairsGenerator.validate_dataframe(df)
+
+    class SimpleCNN:
+        @staticmethod
+        def build(input_shape, embedding_dim=2048):
+            embedding_model = tf.keras.Sequential([
+                tf.keras.layers.Conv2D(filters=64, kernel_size=2, padding='same', activation='relu',
+                                       input_shape=(input_shape[0], input_shape[1], 3)),
+                tf.keras.layers.MaxPooling2D(pool_size=2),
+                tf.keras.layers.Dropout(0.3),
+                tf.keras.layers.Conv2D(filters=32, kernel_size=2, padding='same', activation='relu'),
+                tf.keras.layers.MaxPooling2D(pool_size=2),
+                tf.keras.layers.Flatten(),
+                tf.keras.layers.Dense(embedding_dim, activation=None),
+                tf.keras.layers.Lambda(lambda x: tf.math.l2_normalize(x, axis=1))
+            ])
+            preprocessing = None  # DS is already normalized!
+            return embedding_model, preprocessing
+    model, _ = SimpleCNN.build((224, 224))
+
+    augmentation = lambda d: d
+    gen = DeepFashion1PairsGenerator(base_path, model, "_256", augmentation=augmentation)
+    gen.embedding_path = r"F:\workspace\datasets\deep_fashion_1_256\embeddings"
+    gen.embedding_path = Path(gen.embedding_path)
+    gen.encode_paths([x], retrieve_paths_fn=lambda d: d)
+    print("wuhu")
+
+

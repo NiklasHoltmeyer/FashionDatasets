@@ -65,6 +65,7 @@ class DeepFashion1Dataset:
         if is_ctl:
             cols_ctl = [x + "_ctl" for x in cols]
             ctls = [df[c].values for c in cols_ctl]
+            self._build_missing_embeddings(is_triplet, a, n1)
             return pair_builder(a, p, n1, n2, ctls=ctls), len(a)
         else:
             return pair_builder(a, p, n1, n2), len(a)
@@ -91,3 +92,20 @@ class DeepFashion1Dataset:
             }
 
         return datasets
+
+    def _build_missing_embeddings(self, is_triplet, a, n1):
+        from fashionscrapper.utils.list import distinct
+
+        not_existing_npys = a if is_triplet else a + n1
+
+        not_existing_npys = distinct(not_existing_npys)
+
+        missing_embeddings = map(self.pair_gen.pair_gen.build_jpg_path, not_existing_npys)
+        missing_embeddings = list(missing_embeddings)
+
+        clean = lambda d: str(d.resolve())
+        missing_embeddings = map(clean, missing_embeddings)
+        missing_embeddings = list(missing_embeddings)
+        # encode_paths(missing_embeddings, retrieve_paths_fn)
+        self.pair_gen.pair_gen.encode_paths([missing_embeddings], retrieve_paths_fn=lambda d: d)
+
