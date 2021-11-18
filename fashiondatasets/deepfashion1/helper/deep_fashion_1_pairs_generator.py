@@ -3,7 +3,6 @@ import random
 import shutil
 from pathlib import Path
 
-import fashionnets
 import pandas as pd
 from fashiondatasets.deepfashion1.helper.ExtractSplits import DF1_Split_Extractor, CONSUMER
 from fashiondatasets.deepfashion2.helper.pairs.similar_embeddings import find_top_k
@@ -66,9 +65,9 @@ class DeepFashion1PairsGenerator:
              force=False,
              force_hard_sampling=False,
              validate=True,
-             embedding_path=None,
              overwrite_embeddings=None,
              **kwargs):
+        embedding_path = kwargs.pop("embedding_path", None)
         # force only for train
         if force_hard_sampling and not self.model:
             raise Exception("Model is None. Cannot Hard Sample")
@@ -117,8 +116,13 @@ class DeepFashion1PairsGenerator:
         except:
             return False
 
-    def encode_paths(self, pairs, retrieve_paths_fn):
-        map_full_path = lambda p: str((self.image_base_path / p).resolve())
+    def encode_paths(self, pairs, retrieve_paths_fn, assert_saving=False):
+        if assert_saving:
+            assert self.embedding_path, "assert_saving set, but no Embedding Path"
+
+        image_base_path_str = str(self.image_base_path.resolve())
+        map_full_path = lambda p: str(Path(image_base_path_str + "/" + p).resolve())
+            #str((self.image_base_path / p).resolve())
 
         # encodings_keys = self.batch_encodings.keys()
         paths = (map(retrieve_paths_fn, pairs))
@@ -127,7 +131,8 @@ class DeepFashion1PairsGenerator:
 
         # paths = filter(lambda p: p not in encodings_keys, paths)
         paths = list(paths)
-        npy_full_paths = map(self.build_npy_path, paths)
+
+        npy_full_paths = map(lambda d: self.build_npy_path(d, suffix=".npy"), paths)
         npy_full_paths = list(npy_full_paths)
 
         paths_with_npy_with_exist = list(zip(paths, npy_full_paths))  # pack and check if embeddings exist
@@ -144,6 +149,7 @@ class DeepFashion1PairsGenerator:
         # paths_with_npy_with_not_exist = list(paths_with_npy_with_not_exist)
 
         paths_not_exist = map(lambda d: d[0], paths_with_npy_with_not_exist)
+        paths_not_exist = list(paths_not_exist)
         paths_full_not_exist = map(map_full_path, paths_not_exist)
         paths_full_not_exist = list(paths_full_not_exist)
 
@@ -152,6 +158,8 @@ class DeepFashion1PairsGenerator:
                 .map(preprocess_image((224, 224), augmentation=self.augmentation)) \
                 .batch(self.batch_size, drop_remainder=False) \
                 .prefetch(tf.data.AUTOTUNE)
+        else:
+            images = []
 
         embeddings = []
 
@@ -159,10 +167,9 @@ class DeepFashion1PairsGenerator:
             batch_embeddings = self.model(batch)
             embeddings.extend(batch_embeddings)
 
-        assert len(embeddings) == len(paths), f"{len(embeddings)} {len(paths)}"
+        assert len(embeddings) == len(paths_full_not_exist), f"{len(embeddings)} {len(paths)}"
 
         batch_encodings = {}
-
         for p, model_embedding in zip(paths_not_exist, embeddings):
             batch_encodings[p] = model_embedding
             if self.embedding_path:
@@ -170,13 +177,22 @@ class DeepFashion1PairsGenerator:
                 np.save(npy_path, model_embedding)
 
         for img_path, npy_path in paths_with_npy_with_exist:
-            batch_encodings[img_path] = np.load(npy_path)
+            data = np.load(npy_path)
+            if np.isnan(data):
+                batch_encodings[img_path] = data
 
         return batch_encodings
 
     def build_npy_path(self, img_relative_path, suffix=""):
         assert self.embedding_path
-        return self.embedding_path / img_relative_path.replace(".jpg", suffix).replace("/", "-")
+
+        f_name = img_relative_path.replace(".jpg", suffix)\
+            .replace(os.path.sep, "-")\
+            .replace("/", "-")
+
+        f_name = f_name[0].replace("-", "") + f_name[1:]  # replace leading - if exist
+
+        return self.embedding_path / f_name
 
     def build_jpg_path(self, npy_full_path):
         return self.image_base_path / npy_full_path.split(os.path.sep)[-1].replace(".npy", ".jpg").replace("-", "/")
@@ -328,9 +344,16 @@ class DeepFashion1PairsGenerator:
                 batch_encodings = self.encode_paths(apnn_possibilities, image_paths_from_pair)
 
                 for a, p, n, n2_possibilities in apnn_possibilities:
-                    negative_embedding = batch_encodings[n]
-                    negative2_embeddings = [batch_encodings[x] for x in n2_possibilities]
-                    if (len(negative2_embeddings)) == 1:
+                    negative_embedding = batch_encodings.get(n, None)
+
+                    if negative_embedding is None:
+                        continue
+
+                    negative2_embeddings = [batch_encodings[x] for x in n2_possibilities
+                                            if batch_encodings.get(x, None) is not None]
+                    if (len(negative2_embeddings)) == 0:
+                        continue
+                    elif (len(negative2_embeddings)) == 1:
                         idx = 0
                     else:
                         idx = find_top_k([negative_embedding], negative2_embeddings, most_similar=True, k=1)[0][0]

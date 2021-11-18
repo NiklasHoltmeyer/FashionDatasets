@@ -11,6 +11,8 @@ from fashiondatasets.own.helper.mappings import preprocess_image
 from fashionscrapper.utils.list import flatten, distinct
 import numpy as np
 
+from fashiondatasets.utils.list import filter_not_exist
+
 assert tf is not None or True  # PyCharm removes the Imports, even tho the Function/Classes are used
 assert preprocess_image is not None or True  # PyCharm removes the Imports, even tho the Function/Classes are used
 assert np is not None or True
@@ -38,28 +40,44 @@ class CentroidBuilder:
         map_full_path = lambda p: str((self.pair_gen.image_base_path / p).resolve())
 
         paths = list(images)
-        npy_full_paths = map(self.pair_gen.build_npy_path, paths)
+#        npy_full_paths = map(self.pair_gen.build_npy_path, paths)
+#        npy_full_paths = list(npy_full_paths)
+#
+#        paths_with_npy_with_exist = zip(paths, npy_full_paths)  # pack and check if embeddings exist
+
+        ##
+        npy_full_paths = map(lambda d: self.pair_gen.build_npy_path(d, suffix=".npy"), paths)
         npy_full_paths = list(npy_full_paths)
 
-        paths_with_npy_with_exist = zip(paths, npy_full_paths) # pack and check if embeddings exist
-        paths_with_npy_with_exist = filter(lambda d: d[1].exists(), paths_with_npy_with_exist)
-        paths_with_npy_with_not_exist = filter(lambda d: d[1].exists(), paths_with_npy_with_exist)
-        paths_with_npy_with_exist = list(paths_with_npy_with_exist)
-        paths_with_npy_with_not_exist = list(paths_with_npy_with_not_exist)
+        paths_with_npy_with_exist = list(zip(paths, npy_full_paths))  # pack and check if embeddings exist
+
+        paths_with_npy_with_not_exist = filter_not_exist(paths_with_npy_with_exist,
+                                                         not_exist=True, key=lambda d: d[1], disable_output=True)
+        paths_with_npy_with_exist = filter_not_exist(paths_with_npy_with_exist,
+                                                     not_exist=False, key=lambda d: d[1], disable_output=True)
+        ##
+
+
+#        paths_with_npy_with_exist = filter(lambda d: d[1].exists(), paths_with_npy_with_exist)
+#        paths_with_npy_with_not_exist = filter(lambda d: d[1].exists(), paths_with_npy_with_exist)
+#        paths_with_npy_with_exist = list(paths_with_npy_with_exist)
+#        paths_with_npy_with_not_exist = list(paths_with_npy_with_not_exist)
 
         paths_not_exist = map(lambda d: d[0], paths_with_npy_with_not_exist)
         paths_full_not_exist = map(map_full_path, paths_not_exist)
         paths_full_not_exist = list(paths_full_not_exist)
 
         if len(paths_full_not_exist) > 1:
-            images = tf.data.Dataset.from_tensor_slices(paths_full_not_exist) \
+            images_ds = tf.data.Dataset.from_tensor_slices(paths_full_not_exist) \
                 .map(preprocess_image((224, 224), augmentation=self.augmentation)) \
                 .batch(self.batch_size, drop_remainder=False) \
                 .prefetch(tf.data.AUTOTUNE)
+        else:
+            images_ds = []
 
         embeddings = []
 
-        for batch in images:
+        for batch in images_ds:
             batch_embeddings = self.model(batch)
             embeddings.extend(batch_embeddings)
 
@@ -80,7 +98,7 @@ class CentroidBuilder:
         if kwargs != {}:
             print("WARNING", "unused Parameter!")
             print(kwargs)
-            print("*"*(len("WARNING unused Parameter!")))
+            print("*" * (len("WARNING unused Parameter!")))
 
         imgs_by_id = defaultdict(lambda: [])
 
@@ -116,11 +134,12 @@ class CentroidBuilder:
 def average_vectors(list_of_vectors, axis=0):
     return np.sum(np.array(list_of_vectors), axis=0) / len(list_of_vectors)
 
+
 if __name__ == "__main__":
     base_path = r"F:\workspace\datasets\deep_fashion_1_256"
     pair_gen = DeepFashion1PairsGenerator(base_path, None, "_256")
     splits = ["train", "val"]
-    builder = CentroidBuilder(pair_gen, r"F:\workspace\FashNets\runs\1337_resnet50_imagenet_triplet\ctl", None, augmentation=lambda d: d)
+    builder = CentroidBuilder(pair_gen, r"F:\workspace\FashNets\runs\1337_resnet50_imagenet_triplet\ctl", None,
+                              augmentation=lambda d: d)
     for split in splits:
         builder.load(split, True, False)
-

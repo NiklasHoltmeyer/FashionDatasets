@@ -34,12 +34,17 @@ def parallel_map(lst, fn, desc=None, total=None, threads=None, disable_output=Fa
 
 
 def filter_not_exist(lst, parallel=True, not_exist=True, key=lambda i: i, **p_map_kwargs):
-    filter_ = lambda i: Path(i).exists() if not not_exist else not Path(i).exists()
-
     def check_map(i):
         value = key(i)
+        exist = Path(value).exists()
+        filter = exist ^ not_exist
+        # exist and not_exist -> False
+        # exist and !not_exist -> True
 
-        if filter_(value):
+        # !exist and not_exist -> True
+        # !exist and !not_exist -> False
+
+        if filter:
             return i
         return None
 
