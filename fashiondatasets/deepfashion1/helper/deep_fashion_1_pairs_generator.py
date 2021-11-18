@@ -90,7 +90,7 @@ class DeepFashion1PairsGenerator:
 
         csv_path = Path(self.base_path, split + ".csv")
         if force or not csv_path.exists():
-            anchor_positive_negative_negatives = self.build(split, validate=validate, embedding_path=embedding_path)
+            anchor_positive_negative_negatives = self.build(split, validate=validate)
             quadruplets_df = pd.DataFrame(anchor_positive_negative_negatives,
                                           columns=["anchor", "positive", "negative1", "negative2"])
 
@@ -359,7 +359,7 @@ class DeepFashion1PairsGenerator:
 
     #        return apnns
 
-    def build(self, split, embedding_path, validate=True):
+    def build(self, split, validate=True):
         force_cat_level = 2
 
         split_data, ids_by_cat_idx = self.splits[split], self.ids_by_cat_idx[split]

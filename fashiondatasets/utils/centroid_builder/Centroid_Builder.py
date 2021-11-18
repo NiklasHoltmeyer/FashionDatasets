@@ -34,10 +34,7 @@ class CentroidBuilder:
         elif not augmentation:
             raise Exception("Augmentation missing")
 
-        print("WARNING*100")
-        print("RANDOM EMBEDDINGS"*100)
-
-    def build_centroid(self, images, augmentation, embedding_path):
+    def build_centroid(self, images):
         map_full_path = lambda p: str((self.pair_gen.image_base_path / p).resolve())
 
         paths = list(images)
@@ -99,7 +96,7 @@ class CentroidBuilder:
 
             if force or not Path(f_path_full).exists():
                 f_path = str((split_path / p_id).resolve())
-                centroid = self.build_centroid(imgs, self.augmentation, embedding_path)
+                centroid = self.build_centroid(imgs)
 
                 if centroid is None:
                     continue

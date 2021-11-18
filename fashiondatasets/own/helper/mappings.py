@@ -2,6 +2,7 @@ import tensorflow as tf
 
 
 def preprocess_image(img_shape, preprocess_img=None, augmentation=None, channels=3, dtype=tf.float32):
+    assert augmentation, "All Operations used atleast require Normalization!"
     @tf.function
     def __call__(filename):
         image_string = tf.io.read_file(filename)
