@@ -123,16 +123,24 @@ class DeepFashion1PairsGenerator:
 
         # paths = filter(lambda p: p not in encodings_keys, paths)
         paths = list(paths)
-        npy_full_paths = map(self.build_npy_path, paths)
+        npy_full_paths = map(lambda d: self.build_npy_path(d, suffix=".npy"), paths)
         npy_full_paths = list(npy_full_paths)
 
-        paths_with_npy_with_exist = zip(paths, npy_full_paths) # pack and check if embeddings exist
-        paths_with_npy_with_exist = filter(lambda d: d[1].exists(), paths_with_npy_with_exist)
-        paths_with_npy_with_not_exist = filter(lambda d: d[1].exists(), paths_with_npy_with_exist)
-        paths_with_npy_with_exist = list(paths_with_npy_with_exist)
-        paths_with_npy_with_not_exist = list(paths_with_npy_with_not_exist)
+        paths_with_npy_with_exist = list(zip(paths, npy_full_paths))  # pack and check if embeddings exist
+
+        paths_with_npy_with_not_exist = filter_not_exist(paths_with_npy_with_exist,
+                                                         not_exist=True, key=lambda d: d[1], disable_output=True)
+        paths_with_npy_with_exist = filter_not_exist(paths_with_npy_with_exist,
+                                                     not_exist=False, key=lambda d: d[1], disable_output=True)
+
+        # paths_with_npy_with_exist = filter(lambda d: d[1].exists(), paths_with_npy_with_exist)
+        # paths_with_npy_with_not_exist = filter(lambda d: d[1].exists(), paths_with_npy_with_exist)
+
+        # paths_with_npy_with_exist = list(paths_with_npy_with_exist)
+        # paths_with_npy_with_not_exist = list(paths_with_npy_with_not_exist)
 
         paths_not_exist = map(lambda d: d[0], paths_with_npy_with_not_exist)
+        paths_not_exist = list(paths_not_exist)
         paths_full_not_exist = map(map_full_path, paths_not_exist)
         paths_full_not_exist = list(paths_full_not_exist)
 
@@ -141,6 +149,8 @@ class DeepFashion1PairsGenerator:
                 .map(preprocess_image((224, 224), augmentation=self.augmentation)) \
                 .batch(self.batch_size, drop_remainder=False) \
                 .prefetch(tf.data.AUTOTUNE)
+        else:
+            images = []
 
         embeddings = []
 
