@@ -141,6 +141,8 @@ class DeepFashion1PairsGenerator:
                 .map(preprocess_image((224, 224), augmentation=self.augmentation)) \
                 .batch(self.batch_size, drop_remainder=False) \
                 .prefetch(tf.data.AUTOTUNE)
+        else:
+            images = []
 
         embeddings = []
 
