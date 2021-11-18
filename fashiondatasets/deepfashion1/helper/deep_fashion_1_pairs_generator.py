@@ -123,17 +123,17 @@ class DeepFashion1PairsGenerator:
 
         # paths = filter(lambda p: p not in encodings_keys, paths)
         paths = list(paths)
-        npy_full_paths = map(self.build_npy_path, paths)
-        npy_full_paths = list(npy_full_paths)
+#        npy_full_paths = map(self.build_npy_path, paths)
+#        npy_full_paths = list(npy_full_paths)
 
-        paths_with_npy_with_exist = zip(paths, npy_full_paths) # pack and check if embeddings exist
-        paths_with_npy_with_exist = filter(lambda d: d[1].exists(), paths_with_npy_with_exist)
-        paths_with_npy_with_not_exist = filter(lambda d: d[1].exists(), paths_with_npy_with_exist)
-        paths_with_npy_with_exist = list(paths_with_npy_with_exist)
-        paths_with_npy_with_not_exist = list(paths_with_npy_with_not_exist)
+#        paths_with_npy_with_exist = zip(paths, npy_full_paths) # pack and check if embeddings exist
+#        paths_with_npy_with_exist = filter(lambda d: d[1].exists(), paths_with_npy_with_exist)
+#        paths_with_npy_with_not_exist = filter(lambda d: d[1].exists(), paths_with_npy_with_exist)
+#        paths_with_npy_with_exist = list(paths_with_npy_with_exist)
+#        paths_with_npy_with_not_exist = list(paths_with_npy_with_not_exist)
 
-        paths_not_exist = map(lambda d: d[0], paths_with_npy_with_not_exist)
-        paths_full_not_exist = map(map_full_path, paths_not_exist)
+#        paths_not_exist = map(lambda d: d[0], paths_with_npy_with_not_exist)
+        paths_full_not_exist = map(map_full_path, paths)
         paths_full_not_exist = list(paths_full_not_exist)
 
         if len(paths_full_not_exist) > 1:
@@ -154,14 +154,14 @@ class DeepFashion1PairsGenerator:
 
         batch_encodings = {}
 
-        for p, model_embedding in zip(paths_not_exist, embeddings):
+        for p, model_embedding in zip(paths_full_not_exist, embeddings):
             batch_encodings[p] = model_embedding
-            if self.embedding_path:
-                npy_path = self.build_npy_path(p)
-                np.save(npy_path, model_embedding)
+#            if self.embedding_path:
+#                npy_path = self.build_npy_path(p)
+#                np.save(npy_path, model_embedding)
 
-        for img_path, npy_path in paths_with_npy_with_exist:
-            batch_encodings[img_path] = np.load(npy_path)
+#        for img_path, npy_path in paths_with_npy_with_exist:
+#            batch_encodings[img_path] = np.load(npy_path)
 
         return batch_encodings
 
