@@ -164,7 +164,7 @@ class DeepFashion1PairsGenerator:
         embeddings = []
 
         for batch in images:
-            batch_embeddings = self.model(batch)
+            batch_embeddings = self.model.predict(batch)
             embeddings.extend(batch_embeddings)
 
         assert len(embeddings) == len(paths_full_not_exist), f"{len(embeddings)} {len(paths)}"
@@ -173,7 +173,10 @@ class DeepFashion1PairsGenerator:
         for p, model_embedding in zip(paths_not_exist, embeddings):
             batch_encodings[p] = model_embedding
             if self.embedding_path:
-                npy_path = self.build_npy_path(p)
+                npy_path = str(self.build_npy_path(p).resolve())
+                print(type(model_embedding))
+                print(model_embedding.shape)
+                #if not any(np.isnan(model_embedding)):
                 np.save(npy_path, model_embedding)
 
         for img_path, npy_path in paths_with_npy_with_exist:

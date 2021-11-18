@@ -71,6 +71,23 @@ class DeepFashion1Dataset:
             cols_ctl = [x + "_ctl" for x in cols]
             ctls = [df[c].values for c in cols_ctl]
             self._build_missing_embeddings(is_triplet, a, n1, embedding_path=embedding_path,**kwargs)
+
+            if type(embedding_path) == str:
+                embedding_path_str = embedding_path
+            else:
+                embedding_path_str = str(embedding_path.resolve())
+            embedding_path_path = Path(embedding_path)
+            img_path = str(self.pair_gen.pair_gen.image_base_path.resolve())
+            def inverse_path(p):
+                f_name = (p.replace(embedding_path_str, "")
+                          .replace("\\", "/")
+                          .replace("-", "/")
+                          .replace(".npy", ".jpg"))
+                p = Path(img_path + "/" + f_name)
+                return str(p.resolve())
+
+            a = list(map(inverse_path, a))
+
             return pair_builder(a, p, n1, n2, ctls=ctls), len(a)
         else:
             return pair_builder(a, p, n1, n2), len(a)
