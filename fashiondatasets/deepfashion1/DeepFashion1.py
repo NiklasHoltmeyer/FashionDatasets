@@ -69,7 +69,7 @@ class DeepFashion1Dataset:
         else:
             return pair_builder(a, p, n1, n2), len(a)
 
-    def load(self, is_triplet, force, force_hard_sampling, splits=None):
+    def load(self, is_triplet, force, force_hard_sampling, splits=None, **kwargs):
         datasets = {}
         # "test", "train", "val"
         if splits is None:
@@ -77,7 +77,10 @@ class DeepFashion1Dataset:
 
         for split in splits:
             force = split == "train" and force
-            ds, n_items = self.load_split(split, is_triplet, force=force, force_hard_sampling=force_hard_sampling)
+            force_hard_sampling = split == "train" and force_hard_sampling
+
+            ds, n_items = self.load_split(split, is_triplet, force=force,
+                                          force_hard_sampling=force_hard_sampling, **kwargs)
 
             if split == "val":
                 split = "validation"
