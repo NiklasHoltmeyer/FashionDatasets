@@ -174,8 +174,6 @@ class DeepFashion1PairsGenerator:
             batch_encodings[p] = model_embedding
             if self.embedding_path:
                 npy_path = str(self.build_npy_path(p).resolve())
-                print(type(model_embedding))
-                print(model_embedding.shape)
                 #if not any(np.isnan(model_embedding)):
                 np.save(npy_path, model_embedding)
 
