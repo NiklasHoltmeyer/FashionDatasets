@@ -116,7 +116,7 @@ class CentroidBuilder:
             p_id = retrieve_id(img)
             imgs_by_id[p_id].append(img)
 
-        for p_id, imgs in tqdm(imgs_by_id.items(), desc=f"Build Centroids (force={force})"):
+        for p_id, imgs in tqdm(imgs_by_id.items(), desc=f"Build Centroids (force={force}, BS={self.batch_size})"):
             f_path = str((split_path / p_id).resolve())
             f_path_full = f_path + ".npy"
 
