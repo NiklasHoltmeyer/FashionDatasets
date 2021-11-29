@@ -94,7 +94,8 @@ class DeepFashion1PairsGenerator:
 
         csv_path = Path(self.base_path, split + ".csv")
         if force or not csv_path.exists():
-            anchor_positive_negative_negatives = self.build(split, validate=validate, **kwargs)
+            anchor_positive_negative_negatives = self.build(split, force_hard_sampling=force_hard_sampling,
+                                                            validate=validate, **kwargs)
             quadruplets_df = pd.DataFrame(anchor_positive_negative_negatives,
                                           columns=["anchor", "positive", "negative1", "negative2"])
 
@@ -304,7 +305,7 @@ class DeepFashion1PairsGenerator:
         return [(pair_id, cat_idx, anchor_image, positive)  # just build all AP pairs
                 for pair_id, cat_idx, anchor_image, positive in ap_possibilities_all]
 
-    def build_anchor_positive_negatives(self, anchor_positives, ids_by_cat_idx, force_cat_level):
+    def build_anchor_positive_negatives(self, anchor_positives, ids_by_cat_idx, force_cat_level, force_hard_sampling):
         image_paths_from_pair = lambda d: [d[2], *d[-1]]
         apn_possibilities_all = list(self.walk_anchor_positive_negative_possibilities(anchor_positives,
                                                                                       ids_by_cat_idx, force_cat_level))
@@ -315,7 +316,8 @@ class DeepFashion1PairsGenerator:
 
         for apn_possibilities in tqdm(apn_possibilities_chunked, desc=f"Build APN "
                                                                       f"(BS: {self.batch_size}. C: {self.n_chunks})"):
-            if self.model:
+            if force_hard_sampling:
+                assert self.model
                 batch_encodings = self.encode_paths(apn_possibilities, image_paths_from_pair)
 
                 for pair_id, ap_cat_idx, a_img, p_img, n_possibilities in apn_possibilities:
@@ -344,7 +346,7 @@ class DeepFashion1PairsGenerator:
 
         return apns
 
-    def build_anchor_positive_negative_negatives(self, anchor_positive_negatives, ids_by_cat_idx, force_cat_level):
+    def build_anchor_positive_negative_negatives(self, anchor_positive_negatives, ids_by_cat_idx, force_cat_level, force_hard_sampling):
         image_paths_from_pair = lambda d: [d[-2], *d[-1]]
         apnn_possibilities_all = list(
             self.walk_anchor_positive_negative_negative_possibilities(anchor_positive_negatives, ids_by_cat_idx,
@@ -354,7 +356,8 @@ class DeepFashion1PairsGenerator:
         apnns = []
         for apnn_possibilities in tqdm(apnn_possibilities_chunked, desc=f"Build APNN "
                                                                         f"(BS: {self.batch_size}. C: {self.n_chunks})"):
-            if self.model:
+            if force_hard_sampling:
+                assert self.model
                 batch_encodings = self.encode_paths(apnn_possibilities, image_paths_from_pair)
 
                 for a, p, n, n2_possibilities in apnn_possibilities:
@@ -396,7 +399,7 @@ class DeepFashion1PairsGenerator:
 
     #        return apnns
 
-    def build(self, split, validate=True, **kwargs):
+    def build(self, split, force_hard_sampling, validate=True, **kwargs):
         force_cat_level = 2
 
         split_data, ids_by_cat_idx = self.splits[split], self.ids_by_cat_idx[split]
@@ -407,7 +410,8 @@ class DeepFashion1PairsGenerator:
             self.validate_anchor_positives(anchor_positives)
 
         anchor_positive_negatives = self.build_anchor_positive_negatives(anchor_positives, ids_by_cat_idx,
-                                                                         force_cat_level)
+                                                                         force_cat_level,
+                                                                         force_hard_sampling=force_hard_sampling)
 
         if validate:
             self.validate_anchor_positive_negatives(anchor_positive_negatives)
@@ -415,11 +419,11 @@ class DeepFashion1PairsGenerator:
         if force_cat_level == 2:
             anchor_positive_negative_negatives = self.build_anchor_positive_negative_negatives(
                 anchor_positive_negatives,
-                ids_by_cat_idx, 1)
+                ids_by_cat_idx, 1, force_hard_sampling=force_hard_sampling)
         else:
             anchor_positive_negative_negatives = self.build_anchor_positive_negative_negatives(
                 anchor_positive_negatives,
-                ids_by_cat_idx, force_cat_level)
+                ids_by_cat_idx, force_cat_level, force_hard_sampling=force_hard_sampling)
 
         if validate:
             self.validate_anchor_positive_negative_negatives(anchor_positive_negative_negatives)
@@ -538,7 +542,7 @@ if __name__ == "__main__":
         for split in ["val", "train", "test"]:
             generator = DeepFashion1PairsGenerator(base_path, None, "_256")
             force = split == "val"  # <- for debugging just take the smallest split lul
-            df = generator.load(split, force=force)
+            df = generator.load(split, force_hard_sampling=False, force=force)
             DeepFashion1PairsGenerator.validate_dataframe(df)
 
 
