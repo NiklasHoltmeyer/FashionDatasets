@@ -33,13 +33,7 @@ class DeepFashion1Dataset:
 
         assert generator_type in ["ctl", "apn"]
 
-        if hard_sampling:
-            b_model = model
-            assert model is not None
-        else:
-            b_model = None
-
-        apn_pair_gen = DeepFashion1PairsGenerator(base_path, model=b_model,
+        apn_pair_gen = DeepFashion1PairsGenerator(base_path, model=model,
                                                   image_suffix=image_suffix,
                                                   number_possibilities=number_possibilities,
                                                   nrows=nrows,
