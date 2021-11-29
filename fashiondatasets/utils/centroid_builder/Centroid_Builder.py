@@ -25,7 +25,7 @@ assert np is not None or True
 class CentroidBuilder:
     def __init__(self, pair_generator, centroids_path, model, augmentation, batch_size=64):
         self.pair_gen = pair_generator
-        self.batch_size = batch_size * 4
+        self.batch_size = batch_size * 2
 
         self.centroids_path = Path(centroids_path)
         self.centroids_path.mkdir(exist_ok=True, parents=True)
