@@ -94,7 +94,7 @@ class DeepFashion1PairsGenerator:
 
         csv_path = Path(self.base_path, split + ".csv")
         if force or not csv_path.exists():
-            anchor_positive_negative_negatives = self.build(split, validate=validate)
+            anchor_positive_negative_negatives = self.build(split, validate=validate, **kwargs)
             quadruplets_df = pd.DataFrame(anchor_positive_negative_negatives,
                                           columns=["anchor", "positive", "negative1", "negative2"])
 
@@ -292,11 +292,14 @@ class DeepFashion1PairsGenerator:
             if len(possible_negative2) > 0:
                 yield a_img, p_img, n_img, possible_negative2
 
-    def build_anchor_positives(self, splits, force_cat_level):
+    def build_anchor_positives(self, splits, force_cat_level, **kwargs):
         ap_possibilities_all = list(self.walk_anchor_positive_possibilities(splits, force_cat_level))
-
+        n_rows = kwargs.get("nrows", None)
         if DEV:
             ap_possibilities_all = ap_possibilities_all[:3]
+
+        if n_rows:
+            ap_possibilities_all = ap_possibilities_all[:n_rows]
 
         return [(pair_id, cat_idx, anchor_image, positive)  # just build all AP pairs
                 for pair_id, cat_idx, anchor_image, positive in ap_possibilities_all]
@@ -393,12 +396,12 @@ class DeepFashion1PairsGenerator:
 
     #        return apnns
 
-    def build(self, split, validate=True):
+    def build(self, split, validate=True, **kwargs):
         force_cat_level = 2
 
         split_data, ids_by_cat_idx = self.splits[split], self.ids_by_cat_idx[split]
 
-        anchor_positives = self.build_anchor_positives(split_data, force_cat_level)
+        anchor_positives = self.build_anchor_positives(split_data, force_cat_level, **kwargs)
 
         if validate:
             self.validate_anchor_positives(anchor_positives)
@@ -422,7 +425,10 @@ class DeepFashion1PairsGenerator:
             self.validate_anchor_positive_negative_negatives(anchor_positive_negative_negatives)
 
         total_number_possible_anchors = len(split_data)
-        success_ratio = 100 * len(anchor_positive_negative_negatives) / total_number_possible_anchors
+        if kwargs.get("nrows", None):
+            success_ratio = 100 * len(anchor_positive_negative_negatives) / kwargs["nrows"]
+        else:
+            success_ratio = 100 * len(anchor_positive_negative_negatives) / total_number_possible_anchors
 
         if not DEV:
             assert success_ratio >= 88, f"{success_ratio:.2f}% < 88.00%"
