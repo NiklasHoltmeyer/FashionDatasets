@@ -22,7 +22,8 @@ class DeepFashion1Dataset:
                  nrows=None,
                  batch_size=64,
                  n_chunks=None,
-                 embedding_path=None):
+                 embedding_path=None,
+                 hard_sampling=False):
         self.base_path = base_path
         self.model = model
         self.image_suffix = image_suffix
@@ -32,7 +33,13 @@ class DeepFashion1Dataset:
 
         assert generator_type in ["ctl", "apn"]
 
-        apn_pair_gen = DeepFashion1PairsGenerator(base_path, model=model,
+        if hard_sampling:
+            b_model = model
+            assert model is not None
+        else:
+            b_model = None
+
+        apn_pair_gen = DeepFashion1PairsGenerator(base_path, model=b_model,
                                                   image_suffix=image_suffix,
                                                   number_possibilities=number_possibilities,
                                                   nrows=nrows,
