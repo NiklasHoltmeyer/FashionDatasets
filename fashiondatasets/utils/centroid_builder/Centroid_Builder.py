@@ -95,7 +95,7 @@ class CentroidBuilder:
 
         pairs_dataframe = self.pair_gen.load(split, force=force_hard_sampling, validate=validate,
                                    overwrite_embeddings=overwrite_embeddings,
-                                   embedding_path=embedding_path)
+                                   embedding_path=embedding_path, **kwargs)
 
         if DEV:
             pairs_dataframe = pairs_dataframe.head(32)
