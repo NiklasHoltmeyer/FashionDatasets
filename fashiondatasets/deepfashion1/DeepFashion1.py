@@ -1,10 +1,14 @@
 from pathlib import Path
 
+from fashionnets.models.layer.Augmentation import compose_augmentations
+
 from fashiondatasets.deepfashion1.helper.deep_fashion_1_pairs_generator import DeepFashion1PairsGenerator
 from fashiondatasets.own.helper.quad_to_ds import build_pairs_ds_fn
 from tqdm.auto import tqdm
 
 from fashiondatasets.utils.centroid_builder.Centroid_Builder import CentroidBuilder
+from fashiondatasets.utils.mock.mock_augmentation import pass_trough
+from fashiondatasets.utils.mock.mock_feature_extractor import SimpleCNN
 
 
 class DeepFashion1Dataset:
@@ -17,7 +21,8 @@ class DeepFashion1Dataset:
                  number_possibilities=32,
                  nrows=None,
                  batch_size=64,
-                 n_chunks=None):
+                 n_chunks=None,
+                 embedding_path=None):
         self.base_path = base_path
         self.model = model
         self.image_suffix = image_suffix
@@ -33,16 +38,17 @@ class DeepFashion1Dataset:
                                                   nrows=nrows,
                                                   batch_size=batch_size,
                                                   n_chunks=n_chunks,
-                                                  augmentation=augmentation
+                                                  augmentation=augmentation,
+                                                  embedding_path=embedding_path
                                                   )
 
         if generator_type == "apn":
             self.pair_gen = apn_pair_gen
             self.is_ctl = False
         elif generator_type == "ctl":
-            self.pair_gen = CentroidBuilder(apn_pair_gen, "./ctl", model=model,
+            self.pair_gen = CentroidBuilder(apn_pair_gen, embedding_path, model=model,
                                             augmentation=augmentation,
-                                            batch_size=batch_size, )
+                                            batch_size=batch_size)
             self.is_ctl = True
 
     def load_split(self, split, is_triplet, force, force_hard_sampling, **kwargs):
@@ -76,6 +82,7 @@ class DeepFashion1Dataset:
                 embedding_path_str = embedding_path
             else:
                 embedding_path_str = str(embedding_path.resolve())
+
             embedding_path_path = Path(embedding_path)
             img_path = str(self.pair_gen.pair_gen.image_base_path.resolve())
             def inverse_path(p):
@@ -152,3 +159,22 @@ class DeepFashion1Dataset:
         self.pair_gen.pair_gen.encode_paths([missing_embeddings], retrieve_paths_fn=lambda d: d,
                                             assert_saving=True)
 
+if __name__ == "__main__":
+    model = SimpleCNN.build((224, 224))
+    m_augmentation = pass_trough()
+    base_path = 'F:\\workspace\\datasets\\deep_fashion_1_256'
+    embedding_path = r"F:\workspace\FashNets\runs\BLABLABLA"
+
+    ds_loader = DeepFashion1Dataset(base_path=base_path,
+                                    image_suffix="_256",
+                                    model=model,
+                                    nrows=80,
+                                    augmentation=compose_augmentations()(False),
+                                    generator_type="ctl",
+                                    embedding_path=embedding_path)
+
+    datasets = ds_loader.load(splits=["train", "val"],
+                              is_triplet=True,
+                              force=False, force_hard_sampling=False, embedding_path=embedding_path)
+
+    print(datasets)

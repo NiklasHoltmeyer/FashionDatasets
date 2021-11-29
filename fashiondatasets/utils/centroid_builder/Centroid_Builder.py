@@ -3,6 +3,11 @@ from collections import defaultdict
 from pathlib import Path
 
 import tensorflow as tf
+
+from fashiondatasets.utils.centroid_builder.helper import validate_embeddings, validate_embedding
+from fashiondatasets.utils.mock.dev_cfg import DEV
+from fashiondatasets.utils.mock.mock_augmentation import pass_trough
+from fashiondatasets.utils.mock.mock_feature_extractor import SimpleCNN
 from tqdm.auto import tqdm
 
 from fashiondatasets.deepfashion1.helper.deep_fashion_1_pairs_generator import DeepFashion1PairsGenerator
@@ -16,7 +21,6 @@ from fashiondatasets.utils.list import filter_not_exist
 assert tf is not None or True  # PyCharm removes the Imports, even tho the Function/Classes are used
 assert preprocess_image is not None or True  # PyCharm removes the Imports, even tho the Function/Classes are used
 assert np is not None or True
-
 
 class CentroidBuilder:
     def __init__(self, pair_generator, centroids_path, model, augmentation, batch_size=64):
@@ -40,10 +44,10 @@ class CentroidBuilder:
         map_full_path = lambda p: str((self.pair_gen.image_base_path / p).resolve())
 
         paths = list(images)
-#        npy_full_paths = map(self.pair_gen.build_npy_path, paths)
-#        npy_full_paths = list(npy_full_paths)
-#
-#        paths_with_npy_with_exist = zip(paths, npy_full_paths)  # pack and check if embeddings exist
+        #        npy_full_paths = map(self.pair_gen.build_npy_path, paths)
+        #        npy_full_paths = list(npy_full_paths)
+        #
+        #        paths_with_npy_with_exist = zip(paths, npy_full_paths)  # pack and check if embeddings exist
 
         ##
         npy_full_paths = map(lambda d: self.pair_gen.build_npy_path(d, suffix=".npy"), paths)
@@ -57,24 +61,22 @@ class CentroidBuilder:
                                                      not_exist=False, key=lambda d: d[1], disable_output=True)
         ##
 
-
-#        paths_with_npy_with_exist = filter(lambda d: d[1].exists(), paths_with_npy_with_exist)
-#        paths_with_npy_with_not_exist = filter(lambda d: d[1].exists(), paths_with_npy_with_exist)
-#        paths_with_npy_with_exist = list(paths_with_npy_with_exist)
-#        paths_with_npy_with_not_exist = list(paths_with_npy_with_not_exist)
+        #        paths_with_npy_with_exist = filter(lambda d: d[1].exists(), paths_with_npy_with_exist)
+        #        paths_with_npy_with_not_exist = filter(lambda d: d[1].exists(), paths_with_npy_with_exist)
+        #        paths_with_npy_with_exist = list(paths_with_npy_with_exist)
+        #        paths_with_npy_with_not_exist = list(paths_with_npy_with_not_exist)
 
         paths_not_exist = map(lambda d: d[0], paths_with_npy_with_not_exist)
         paths_full_not_exist = map(map_full_path, paths_not_exist)
         paths_full_not_exist = list(paths_full_not_exist)
 
-        if len(paths_full_not_exist) > 1:
+        if len(paths_full_not_exist) > 0:
             images_ds = tf.data.Dataset.from_tensor_slices(paths_full_not_exist) \
                 .map(preprocess_image((224, 224), augmentation=self.augmentation)) \
                 .batch(self.batch_size, drop_remainder=False) \
                 .prefetch(tf.data.AUTOTUNE)
         else:
             images_ds = []
-
         embeddings = []
 
         for batch in images_ds:
@@ -84,14 +86,20 @@ class CentroidBuilder:
         for img_path, npy_path in paths_with_npy_with_exist:
             embeddings.append(np.load(npy_path))
 
-        embedding_center = average_vectors(embeddings)
-        return embedding_center
+        if len(embeddings) > 1:
+            return average_vectors(embeddings)
+        return embeddings[0]
 
-    def load(self, split, force=False, force_hard_sampling=False, validate=False, **kwargs):
+    def load(self, split, force=False, force_hard_sampling=False, validate=False, overwrite_embeddings=False, **kwargs):
         embedding_path = kwargs.pop("embedding_path", None)
-        pairs = self.pair_gen.load(split, force=force_hard_sampling, validate=validate,
-                                   overwrite_embeddings=kwargs.get("overwrite_embeddings", False),
+
+        pairs_dataframe = self.pair_gen.load(split, force=force_hard_sampling, validate=validate,
+                                   overwrite_embeddings=overwrite_embeddings,
                                    embedding_path=embedding_path)
+
+        if DEV:
+            pairs_dataframe = pairs_dataframe.head(32)
+
         split_path = self.centroids_path / split
         split_path.mkdir(parents=True, exist_ok=True)
 
@@ -102,7 +110,7 @@ class CentroidBuilder:
 
         imgs_by_id = defaultdict(lambda: [])
 
-        distinct_imgs = distinct(flatten(pairs.values))
+        distinct_imgs = distinct(flatten(pairs_dataframe.values))
         retrieve_id = lambda d: d.split("/")[-2]
         for img in distinct_imgs:
             p_id = retrieve_id(img)
@@ -119,16 +127,27 @@ class CentroidBuilder:
                 if centroid is None:
                     continue
 
+                any_nan = tf.math.reduce_any(tf.math.is_nan(centroid))
+
+                assert not any_nan, "NaN in Centroid!"
+
                 np.save(f_path, centroid)
+
+                if DEV:
+                    try:
+                        validate_embedding(f_path + ".npy")
+                    except Exception as e:
+                        print(centroid)
+                        raise e
 
         split_path = str(split_path.resolve())
         map_npy_path = lambda _id: os.path.join(split_path, _id + ".npy")
 
-        for k in pairs.keys():
-            pairs[k + "_ctl"] = pairs[k].map(lambda i: i.split("/")[-2]).map(map_npy_path)
-            pairs[k] = pairs[k].map(lambda i: self.pair_gen.build_npy_path(i, suffix=".npy"))
-        pairs.to_csv(Path(self.pair_gen.base_path, split + "_ctl.csv"), index=False)
-        return pairs
+        for k in pairs_dataframe.keys():
+            pairs_dataframe[k + "_ctl"] = pairs_dataframe[k].map(lambda i: i.split("/")[-2]).map(map_npy_path)
+            pairs_dataframe[k] = pairs_dataframe[k].map(lambda i: self.pair_gen.build_npy_path(i, suffix=".npy"))
+        pairs_dataframe.to_csv(Path(self.pair_gen.base_path, split + "_ctl.csv"), index=False)
+        return pairs_dataframe
 
 
 def average_vectors(list_of_vectors, axis=0):
@@ -137,9 +156,29 @@ def average_vectors(list_of_vectors, axis=0):
 
 if __name__ == "__main__":
     base_path = r"F:\workspace\datasets\deep_fashion_1_256"
-    pair_gen = DeepFashion1PairsGenerator(base_path, None, "_256")
-    splits = ["train", "val"]
-    builder = CentroidBuilder(pair_gen, r"F:\workspace\FashNets\runs\1337_resnet50_imagenet_triplet\ctl", None,
-                              augmentation=lambda d: d)
+    embedding_path = r"F:\workspace\FashNets\runs\BLABLABLA"
+
+    model = SimpleCNN.build((224, 224))
+    m_augmentation = pass_trough()
+
+    pair_gen = DeepFashion1PairsGenerator(base_path, model, "_256",
+                                          embedding_path=embedding_path, augmentation=lambda d: d)
+    # splits = ["train", "val"]
+    splits = ["val"]
+
+    builder = CentroidBuilder(pair_gen, embedding_path, model, augmentation=lambda d: d)
+
     for split in splits:
-        builder.load(split, True, False)
+        ctl_df = builder.load(split, True, True, overwrite_embeddings=True) # [[a, p, n1, n2, a_ctl, p_ctl, n1_ctl, n2_ctl]] (.npy paths)
+        #F:\workspace\FashNets\ctl\train
+        values = ctl_df.values
+        print(values[0])
+        exit(0)
+
+        validate_embeddings(embedding_path)
+        print("Validated")
+        exit(0)
+
+        for a, p, n, nn in ctl_df.values:
+            print(a)
+            break

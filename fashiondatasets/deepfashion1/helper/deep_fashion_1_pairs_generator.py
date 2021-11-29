@@ -6,6 +6,9 @@ from pathlib import Path
 import pandas as pd
 from fashiondatasets.deepfashion1.helper.ExtractSplits import DF1_Split_Extractor, CONSUMER
 from fashiondatasets.deepfashion2.helper.pairs.similar_embeddings import find_top_k
+from fashiondatasets.utils.centroid_builder.helper import validate_embedding
+from fashiondatasets.utils.mock.dev_cfg import DEV
+from fashiondatasets.utils.mock.mock_feature_extractor import SimpleCNN
 from fashionscrapper.utils.list import flatten, distinct
 from tqdm.auto import tqdm
 import tensorflow as tf
@@ -30,6 +33,7 @@ class DeepFashion1PairsGenerator:
                  batch_size=64,
                  augmentation=None,
                  n_chunks=None,
+                 embedding_path=None
                  ):
         if n_chunks is None:
             n_chunks = 1
@@ -52,7 +56,7 @@ class DeepFashion1PairsGenerator:
 
         self.augmentation = augmentation
 
-        self.embedding_path = None
+        self.embedding_path = Path(embedding_path)
 
         if not model:
             print("WARNING " * 72)
@@ -67,7 +71,8 @@ class DeepFashion1PairsGenerator:
              validate=True,
              overwrite_embeddings=None,
              **kwargs):
-        embedding_path = kwargs.pop("embedding_path", None)
+        embedding_path = kwargs.pop("embedding_path", None) or self.embedding_path
+
         # force only for train
         if force_hard_sampling and not self.model:
             raise Exception("Model is None. Cannot Hard Sample")
@@ -106,7 +111,6 @@ class DeepFashion1PairsGenerator:
         if any(filter(lambda bl: path_str.endswith(bl), blacklist)):
             return True
         try:
-            path.unlink()
             return True
         except:
             pass
@@ -122,7 +126,7 @@ class DeepFashion1PairsGenerator:
 
         image_base_path_str = str(self.image_base_path.resolve())
         map_full_path = lambda p: str(Path(image_base_path_str + "/" + p).resolve())
-            #str((self.image_base_path / p).resolve())
+        # str((self.image_base_path / p).resolve())
 
         # encodings_keys = self.batch_encodings.keys()
         paths = (map(retrieve_paths_fn, pairs))
@@ -174,21 +178,23 @@ class DeepFashion1PairsGenerator:
             batch_encodings[p] = model_embedding
             if self.embedding_path:
                 npy_path = str(self.build_npy_path(p).resolve())
-                #if not any(np.isnan(model_embedding)):
+                # if not any(np.isnan(model_embedding)):
                 np.save(npy_path, model_embedding)
+
+                if DEV:
+                    validate_embedding(npy_path + ".npy")
 
         for img_path, npy_path in paths_with_npy_with_exist:
             data = np.load(npy_path)
-            if np.isnan(data):
-                batch_encodings[img_path] = data
+            batch_encodings[img_path] = data
 
         return batch_encodings
 
     def build_npy_path(self, img_relative_path, suffix=""):
         assert self.embedding_path
 
-        f_name = img_relative_path.replace(".jpg", suffix)\
-            .replace(os.path.sep, "-")\
+        f_name = img_relative_path.replace(".jpg", suffix) \
+            .replace(os.path.sep, "-") \
             .replace("/", "-")
 
         f_name = f_name[0].replace("-", "") + f_name[1:]  # replace leading - if exist
@@ -288,6 +294,10 @@ class DeepFashion1PairsGenerator:
 
     def build_anchor_positives(self, splits, force_cat_level):
         ap_possibilities_all = list(self.walk_anchor_positive_possibilities(splits, force_cat_level))
+
+        if DEV:
+            ap_possibilities_all = ap_possibilities_all[:3]
+
         return [(pair_id, cat_idx, anchor_image, positive)  # just build all AP pairs
                 for pair_id, cat_idx, anchor_image, positive in ap_possibilities_all]
 
@@ -413,7 +423,9 @@ class DeepFashion1PairsGenerator:
 
         total_number_possible_anchors = len(split_data)
         success_ratio = 100 * len(anchor_positive_negative_negatives) / total_number_possible_anchors
-        assert success_ratio >= 88, f"{success_ratio:.2f}% < 88.00%"
+
+        if not DEV:
+            assert success_ratio >= 88, f"{success_ratio:.2f}% < 88.00%"
 
         print(f"Building Pairs Success Ratio: {success_ratio}")
 
@@ -514,12 +526,16 @@ class DeepFashion1PairsGenerator:
 
 if __name__ == "__main__":
     base_path = r"F:\workspace\datasets\deep_fashion_1_256"
+
+
     def build_splits():
         for split in ["val", "train", "test"]:
             generator = DeepFashion1PairsGenerator(base_path, None, "_256")
             force = split == "val"  # <- for debugging just take the smallest split lul
             df = generator.load(split, force=force)
             DeepFashion1PairsGenerator.validate_dataframe(df)
+
+
     x = ['F:\\workspace\\datasets\\deep_fashion_1_256\\img_256\\img\\TOPS\\T_Shirt\\id_00000218\\comsumer_01.jpg',
          'F:\\workspace\\datasets\\deep_fashion_1_256\\img_256\\img\\TOPS\\T_Shirt\\id_00000218\\comsumer_02.jpg',
          'F:\\workspace\\datasets\\deep_fashion_1_256\\img_256\\img\\TOPS\\T_Shirt\\id_00000218\\comsumer_03.jpg',
@@ -540,26 +556,8 @@ if __name__ == "__main__":
          'F:\\workspace\\datasets\\deep_fashion_1_256\\img_256\\img\\TOPS\\T_Shirt\\id_00014247\\shop_02.jpg',
          'F:\\workspace\\datasets\\deep_fashion_1_256\\img_256\\img\\TOPS\\T_Shirt\\id_00015525\\shop_02.jpg',
          'F:\\workspace\\datasets\\deep_fashion_1_256\\img_256\\img\\TOPS\\T_Shirt\\id_00020957\\shop_01.jpg']
-    import tensorflow as tf
 
-
-    class SimpleCNN:
-        @staticmethod
-        def build(input_shape, embedding_dim=2048):
-            embedding_model = tf.keras.Sequential([
-                tf.keras.layers.Conv2D(filters=64, kernel_size=2, padding='same', activation='relu',
-                                       input_shape=(input_shape[0], input_shape[1], 3)),
-                tf.keras.layers.MaxPooling2D(pool_size=2),
-                tf.keras.layers.Dropout(0.3),
-                tf.keras.layers.Conv2D(filters=32, kernel_size=2, padding='same', activation='relu'),
-                tf.keras.layers.MaxPooling2D(pool_size=2),
-                tf.keras.layers.Flatten(),
-                tf.keras.layers.Dense(embedding_dim, activation=None),
-                tf.keras.layers.Lambda(lambda x: tf.math.l2_normalize(x, axis=1))
-            ])
-            preprocessing = None  # DS is already normalized!
-            return embedding_model, preprocessing
-    model, _ = SimpleCNN.build((224, 224))
+    model = SimpleCNN.build((224, 224))
 
     augmentation = lambda d: d
     gen = DeepFashion1PairsGenerator(base_path, model, "_256", augmentation=augmentation)
@@ -567,5 +565,3 @@ if __name__ == "__main__":
     gen.embedding_path = Path(gen.embedding_path)
     gen.encode_paths([x], retrieve_paths_fn=lambda d: d)
     print("wuhu")
-
-
