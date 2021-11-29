@@ -77,7 +77,6 @@ class DeepFashion1Dataset:
         if is_ctl:
             cols_ctl = [x + "_ctl" for x in cols]
             ctls = [df[c].values for c in cols_ctl]
-            print("_build_missing_embeddings")
             self._build_missing_embeddings(is_triplet, a, n1, embedding_path=embedding_path,**kwargs)
 
             if type(embedding_path) == str:
@@ -96,7 +95,6 @@ class DeepFashion1Dataset:
                 return str(p.resolve())
 
             a = list(map(inverse_path, a))
-            print("BUILD PAIR")
             return pair_builder(a, p, n1, n2, ctls=ctls), len(a)
         else:
             return pair_builder(a, p, n1, n2), len(a)
@@ -179,4 +177,3 @@ if __name__ == "__main__":
                               is_triplet=True,
                               force=False, force_hard_sampling=False, embedding_path=embedding_path)
 
-    print(datasets)
