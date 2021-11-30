@@ -103,7 +103,7 @@ class DeepFashion1Dataset:
         else:
             return pair_builder(a, p, n1, n2), len(a)
 
-    @time_logger(name="Load", header="DeepFashion-DS", padding_length=50,
+    @time_logger(name="DF-DS::Load", header="DeepFashion-DS", padding_length=50,
                  logger=defaultLogger("fashiondataset_time_logger"), log_debug=False)
     def load(self, is_triplet, force, force_hard_sampling, splits=None, **kwargs):
         datasets = {}

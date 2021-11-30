@@ -70,7 +70,7 @@ class DeepFashion1PairsGenerator:
 
         self.logger = defaultLogger()
 
-    @time_logger(name="Load", header="Pair-Gen", padding_length=50, footer="Pair-Gen [DONE]",
+    @time_logger(name="Pair-Gen::Load", header="Pair-Gen", padding_length=50, footer="Pair-Gen [DONE]",
                  logger=defaultLogger("fashiondataset_time_logger"), log_debug=False)
     def load(self, split,
              force=False,
@@ -126,7 +126,7 @@ class DeepFashion1PairsGenerator:
         except:
             return False
 
-    @time_logger(name="Encode Paths", header="Pair-Gen", padding_length=50,
+    @time_logger(name="DF::Encode Paths", header="Pair-Gen", padding_length=50,
                  logger=defaultLogger("fashiondataset_time_logger"), log_debug=False)
     def encode_paths(self, pairs, retrieve_paths_fn, assert_saving=False):
         self.logger.debug("Encode Paths")

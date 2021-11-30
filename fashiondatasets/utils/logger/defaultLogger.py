@@ -8,11 +8,11 @@ logger_names = [
     "fashion_image_preprocess"
 ]
 
-verbose_logger = [
-    "fashiondataset",
-    "FashionNet",
-    "fashiondataset_time_logger"
-]
+#verbose_logger = [
+#    "fashiondataset",
+#    "FashionNet",
+#    "fashiondataset_time_logger"
+#]
 
 # noinspection SpellCheckingInspection,SpellCheckingInspection,SpellCheckingInspection,SpellCheckingInspection,PyArgumentList
 def defaultLogger(name="fashiondataset", level=logging.DEBUG, handlers=None,
@@ -22,11 +22,6 @@ def defaultLogger(name="fashiondataset", level=logging.DEBUG, handlers=None,
     logging.basicConfig(level=level, format=format, handlers=handlers)
 
     logger = logging.getLogger(name)
-
-    if name in verbose_logger:
-        logger.setLevel(logging.DEBUG)
-    else:
-        logger.setLevel(logging.INFO)
 
     logging.getLogger("matplotlib").setLevel(logging.WARNING)
     logging.getLogger("nltk_data").setLevel(logging.WARNING)
