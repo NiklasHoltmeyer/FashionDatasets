@@ -98,10 +98,6 @@ class CentroidBuilder:
                  logger=defaultLogger("fashiondataset_time_logger"), log_debug=False)
     def load(self, split, force=False, force_hard_sampling=False, validate=False, overwrite_embeddings=False, **kwargs):
         embedding_path = kwargs.pop("embedding_path", None)
-        force = False
-        force_hard_sampling = False
-
-        logger.info("Warning Holzhammer!" * 100)
 
         pairs_dataframe = self.pair_gen.load(split, force=force_hard_sampling, validate=validate,
                                    overwrite_embeddings=overwrite_embeddings,
