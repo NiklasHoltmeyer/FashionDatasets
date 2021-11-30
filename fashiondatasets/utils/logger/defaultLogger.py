@@ -19,9 +19,16 @@ def defaultLogger(name="fashiondataset", level=logging.DEBUG, handlers=None,
                   format='[%(asctime)s] {%(filename)s:%(lineno)d} %(levelname)s - %(message)s'):
     handlers = handlers if handlers else [logging.StreamHandler(sys.stdout)]
 
-    logging.basicConfig(level=level, format=format, handlers=handlers)
+    #logging.basicConfig(level=level, format=format, handlers=handlers)
+
+    #logger = logging.getLogger(name)
+    ch = handlers[0]
+    ch.setLevel(level=level)
+    format_ = logging.Formatter(format)
+    ch.setFormatter(format_)
 
     logger = logging.getLogger(name)
+    logger.addHandler(ch)
 
     logging.getLogger("matplotlib").setLevel(logging.WARNING)
     logging.getLogger("nltk_data").setLevel(logging.WARNING)
