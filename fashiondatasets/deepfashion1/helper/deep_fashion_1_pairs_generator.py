@@ -36,12 +36,8 @@ class DeepFashion1PairsGenerator:
                  nrows=None,
                  batch_size=64,
                  augmentation=None,
-                 n_chunks=None,
                  embedding_path=None
                  ):
-        if n_chunks is None:
-            n_chunks = 1
-
         self.base_path = base_path
         self.model = model
         self.split_helper = DF1_Split_Extractor(self.base_path).load_helper()
@@ -56,7 +52,6 @@ class DeepFashion1PairsGenerator:
 
         self.batch_size = batch_size
         self.number_possibilities = number_possibilities
-        self.n_chunks = n_chunks
 
         self.augmentation = augmentation
 
@@ -324,13 +319,13 @@ class DeepFashion1PairsGenerator:
         image_paths_from_pair = lambda d: [d[2], *d[-1]]
         apn_possibilities_all = list(self.walk_anchor_positive_negative_possibilities(anchor_positives,
                                                                                       ids_by_cat_idx, force_cat_level))
-
-        apn_possibilities_chunked = np.array_split(apn_possibilities_all, self.n_chunks)
+        n_chunks = len(apn_possibilities_all) // 15_000
+        apn_possibilities_chunked = np.array_split(apn_possibilities_all, n_chunks)
         apns = []
         is_none, not_none, len_one = 0, 0, 0
 
         for apn_possibilities in tqdm(apn_possibilities_chunked, desc=f"Build APN "
-                                                                      f"(BS: {self.batch_size}. C: {self.n_chunks})"):
+                                                                      f"(BS: {self.batch_size}. C: {n_chunks})"):
             if force_hard_sampling:
                 assert self.model
                 logger.info("build_anchor_positive_negatives::encode_paths")
@@ -369,10 +364,12 @@ class DeepFashion1PairsGenerator:
             self.walk_anchor_positive_negative_negative_possibilities(anchor_positive_negatives, ids_by_cat_idx,
                                                                       force_cat_level))
 
-        apnn_possibilities_chunked = np.array_split(apnn_possibilities_all, self.n_chunks)
+        n_chunks = len(apnn_possibilities_all) // 15_000
+        apnn_possibilities_chunked = np.array_split(apnn_possibilities_all, n_chunks)
+
         apnns = []
         for apnn_possibilities in tqdm(apnn_possibilities_chunked, desc=f"Build APNN "
-                                                                        f"(BS: {self.batch_size}. C: {self.n_chunks})"):
+                                                                        f"(BS: {self.batch_size}. C: {n_chunks})"):
             if force_hard_sampling:
                 assert self.model
                 logger.info("build_anchor_positive_negative_negatives::encode_paths")

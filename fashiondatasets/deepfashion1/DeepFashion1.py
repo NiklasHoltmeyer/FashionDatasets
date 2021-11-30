@@ -25,16 +25,14 @@ class DeepFashion1Dataset:
                  number_possibilities=32,
                  nrows=None,
                  batch_size=64,
-                 n_chunks=None,
-                 embedding_path=None,
-                 hard_sampling=False):
+                 embedding_path=None):
+
         self.base_path = base_path
         self.model = model
         self.image_suffix = image_suffix
         self.number_possibilities = number_possibilities
         self.nrows = nrows
         self.batch_size = batch_size
-        self.n_chunks = n_chunks
 
         assert generator_type in ["ctl", "apn"]
 
@@ -43,7 +41,6 @@ class DeepFashion1Dataset:
                                                   number_possibilities=number_possibilities,
                                                   nrows=nrows,
                                                   batch_size=batch_size,
-                                                  n_chunks=n_chunks,
                                                   augmentation=augmentation,
                                                   embedding_path=embedding_path
                                                   )
@@ -166,12 +163,7 @@ class DeepFashion1Dataset:
         self.pair_gen.pair_gen.embedding_path = Path(embedding_path)
         logger.info("DeepFashion1::_build_missing_embeddings::encode_paths")
 
-        if self.n_chunks:
-            missing_chunk_size = self.n_chunks
-        else:
-            missing_chunk_size = 10
-
-        missing_chunked = np.array_split(missing_embeddings, missing_chunk_size)
+        missing_chunked = np.array_split(missing_embeddings, len(missing_embeddings) // 15_000)
 
         for chunk_missing in missing_chunked:
             self.pair_gen.pair_gen.encode_paths([chunk_missing], retrieve_paths_fn=lambda d: d,
