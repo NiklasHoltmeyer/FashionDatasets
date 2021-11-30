@@ -15,7 +15,7 @@ logger_names = [
 #]
 
 # noinspection SpellCheckingInspection,SpellCheckingInspection,SpellCheckingInspection,SpellCheckingInspection,PyArgumentList
-def defaultLogger_old(name="fashiondataset", level=logging.DEBUG, handlers=None,
+def defaultLogger(name="fashiondataset", level=logging.DEBUG, handlers=None,
                   format='[%(asctime)s] {%(filename)s:%(lineno)d} %(levelname)s - %(message)s'):
     handlers = handlers if handlers else [logging.StreamHandler(sys.stdout)]
 
@@ -32,19 +32,4 @@ def defaultLogger_old(name="fashiondataset", level=logging.DEBUG, handlers=None,
     logging.getLogger("urllib3").setLevel(logging.WARNING)
 
     return logger
-
-def defaultLogger(name="fashiondataset", level=logging.DEBUG, handlers=None,
-                  format='[%(asctime)s] {%(filename)s:%(lineno)d} %(levelname)s - %(message)s'):
-    logger_ = logging.getLogger("fashiondataset")
-    logger_.setLevel(logging.DEBUG)
-
-    fmr = logging.Formatter(format)
-
-    ch = logging.StreamHandler(sys.stdout)
-    ch.setLevel(logging.DEBUG)
-    ch.setFormatter(fmr)
-
-    logger_.addHandler(ch)
-    return logger_
-
 
