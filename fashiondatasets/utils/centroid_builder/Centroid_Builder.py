@@ -5,9 +5,11 @@ from pathlib import Path
 import tensorflow as tf
 
 from fashiondatasets.utils.centroid_builder.helper import validate_embeddings, validate_embedding
+from fashiondatasets.utils.logger.defaultLogger import defaultLogger
 from fashiondatasets.utils.mock.dev_cfg import DEV
 from fashiondatasets.utils.mock.mock_augmentation import pass_trough
 from fashiondatasets.utils.mock.mock_feature_extractor import SimpleCNN
+from fashionscrapper.utils.io import time_logger
 from tqdm.auto import tqdm
 
 from fashiondatasets.deepfashion1.helper.deep_fashion_1_pairs_generator import DeepFashion1PairsGenerator
@@ -22,6 +24,8 @@ assert tf is not None or True  # PyCharm removes the Imports, even tho the Funct
 assert preprocess_image is not None or True  # PyCharm removes the Imports, even tho the Function/Classes are used
 assert np is not None or True
 
+logger = defaultLogger("fashion_centroid_builder")
+
 class CentroidBuilder:
     def __init__(self, pair_generator, centroids_path, model, augmentation, batch_size=64):
         self.pair_gen = pair_generator
@@ -34,9 +38,9 @@ class CentroidBuilder:
         self.model = model
 
         if not model:
-            print("WARNING " * 72)
-            print("Model is None. Will only build Random Pairs!")
-            print("WARNING" * 72)
+            logger.error("WARNING " * 72)
+            logger.error("Model is None. Will only build Random Pairs!")
+            logger.error("WARNING" * 72)
         elif not augmentation:
             raise Exception("Augmentation missing")
 
@@ -90,12 +94,13 @@ class CentroidBuilder:
             return average_vectors(embeddings)
         return embeddings[0]
 
+    @time_logger(name="Load", header="Pair-Gen (CTL)", padding_length=50, logger=defaultLogger())
     def load(self, split, force=False, force_hard_sampling=False, validate=False, overwrite_embeddings=False, **kwargs):
         embedding_path = kwargs.pop("embedding_path", None)
         force = False
         force_hard_sampling = False
 
-        print("Warning Holzhammer!" * 100)
+        logger.info("Warning Holzhammer!" * 100)
 
         pairs_dataframe = self.pair_gen.load(split, force=force_hard_sampling, validate=validate,
                                    overwrite_embeddings=overwrite_embeddings,
@@ -106,11 +111,6 @@ class CentroidBuilder:
 
         split_path = self.centroids_path / split
         split_path.mkdir(parents=True, exist_ok=True)
-
-        if kwargs != {}:
-            print("WARNING", "unused Parameter!")
-            print(kwargs)
-            print("*" * (len("WARNING unused Parameter!")))
 
         imgs_by_id = defaultdict(lambda: [])
 
@@ -141,7 +141,7 @@ class CentroidBuilder:
                     try:
                         validate_embedding(f_path + ".npy")
                     except Exception as e:
-                        print(centroid)
+                        logger.error(centroid)
                         raise e
 
         split_path = str(split_path.resolve())
@@ -176,11 +176,11 @@ if __name__ == "__main__":
         ctl_df = builder.load(split, True, True, overwrite_embeddings=True) # [[a, p, n1, n2, a_ctl, p_ctl, n1_ctl, n2_ctl]] (.npy paths)
         #F:\workspace\FashNets\ctl\train
         values = ctl_df.values
-        print(values[0])
+        logger.info(values[0])
         exit(0)
 
         validate_embeddings(embedding_path)
-        print("Validated")
+        logger.info("Validated")
         exit(0)
 
         for a, p, n, nn in ctl_df.values:

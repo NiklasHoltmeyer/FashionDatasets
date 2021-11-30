@@ -9,7 +9,9 @@ from tqdm.auto import tqdm
 
 from fashiondatasets.utils.io import load_img, save_image
 from fashiondatasets.utils.list import parallel_map
+from fashiondatasets.utils.logger.defaultLogger import defaultLogger
 
+logger = defaultLogger("fashion_image_preprocess")
 
 def parse_args():
     parser = argparse.ArgumentParser(
@@ -103,7 +105,7 @@ def validate_images(imgs):
                      desc="Transform Images")
 
     n_successful = sum(r)
-    print(f"{n_successful} / {len(imgs)} = {100 * n_successful / len(imgs)}%  Validated")
+    logger.info(f"{n_successful} / {len(imgs)} = {100 * n_successful / len(imgs)}%  Validated")
     return n_successful == len(imgs)
 
 
@@ -162,7 +164,7 @@ def batch_transform(_args, _transform, threads=os.cpu_count()):
         return not job[1].exists()
 
     #    logger.debug("List Images")
-    print("List Images")
+    logger.info("List Images")
     #    jobs = list(resize_jobs(_args.sub_folders))
     jobs = list(walk_jobs(src, dst))
     jobs = filter(filter_not_dst_exists, tqdm(jobs, desc="Filter DST::Exists", total=len(jobs)))
@@ -171,7 +173,7 @@ def batch_transform(_args, _transform, threads=os.cpu_count()):
     hide_exceptions = False  # len(jobs) > 100
 
     #    logger.debug("Transform Images")
-    print("Transform Images")
+    logger.info("Transform Images")
 
     if len(jobs) < 1:
         return True
@@ -185,7 +187,7 @@ def batch_transform(_args, _transform, threads=os.cpu_count()):
 
     n_successful = sum(r)
 
-    print(f"{n_successful} / {len(jobs)} = {100 * n_successful / len(jobs)}%  Resized")
+    logger.info(f"{n_successful} / {len(jobs)} = {100 * n_successful / len(jobs)}%  Resized")
 
     if _args.validate_images:
         target_imgs = map(lambda j: j[1], jobs)
@@ -209,7 +211,7 @@ if __name__ == "__main__":
             break
 
     if args.validate_images_force:
-        print("[Force] Validate all DST Images")
+        logger.info("[Force] Validate all DST Images")
         validate_all_images(args)
 
 # Train (for Mask and Quad):

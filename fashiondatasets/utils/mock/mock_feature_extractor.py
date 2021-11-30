@@ -1,9 +1,13 @@
 import tensorflow as tf
 
+from fashiondatasets.utils.logger.defaultLogger import defaultLogger
+
+
 class SimpleCNN:
     @staticmethod
     def build(input_shape, embedding_dim=2048):
-        print("WARNING! Using Mock Feature Extractor for Dev!\n" * 25)
+        defaultLogger().warning("WARNING! Using Mock Feature Extractor for Dev!")
+
         embedding_model = tf.keras.Sequential([
             tf.keras.layers.Conv2D(filters=64, kernel_size=2, padding='same', activation='relu',
                                    input_shape=(input_shape[0], input_shape[1], 3)),

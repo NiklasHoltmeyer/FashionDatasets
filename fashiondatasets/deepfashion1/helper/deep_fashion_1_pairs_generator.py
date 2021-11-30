@@ -7,8 +7,10 @@ import pandas as pd
 from fashiondatasets.deepfashion1.helper.ExtractSplits import DF1_Split_Extractor, CONSUMER
 from fashiondatasets.deepfashion2.helper.pairs.similar_embeddings import find_top_k
 from fashiondatasets.utils.centroid_builder.helper import validate_embedding
+from fashiondatasets.utils.logger.defaultLogger import defaultLogger
 from fashiondatasets.utils.mock.dev_cfg import DEV
 from fashiondatasets.utils.mock.mock_feature_extractor import SimpleCNN
+from fashionscrapper.utils.io import time_logger
 from fashionscrapper.utils.list import flatten, distinct
 from tqdm.auto import tqdm
 import tensorflow as tf
@@ -22,6 +24,7 @@ assert tf is not None or True  # PyCharm removes the Imports, even tho the Funct
 assert preprocess_image is not None or True  # PyCharm removes the Imports, even tho the Function/Classes are used
 assert np is not None or True
 
+logger = defaultLogger("fashion_pair_gen")
 
 class DeepFashion1PairsGenerator:
     def __init__(self,
@@ -59,12 +62,15 @@ class DeepFashion1PairsGenerator:
         self.embedding_path = Path(embedding_path)
 
         if not model:
-            print("WARNING " * 72)
-            print("Model is None. Will only build Random Pairs!")
-            print("WARNING" * 72)
+            logger.error("WARNING " * 72)
+            logger.error("Model is None. Will only build Random Pairs!")
+            logger.error("WARNING" * 72)
         elif not augmentation:
             raise Exception("Augmentation missing")
 
+        self.logger = defaultLogger()
+
+    @time_logger(name="Load", header="Pair-Gen", padding_length=50, logger=defaultLogger())
     def load(self, split,
              force=False,
              force_hard_sampling=False,
@@ -87,19 +93,17 @@ class DeepFashion1PairsGenerator:
             self.embedding_path = Path(embedding_path)
             self.embedding_path.mkdir(parents=True, exist_ok=True)
 
-        if kwargs != {}:
-            print("WARNING", "unused Parameter!")
-            print(kwargs)
-            print("*" * (len("WARNING unused Parameter!")))
-
         csv_path = Path(self.base_path, split + ".csv")
         if force or not csv_path.exists():
+            self.logger.debug("Pair-Gen Build")
+
             anchor_positive_negative_negatives = self.build(split, force_hard_sampling=force_hard_sampling,
                                                             validate=validate, **kwargs)
             quadruplets_df = pd.DataFrame(anchor_positive_negative_negatives,
                                           columns=["anchor", "positive", "negative1", "negative2"])
 
             quadruplets_df.to_csv(csv_path, index=False)
+            self.logger.debug("Pair-Gen Build [Done]")
 
         return pd.read_csv(csv_path, nrows=self.nrows).sample(frac=1).reset_index(drop=True)
 
@@ -121,7 +125,9 @@ class DeepFashion1PairsGenerator:
         except:
             return False
 
+    @time_logger(name="Encode Paths", header="Pair-Gen", padding_length=50, logger=defaultLogger())
     def encode_paths(self, pairs, retrieve_paths_fn, assert_saving=False):
+        self.logger.debug("Encode Paths")
         if assert_saving:
             assert self.embedding_path, "assert_saving set, but no Embedding Path"
 
@@ -437,7 +443,7 @@ class DeepFashion1PairsGenerator:
         if not DEV:
             assert success_ratio >= 88, f"{success_ratio:.2f}% < 88.00%"
 
-        print(f"Building Pairs Success Ratio: {success_ratio}")
+        logger.debug(f"Building Pairs Success Ratio: {success_ratio}")
 
         return anchor_positive_negative_negatives
 
@@ -482,9 +488,9 @@ class DeepFashion1PairsGenerator:
                     msg += "Pair-Id-Building Failed. "
                 if not cats_valid:
                     msg += "Categories Failed. "
-                print(msg)
-                [print(x, *y) for x, y in zip(["a", "p", "n1", "n2"], [a, p, n1, n2])]
-                print(a_cat, p_cat, n1_cat, n2_cat)
+                logger.debug(msg)
+                [logger.debug(f"{x} {y}") for x, y in zip(["a", "p", "n1", "n2"], [a, p, n1, n2])]
+                logger.debug(f"{a_cat}, {p_cat}, {n1_cat}, {n2_cat}")
                 assert False
 
     # pair_id, cat_idx, anchor_image, possibilities[idx]

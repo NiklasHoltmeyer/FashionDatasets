@@ -21,7 +21,9 @@ from tqdm.contrib.concurrent import thread_map
 from fashiondatasets.own.Quadruplets import Quadruplets
 from fashiondatasets.utils.io import load_img, save_image
 from fashiondatasets.utils.list import random_range, flatten_dict
+from fashiondatasets.utils.logger.defaultLogger import defaultLogger
 
+logger = defaultLogger("fashion_pair_gen")
 
 class EntriesHelper:
     def __init__(self, entries):
@@ -178,8 +180,8 @@ def build_quadruplets(entries_helper):
             else:
                 errors += 1
 
-    print("Errors:", errors)
-    print("Success:", n_successful, f"{(100 * n_successful) / (errors + n_successful)}%")
+    logger.info(f"Errors: {errors}")
+    logger.info(f"Success: {n_successful} {(100 * n_successful) / (errors + n_successful)}%")
 
 
 def unzip_quadruplets_nb(entries_helper, quadruplet, base_path=""):
@@ -211,7 +213,7 @@ def to_csv(entries_helper, base_path, quadruplets):
     quadruplets_df = pd.DataFrame(dicts, columns=dicts[0].keys())
 
     quadruplets_df.to_csv(df_path, sep=";", index=False)
-    print("Saved Quadruplets to", df_path)
+    logger.debug(f"Saved Quadruplets to {df_path}")
 
 
 def transform_quads(base_path, target_path, transformer, validate=True):
@@ -282,9 +284,9 @@ def transform_quads(base_path, target_path, transformer, validate=True):
 
     if len(jobs_validated) < 10:
         for job in jobs_validated:
-            print("DST", job[1])
+            logger.debug(f"DST {job[1]}")
 
-    print(f"{n_successful} / {len(jobs_validated)} = {100 * n_successful / len(jobs_validated)}%  Transformed")
+    logger.info(f"{n_successful} / {len(jobs_validated)} = {100 * n_successful / len(jobs_validated)}%  Transformed")
 
 
 if __name__ == "__main__":

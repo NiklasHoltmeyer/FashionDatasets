@@ -1,4 +1,6 @@
+from fashiondatasets.utils.logger import defaultLogger
+
 DEV = False
 
 if DEV:
-    print("WARNING! Using Developer Mode! " * 100)
+    defaultLogger().warning("WARNING! Using Developer Mode!")

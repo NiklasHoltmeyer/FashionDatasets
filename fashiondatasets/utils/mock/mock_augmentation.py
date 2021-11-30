@@ -1,3 +1,6 @@
+from fashiondatasets.utils.logger import defaultLogger
+
+
 def pass_trough():
-    print("WARNING! Using Pass Through Augmentation for Dev!\n"*25)
+    defaultLogger().warning("WARNING! Using Pass Through Augmentation for Dev!")
     return lambda d: d

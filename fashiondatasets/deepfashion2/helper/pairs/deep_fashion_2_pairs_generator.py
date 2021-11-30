@@ -11,7 +11,9 @@ import tensorflow as tf
 
 from fashiondatasets.deepfashion2.helper.pairs.similar_embeddings import find_top_k
 from fashiondatasets.own.helper.mappings import preprocess_image
+from fashiondatasets.utils.logger.defaultLogger import defaultLogger
 
+logger = defaultLogger("fashion_pair_gen")
 
 class DeepFashion2PairsGenerator:
     def __init__(self, _base_path, embedding, number_possibilites=32, split_suffix="", **kwargs):
@@ -303,7 +305,7 @@ class DeepFashion2PairsGenerator:
             data_sources["n1"][n1_sourced] += 1
             data_sources["n2"][n2_source] += 1
 
-        print(f"Validate APNN ({len(apnn)} Pairs) Consisting:")
+        logger.debug(f"Validate APNN ({len(apnn)} Pairs) Consisting:")
         z_fill_length = len(f"{len(apnn)}")
         info_txt = load_info_path(self.base_path, split)
 
@@ -321,7 +323,7 @@ class DeepFashion2PairsGenerator:
                     f"and {str(_dict['shop']).zfill(z_fill_length)} Shop Images."
                     + " " + ratio)
             lines.append(line + "\n")
-        print(f"Write Infos to: {info_txt}")
+        logger.debug(f"Write Infos to: {info_txt}")
         with open(info_txt, "w+") as f:
             f.writelines(lines)
 

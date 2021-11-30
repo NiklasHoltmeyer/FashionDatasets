@@ -5,7 +5,9 @@ from fashiondatasets.deepfashion2.helper.pairs._aggregate_collections import spl
 from fashiondatasets.deepfashion2.helper.pairs.deep_fashion_2_pairs_generator import DeepFashion2PairsGenerator
 from fashiondatasets.own.helper.quad_to_ds import build_pairs_ds_fn
 from fashiondatasets.utils.list import parallel_map
+from fashiondatasets.utils.logger.defaultLogger import defaultLogger
 
+logger = defaultLogger("fashion_pair_gen")
 
 class DeepFashion2Quadruplets:
     """
@@ -94,7 +96,7 @@ class DeepFashion2Quadruplets:
         def validate_apnn_path(apnn):
             files_exist = all(list(map(path_exists, apnn)))
             if not files_exist:
-                print(
+                logger.error(
                     f"at least one File missing [(Path, Missing), ...]! {list(zip(apnn, list(map(path_exists, apnn))))}"
                 )
             return files_exist

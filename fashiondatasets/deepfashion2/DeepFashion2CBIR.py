@@ -4,7 +4,9 @@ from fashionscrapper.utils.io import json_load
 from fashionscrapper.utils.list import flatten
 import tensorflow as tf
 from fashiondatasets.utils.list import parallel_map
+from fashiondatasets.utils.logger.defaultLogger import defaultLogger
 
+logger = defaultLogger("fashion_evaluate")
 
 class DeepFashion2CBIR:
     def __init__(self, base_path, split_suffix=""):
@@ -75,7 +77,7 @@ class DeepFashion2CBIR:
             return True
 
         ratio = 100 * sum(r) / len(image_paths)
-        print(f"{sum(r)} / {len(image_paths)} Images Exist. ({ratio:.2f}%)")
+        logger.info(f"{sum(r)} / {len(image_paths)} Images Exist. ({ratio:.2f}%)")
 
         return False
 

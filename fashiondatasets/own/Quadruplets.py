@@ -7,9 +7,11 @@ import tensorflow as tf
 from tqdm.auto import tqdm
 
 from fashiondatasets.utils.list import parallel_map
+from fashiondatasets.utils.logger.defaultLogger import defaultLogger
 
 tqdm.pandas()
 
+logger = defaultLogger("fashion_pair_gen")
 
 class Quadruplets:
     def __init__(self, BASE_PATH, **kwargs):
@@ -32,7 +34,7 @@ class Quadruplets:
         df = df if not map_full_paths else Quadruplets._map_full_paths(df, base_path)
 
         if kwargs.get("validate_paths", False):
-            print("Validate Paths")
+            logger.debug("Validate Paths")
             assert Quadruplets.validate_paths(df), "Invalid Paths"
 
         return df
@@ -116,7 +118,7 @@ class Quadruplets:
                          total=total)
 
         n_successful = sum(r)
-        print(f"{n_successful} / {total} Images = {100 * n_successful / total}%  Exist")
+        logger.debug(f"{n_successful} / {total} Images = {100 * n_successful / total}%  Exist")
         return n_successful == total
 
 
