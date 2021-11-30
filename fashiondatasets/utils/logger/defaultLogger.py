@@ -1,6 +1,18 @@
 import logging
 import sys
 
+logger_names = [
+    "fashiondataset",
+    "fashion_pair_gen",
+    "fashion_evaluate",
+    "fashion_image_preprocess"
+]
+
+verbose_logger = [
+    "fashiondataset",
+    "FashionNet",
+    "fashiondataset_time_logger"
+]
 
 # noinspection SpellCheckingInspection,SpellCheckingInspection,SpellCheckingInspection,SpellCheckingInspection,PyArgumentList
 def defaultLogger(name="fashiondataset", level=logging.DEBUG, handlers=None,
@@ -10,7 +22,11 @@ def defaultLogger(name="fashiondataset", level=logging.DEBUG, handlers=None,
     logging.basicConfig(level=level, format=format, handlers=handlers)
 
     logger = logging.getLogger(name)
-    logger.setLevel(logging.INFO)
+
+    if name in verbose_logger:
+        logger.setLevel(logging.DEBUG)
+    else:
+        logger.setLevel(logging.INFO)
 
     logging.getLogger("matplotlib").setLevel(logging.WARNING)
     logging.getLogger("nltk_data").setLevel(logging.WARNING)
@@ -21,17 +37,3 @@ def defaultLogger(name="fashiondataset", level=logging.DEBUG, handlers=None,
     logging.getLogger("urllib3").setLevel(logging.WARNING)
 
     return logger
-
-logger_names = [
-    "fashiondataset",
-    "fashion_pair_gen",
-    "fashion_evaluate",
-    "fashion_image_preprocess"
-]
-
-verbose_logger = [
-    "fashiondataset"
-]
-
-for l in verbose_logger:
-    defaultLogger(l).setLevel(logging.DEBUG)

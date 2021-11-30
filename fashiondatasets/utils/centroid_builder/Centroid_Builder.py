@@ -94,7 +94,8 @@ class CentroidBuilder:
             return average_vectors(embeddings)
         return embeddings[0]
 
-    @time_logger(name="Load", header="Pair-Gen (CTL)", padding_length=50, logger=defaultLogger())
+    @time_logger(name="Load", header="Pair-Gen (CTL)", padding_length=50,
+                 logger=defaultLogger("fashiondataset_time_logger"), log_debug=False)
     def load(self, split, force=False, force_hard_sampling=False, validate=False, overwrite_embeddings=False, **kwargs):
         embedding_path = kwargs.pop("embedding_path", None)
         force = False

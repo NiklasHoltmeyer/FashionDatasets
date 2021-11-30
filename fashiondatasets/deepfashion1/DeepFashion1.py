@@ -1,12 +1,14 @@
 from pathlib import Path
 
 from fashionnets.models.layer.Augmentation import compose_augmentations
+from fashionscrapper.utils.io import time_logger
 
 from fashiondatasets.deepfashion1.helper.deep_fashion_1_pairs_generator import DeepFashion1PairsGenerator
 from fashiondatasets.own.helper.quad_to_ds import build_pairs_ds_fn
 from tqdm.auto import tqdm
 
 from fashiondatasets.utils.centroid_builder.Centroid_Builder import CentroidBuilder
+from fashiondatasets.utils.logger.defaultLogger import defaultLogger
 from fashiondatasets.utils.mock.mock_augmentation import pass_trough
 from fashiondatasets.utils.mock.mock_feature_extractor import SimpleCNN
 
@@ -52,6 +54,8 @@ class DeepFashion1Dataset:
                                             batch_size=batch_size)
             self.is_ctl = True
 
+    @time_logger(name="Load_Split", header="DeepFashion-DS", padding_length=50,
+                 logger=defaultLogger("fashiondataset_time_logger"), log_debug=False)
     def load_split(self, split, is_triplet, force, force_hard_sampling, **kwargs):
         embedding_path = kwargs.pop("embedding_path", None)
         assert split in DeepFashion1PairsGenerator.splits()
@@ -99,6 +103,8 @@ class DeepFashion1Dataset:
         else:
             return pair_builder(a, p, n1, n2), len(a)
 
+    @time_logger(name="Load", header="DeepFashion-DS", padding_length=50,
+                 logger=defaultLogger("fashiondataset_time_logger"), log_debug=False)
     def load(self, is_triplet, force, force_hard_sampling, splits=None, **kwargs):
         datasets = {}
         embedding_path = kwargs.pop("embedding_path", None)
