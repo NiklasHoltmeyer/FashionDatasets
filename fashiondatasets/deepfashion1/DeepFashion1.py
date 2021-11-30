@@ -166,7 +166,11 @@ class DeepFashion1Dataset:
         if len(missing_embeddings) < 1:
             return
 
-        missing_chunked = np.array_split(missing_embeddings, len(missing_embeddings) // 15_000)
+        c_size = 15_000
+        if len(missing_embeddings) > c_size:
+            missing_chunked = np.array_split(missing_embeddings, len(missing_embeddings) // c_size)
+        else:
+            missing_chunked = [missing_embeddings]
 
         for chunk_missing in missing_chunked:
             self.pair_gen.pair_gen.encode_paths([chunk_missing], retrieve_paths_fn=lambda d: d,
