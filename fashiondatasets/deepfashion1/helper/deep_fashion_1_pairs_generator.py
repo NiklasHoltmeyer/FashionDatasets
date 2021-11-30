@@ -71,8 +71,8 @@ class DeepFashion1PairsGenerator:
 
         self.logger = defaultLogger()
 
-#    @time_logger(name="Pair-Gen::Load", header="Pair-Gen Load", padding_length=50, footer="Pair-Gen Load [DONE]",
-#                 logger=defaultLogger("fashiondataset_time_logger"), log_debug=False)
+    #    @time_logger(name="Pair-Gen::Load", header="Pair-Gen Load", padding_length=50, footer="Pair-Gen Load [DONE]",
+    #                 logger=defaultLogger("fashiondataset_time_logger"), log_debug=False)
     def load(self, split,
              force=False,
              force_hard_sampling=False,
@@ -140,27 +140,20 @@ class DeepFashion1PairsGenerator:
 
         # encodings_keys = self.batch_encodings.keys()
         paths = (map(retrieve_paths_fn, pairs))
-        self.logger.info("Paths Distinct")
         paths = flatten(paths)
-        self.logger.info("Paths Distinct")
         paths = distinct(paths)
 
-        self.logger.info("Paths List")
         # paths = filter(lambda p: p not in encodings_keys, paths)
         paths = list(paths)
 
-        self.logger.info("Paths Build NPY")
         npy_full_paths = map(lambda d: self.build_npy_path(d, suffix=".npy"), paths)
         npy_full_paths = list(npy_full_paths)
 
-        self.logger.info("Paths List Zip")
         paths_with_npy_with_exist = list(zip(paths, npy_full_paths))  # pack and check if embeddings exist
 
-        self.logger.info(f"Paths Parallel Filter 1 {len(paths_with_npy_with_exist)}")
         paths_with_npy_with_not_exist = filter_not_exist(paths_with_npy_with_exist,
                                                          not_exist=True, key=lambda d: d[1], disable_output=True)
 
-        self.logger.info(f"Paths Parallel Filter 2 {len(paths_with_npy_with_exist)}")
         paths_with_npy_with_exist = filter_not_exist(paths_with_npy_with_exist,
                                                      not_exist=False, key=lambda d: d[1], disable_output=True)
 
@@ -169,12 +162,11 @@ class DeepFashion1PairsGenerator:
 
         # paths_with_npy_with_exist = list(paths_with_npy_with_exist)
         # paths_with_npy_with_not_exist = list(paths_with_npy_with_not_exist)
-        self.logger.info("PRE BUILD DS")
         paths_not_exist = map(lambda d: d[0], paths_with_npy_with_not_exist)
         paths_not_exist = list(paths_not_exist)
         paths_full_not_exist = map(map_full_path, paths_not_exist)
         paths_full_not_exist = list(paths_full_not_exist)
-        self.logger.info("PRE BUILD DS [DONE]")
+
         if len(paths_full_not_exist) > 1:
             images = tf.data.Dataset.from_tensor_slices(paths_full_not_exist) \
                 .map(preprocess_image((224, 224), augmentation=self.augmentation)) \
@@ -182,10 +174,9 @@ class DeepFashion1PairsGenerator:
                 .prefetch(tf.data.AUTOTUNE)
         else:
             images = []
-
         embeddings = []
 
-        for batch in images:
+        for batch in tqdm(images, desc="Predict Batch Images", disable=images < 50):
             batch_embeddings = self.model.predict(batch)
             embeddings.extend(batch_embeddings)
 
@@ -193,7 +184,9 @@ class DeepFashion1PairsGenerator:
 
         batch_encodings = {}
 
-        for p, model_embedding in tqdm(list(zip(paths_not_exist, embeddings)),
+        paths_not_exist_embedding_itter = list(zip(paths_not_exist, embeddings))
+        for p, model_embedding in tqdm(paths_not_exist_embedding_itter,
+                                       disable=len(paths_not_exist_embedding_itter) < 50,
                                        desc=f"Encode Paths (Saving={self.embedding_path is not None})"):
             batch_encodings[p] = model_embedding
             if self.embedding_path:
@@ -204,7 +197,9 @@ class DeepFashion1PairsGenerator:
                 if DEV:
                     validate_embedding(npy_path + ".npy")
 
-        for img_path, npy_path in tqdm(list(paths_with_npy_with_exist),
+        paths_with_npy_with_exist_itter = list(paths_with_npy_with_exist)
+        for img_path, npy_path in tqdm(paths_with_npy_with_exist_itter,
+                                       disable=len(paths_with_npy_with_exist_itter) < 50,
                                        desc="Load Embeddings"):
             data = np.load(npy_path)
             batch_encodings[img_path] = data
