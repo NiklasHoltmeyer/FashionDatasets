@@ -71,8 +71,8 @@ class DeepFashion1PairsGenerator:
 
         self.logger = defaultLogger()
 
-    @time_logger(name="Pair-Gen::Load", header="Pair-Gen Load", padding_length=50, footer="Pair-Gen Load [DONE]",
-                 logger=defaultLogger("fashiondataset_time_logger"), log_debug=False)
+#    @time_logger(name="Pair-Gen::Load", header="Pair-Gen Load", padding_length=50, footer="Pair-Gen Load [DONE]",
+#                 logger=defaultLogger("fashiondataset_time_logger"), log_debug=False)
     def load(self, split,
              force=False,
              force_hard_sampling=False,
