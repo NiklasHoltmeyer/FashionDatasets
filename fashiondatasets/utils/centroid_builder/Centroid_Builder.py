@@ -29,7 +29,7 @@ logger = defaultLogger("fashion_centroid_builder")
 class CentroidBuilder:
     def __init__(self, pair_generator, centroids_path, model, augmentation, batch_size=64):
         self.pair_gen = pair_generator
-        self.batch_size = batch_size * 2
+        self.batch_size = batch_size
 
         self.centroids_path = Path(centroids_path)
         self.centroids_path.mkdir(exist_ok=True, parents=True)
@@ -94,7 +94,7 @@ class CentroidBuilder:
             return average_vectors(embeddings)
         return embeddings[0]
 
-    @time_logger(name="Pair-GEN(CTL)::Load", header="Pair-Gen (CTL)", padding_length=50,
+    @time_logger(name="Pair-GEN(CTL)::Load", header="Pair-Gen (CTL)", footer="Pair-Gen (CTL) [DONE]", padding_length=50,
                  logger=defaultLogger("fashiondataset_time_logger"), log_debug=False)
     def load(self, split, force=False, force_hard_sampling=False, validate=False, overwrite_embeddings=False, **kwargs):
         embedding_path = kwargs.pop("embedding_path", None)

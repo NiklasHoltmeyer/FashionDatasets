@@ -54,7 +54,7 @@ class DeepFashion1Dataset:
                                             batch_size=batch_size)
             self.is_ctl = True
 
-    @time_logger(name="Load_Split", header="DeepFashion-DS", padding_length=50,
+    @time_logger(name="Load_Split", header="DeepFashion-DS", footer="DeepFashion-DS [DONE]", padding_length=50,
                  logger=defaultLogger("fashiondataset_time_logger"), log_debug=False)
     def load_split(self, split, is_triplet, force, force_hard_sampling, **kwargs):
         embedding_path = kwargs.pop("embedding_path", None)
@@ -103,7 +103,7 @@ class DeepFashion1Dataset:
         else:
             return pair_builder(a, p, n1, n2), len(a)
 
-    @time_logger(name="DF-DS::Load", header="DeepFashion-DS", padding_length=50,
+    @time_logger(name="DF-DS::Load", header="DeepFashion-DS", footer="DeepFashion-DS [DONE]", padding_length=50,
                  logger=defaultLogger("fashiondataset_time_logger"), log_debug=False)
     def load(self, is_triplet, force, force_hard_sampling, splits=None, **kwargs):
         datasets = {}
