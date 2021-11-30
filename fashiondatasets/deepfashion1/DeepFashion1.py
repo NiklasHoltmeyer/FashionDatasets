@@ -163,6 +163,9 @@ class DeepFashion1Dataset:
         self.pair_gen.pair_gen.embedding_path = Path(embedding_path)
         logger.info("DeepFashion1::_build_missing_embeddings::encode_paths")
 
+        if len(missing_embeddings) < 1:
+            return
+
         missing_chunked = np.array_split(missing_embeddings, len(missing_embeddings) // 15_000)
 
         for chunk_missing in missing_chunked:
