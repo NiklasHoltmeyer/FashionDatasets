@@ -2,6 +2,7 @@ from pathlib import Path
 
 from fashionnets.models.layer.Augmentation import compose_augmentations
 from fashionscrapper.utils.io import time_logger
+import numpy as np
 
 from fashiondatasets.deepfashion1.helper.deep_fashion_1_pairs_generator import DeepFashion1PairsGenerator
 from fashiondatasets.own.helper.quad_to_ds import build_pairs_ds_fn
@@ -12,6 +13,7 @@ from fashiondatasets.utils.logger.defaultLogger import defaultLogger
 from fashiondatasets.utils.mock.mock_augmentation import pass_trough
 from fashiondatasets.utils.mock.mock_feature_extractor import SimpleCNN
 
+logger = defaultLogger("fashion_pair_gen")
 
 class DeepFashion1Dataset:
     def __init__(self,
@@ -32,6 +34,7 @@ class DeepFashion1Dataset:
         self.number_possibilities = number_possibilities
         self.nrows = nrows
         self.batch_size = batch_size
+        self.n_chunks = n_chunks
 
         assert generator_type in ["ctl", "apn"]
 
@@ -161,9 +164,18 @@ class DeepFashion1Dataset:
         # encode_paths(missing_embeddings, retrieve_paths_fn)
 
         self.pair_gen.pair_gen.embedding_path = Path(embedding_path)
+        logger.info("DeepFashion1::_build_missing_embeddings::encode_paths")
 
-        self.pair_gen.pair_gen.encode_paths([missing_embeddings], retrieve_paths_fn=lambda d: d,
-                                            assert_saving=True)
+        if self.n_chunks:
+            missing_chunk_size = self.n_chunks
+        else:
+            missing_chunk_size = 10
+
+        missing_chunked = np.array_split(missing_embeddings, missing_chunk_size)
+
+        for chunk_missing in missing_chunked:
+            self.pair_gen.pair_gen.encode_paths([chunk_missing], retrieve_paths_fn=lambda d: d,
+                                                assert_saving=True)
 
 if __name__ == "__main__":
     model = SimpleCNN.build((224, 224))

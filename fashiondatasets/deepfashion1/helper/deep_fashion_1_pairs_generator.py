@@ -176,7 +176,7 @@ class DeepFashion1PairsGenerator:
             images = []
         embeddings = []
 
-        for batch in tqdm(images, desc="Predict Batch Images", disable=images < 50):
+        for batch in tqdm(images, desc="Predict Batch Images", disable=len(images) < 50):
             batch_embeddings = self.model.predict(batch)
             embeddings.extend(batch_embeddings)
 
@@ -333,6 +333,7 @@ class DeepFashion1PairsGenerator:
                                                                       f"(BS: {self.batch_size}. C: {self.n_chunks})"):
             if force_hard_sampling:
                 assert self.model
+                logger.info("build_anchor_positive_negatives::encode_paths")
                 batch_encodings = self.encode_paths(apn_possibilities, image_paths_from_pair)
 
                 for pair_id, ap_cat_idx, a_img, p_img, n_possibilities in apn_possibilities:
@@ -374,6 +375,7 @@ class DeepFashion1PairsGenerator:
                                                                         f"(BS: {self.batch_size}. C: {self.n_chunks})"):
             if force_hard_sampling:
                 assert self.model
+                logger.info("build_anchor_positive_negative_negatives::encode_paths")
                 batch_encodings = self.encode_paths(apnn_possibilities, image_paths_from_pair)
 
                 for a, p, n, n2_possibilities in apnn_possibilities:
