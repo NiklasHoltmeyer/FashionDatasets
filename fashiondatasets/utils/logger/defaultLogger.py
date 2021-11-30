@@ -38,5 +38,8 @@ def defaultLogger(name="fashiondataset", level=logging.DEBUG, handlers=None,
     logging.getLogger("requests").setLevel(logging.WARNING)
     logging.getLogger("urllib3").setLevel(logging.WARNING)
 
+    logger.propagate = False
+    logger.handlers = [logger.handlers[0]]
+
     return logger
 
