@@ -26,6 +26,7 @@ assert np is not None or True
 
 logger = defaultLogger("fashion_pair_gen")
 
+
 class DeepFashion1PairsGenerator:
     def __init__(self,
                  base_path,
@@ -70,7 +71,7 @@ class DeepFashion1PairsGenerator:
 
         self.logger = defaultLogger()
 
-    @time_logger(name="Pair-Gen::Load", header="Pair-Gen", padding_length=50, footer="Pair-Gen [DONE]",
+    @time_logger(name="Pair-Gen::Load", header="Pair-Gen Load", padding_length=50, footer="Pair-Gen Load [DONE]",
                  logger=defaultLogger("fashiondataset_time_logger"), log_debug=False)
     def load(self, split,
              force=False,
@@ -126,7 +127,7 @@ class DeepFashion1PairsGenerator:
         except:
             return False
 
-    @time_logger(name="DF::Encode Paths", header="Pair-Gen", footer="Pair-Gen [DONE]", padding_length=50,
+    @time_logger(name="DF::Encode Paths", header="Pair-Gen (Encode Paths)", footer="Pair-Gen [DONE]", padding_length=50,
                  logger=defaultLogger("fashiondataset_time_logger"), log_debug=False)
     def encode_paths(self, pairs, retrieve_paths_fn, assert_saving=False):
         self.logger.debug("Encode Paths")
@@ -183,7 +184,9 @@ class DeepFashion1PairsGenerator:
         assert len(embeddings) == len(paths_full_not_exist), f"{len(embeddings)} {len(paths)}"
 
         batch_encodings = {}
-        for p, model_embedding in zip(paths_not_exist, embeddings):
+
+        for p, model_embedding in tqdm(list(zip(paths_not_exist, embeddings)),
+                                       desc=f"Encode Paths (Saving={self.embedding_path is not None})"):
             batch_encodings[p] = model_embedding
             if self.embedding_path:
                 npy_path = str(self.build_npy_path(p).resolve())
@@ -193,7 +196,8 @@ class DeepFashion1PairsGenerator:
                 if DEV:
                     validate_embedding(npy_path + ".npy")
 
-        for img_path, npy_path in paths_with_npy_with_exist:
+        for img_path, npy_path in tqdm(list(paths_with_npy_with_exist),
+                                       desc="Load Embeddings"):
             data = np.load(npy_path)
             batch_encodings[img_path] = data
 
@@ -354,7 +358,8 @@ class DeepFashion1PairsGenerator:
 
         return apns
 
-    def build_anchor_positive_negative_negatives(self, anchor_positive_negatives, ids_by_cat_idx, force_cat_level, force_hard_sampling):
+    def build_anchor_positive_negative_negatives(self, anchor_positive_negatives, ids_by_cat_idx, force_cat_level,
+                                                 force_hard_sampling):
         image_paths_from_pair = lambda d: [d[-2], *d[-1]]
         apnn_possibilities_all = list(
             self.walk_anchor_positive_negative_negative_possibilities(anchor_positive_negatives, ids_by_cat_idx,
