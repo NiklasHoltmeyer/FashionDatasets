@@ -130,7 +130,7 @@ class DeepFashion1PairsGenerator:
     @time_logger(name="DF::Encode Paths", header="Pair-Gen (Encode Paths)", footer="Pair-Gen [DONE]", padding_length=50,
                  logger=defaultLogger("fashiondataset_time_logger"), log_debug=False)
     def encode_paths(self, pairs, retrieve_paths_fn, assert_saving=False):
-        self.logger.debug("Encode Paths")
+        self.logger.info("Encode Paths")
         if assert_saving:
             assert self.embedding_path, "assert_saving set, but no Embedding Path"
 
@@ -140,19 +140,27 @@ class DeepFashion1PairsGenerator:
 
         # encodings_keys = self.batch_encodings.keys()
         paths = (map(retrieve_paths_fn, pairs))
+        self.logger.info("Paths Distinct")
         paths = flatten(paths)
+        self.logger.info("Paths Distinct")
         paths = distinct(paths)
 
+        self.logger.info("Paths List")
         # paths = filter(lambda p: p not in encodings_keys, paths)
         paths = list(paths)
 
+        self.logger.info("Paths Build NPY")
         npy_full_paths = map(lambda d: self.build_npy_path(d, suffix=".npy"), paths)
         npy_full_paths = list(npy_full_paths)
 
+        self.logger.info("Paths List Zip")
         paths_with_npy_with_exist = list(zip(paths, npy_full_paths))  # pack and check if embeddings exist
 
+        self.logger.info(f"Paths Parallel Filter 1 {len(paths_with_npy_with_exist)}")
         paths_with_npy_with_not_exist = filter_not_exist(paths_with_npy_with_exist,
                                                          not_exist=True, key=lambda d: d[1], disable_output=True)
+
+        self.logger.info(f"Paths Parallel Filter 2 {len(paths_with_npy_with_exist)}")
         paths_with_npy_with_exist = filter_not_exist(paths_with_npy_with_exist,
                                                      not_exist=False, key=lambda d: d[1], disable_output=True)
 
@@ -161,12 +169,12 @@ class DeepFashion1PairsGenerator:
 
         # paths_with_npy_with_exist = list(paths_with_npy_with_exist)
         # paths_with_npy_with_not_exist = list(paths_with_npy_with_not_exist)
-
+        self.logger.info("PRE BUILD DS")
         paths_not_exist = map(lambda d: d[0], paths_with_npy_with_not_exist)
         paths_not_exist = list(paths_not_exist)
         paths_full_not_exist = map(map_full_path, paths_not_exist)
         paths_full_not_exist = list(paths_full_not_exist)
-
+        self.logger.info("PRE BUILD DS [DONE]")
         if len(paths_full_not_exist) > 1:
             images = tf.data.Dataset.from_tensor_slices(paths_full_not_exist) \
                 .map(preprocess_image((224, 224), augmentation=self.augmentation)) \
