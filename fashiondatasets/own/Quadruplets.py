@@ -127,8 +127,9 @@ if __name__ == "__main__":
 
     settings = {
         "format": "triplet",
-        "resolve_paths": True
+        "resolve_paths": True,
+        "BASE_PATH": base_path
     }
 
-    ds = Quadruplets(**settings).load_as_dataset(base_path)
-    print(ds)
+    df = Quadruplets(**settings).load_as_df(base_path)
+    print(len(df))
