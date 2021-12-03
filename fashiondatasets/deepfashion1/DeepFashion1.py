@@ -92,7 +92,6 @@ class DeepFashion1Dataset:
             else:
                 embedding_path_str = str(embedding_path.resolve())
 
-            embedding_path_path = Path(embedding_path)
             img_path = str(self.pair_gen.pair_gen.image_base_path.resolve())
 
             def inverse_path(p):

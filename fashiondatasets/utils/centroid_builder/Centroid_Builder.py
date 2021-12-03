@@ -103,7 +103,8 @@ class CentroidBuilder:
                                    overwrite_embeddings=overwrite_embeddings,
                                    embedding_path=embedding_path, **kwargs)
 
-        if DEV:
+        if DEV or True:
+            print("WARNING NROWS!!!" * 1000)
             pairs_dataframe = pairs_dataframe.head(32)
 
         split_path = self.centroids_path / split

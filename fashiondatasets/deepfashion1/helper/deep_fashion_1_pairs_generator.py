@@ -165,6 +165,9 @@ class DeepFashion1PairsGenerator:
             paths_full_not_exist = map(map_full_path, paths_not_exist)
             paths_full_not_exist = list(paths_full_not_exist)
         else:
+            print(paths)
+            print(paths[0])
+            exit(0)
             paths_full_not_exist, paths = list(zip(*paths))
             paths_full_not_exist, paths = list(paths_full_not_exist), list(paths)
             paths_not_exist = paths
