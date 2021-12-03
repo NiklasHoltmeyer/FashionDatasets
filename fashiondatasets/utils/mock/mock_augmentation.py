@@ -1,4 +1,4 @@
-from fashiondatasets.utils.logger import defaultLogger
+from fashiondatasets.utils.logger.defaultLogger import defaultLogger
 
 
 def pass_trough():

@@ -122,8 +122,8 @@ class DeepFashion1PairsGenerator:
         except:
             return False
 
-    @time_logger(name="DF::Encode Paths", header="Pair-Gen (Encode Paths)", footer="Pair-Gen [DONE]", padding_length=50,
-                 logger=defaultLogger("fashiondataset_time_logger"), log_debug=False)
+#    @time_logger(name="DF::Encode Paths", header="Pair-Gen (Encode Paths)", footer="Pair-Gen [DONE]", padding_length=50,
+#                 logger=defaultLogger("fashiondataset_time_logger"), log_debug=False)
     def encode_paths(self, pairs, retrieve_paths_fn, assert_saving=False, skip_filter=False):
         self.logger.info("Encode Paths")
         if assert_saving:
@@ -167,7 +167,8 @@ class DeepFashion1PairsGenerator:
             paths_full_not_exist = map(map_full_path, paths_not_exist)
             paths_full_not_exist = list(paths_full_not_exist)
         else:
-            paths_full_not_exist = list(map(map_full_path, paths))
+            paths_full_not_exist, paths = list(zip(*paths))
+            paths_full_not_exist, paths = list(paths_full_not_exist), list(paths)
             paths_not_exist = paths
 
             paths_with_npy_with_exist = []

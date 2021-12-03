@@ -17,6 +17,7 @@ from fashiondatasets.utils.mock.mock_feature_extractor import SimpleCNN
 
 logger = defaultLogger("fashion_pair_gen")
 
+
 class DeepFashion1Dataset:
     def __init__(self,
                  base_path,
@@ -56,8 +57,8 @@ class DeepFashion1Dataset:
                                             batch_size=batch_size)
             self.is_ctl = True
 
-    @time_logger(name="Load_Split", header="DeepFashion-DS", footer="DeepFashion-DS [DONE]", padding_length=50,
-                 logger=defaultLogger("fashiondataset_time_logger"), log_debug=False)
+#    @time_logger(name="Load_Split", header="DeepFashion-DS", footer="DeepFashion-DS [DONE]", padding_length=50,
+#                 logger=defaultLogger("fashiondataset_time_logger"), log_debug=False)
     def load_split(self, split, is_triplet, force, force_hard_sampling, **kwargs):
         embedding_path = kwargs.pop("embedding_path", None)
         assert split in DeepFashion1PairsGenerator.splits()
@@ -83,7 +84,8 @@ class DeepFashion1Dataset:
         if is_ctl:
             cols_ctl = [x + "_ctl" for x in cols]
             ctls = [df[c].values for c in cols_ctl]
-            self._build_missing_embeddings(is_triplet, a, n1, embedding_path=embedding_path,**kwargs)
+
+            self._build_missing_embeddings(is_triplet, a, n1, embedding_path=embedding_path, **kwargs)
 
             if type(embedding_path) == str:
                 embedding_path_str = embedding_path
@@ -92,6 +94,7 @@ class DeepFashion1Dataset:
 
             embedding_path_path = Path(embedding_path)
             img_path = str(self.pair_gen.pair_gen.image_base_path.resolve())
+
             def inverse_path(p):
                 f_name = (p.replace(embedding_path_str, "")
                           .replace("\\", "/")
@@ -105,8 +108,8 @@ class DeepFashion1Dataset:
         else:
             return pair_builder(a, p, n1, n2), len(a)
 
-    @time_logger(name="DF-DS::Load", header="DeepFashion-DS", footer="DeepFashion-DS [DONE]", padding_length=50,
-                 logger=defaultLogger("fashiondataset_time_logger"), log_debug=False)
+#    @time_logger(name="DF-DS::Load", header="DeepFashion-DS", footer="DeepFashion-DS [DONE]", padding_length=50,
+#                 logger=defaultLogger("fashiondataset_time_logger"), log_debug=False)
     def load(self, is_triplet, force, force_hard_sampling, splits=None, **kwargs):
         datasets = {}
         embedding_path = kwargs.pop("embedding_path", None)
@@ -137,11 +140,9 @@ class DeepFashion1Dataset:
         assert embedding_path, "embedding_path Required for CTL"
 
         not_existing_npys = a if is_triplet else a + n1
-
         not_existing_npys = distinct(not_existing_npys)
 
-        missing_embeddings = map(self.pair_gen.pair_gen.build_jpg_path, not_existing_npys)
-        missing_embeddings = list(missing_embeddings)
+        jpg_full_path = list(map(self.pair_gen.pair_gen.build_jpg_path, not_existing_npys))
 
         if type(self.pair_gen.pair_gen.image_base_path) == str:
             img_base_path_str = self.pair_gen.pair_gen.image_base_path
@@ -151,21 +152,20 @@ class DeepFashion1Dataset:
         def inverse_path(p):
             return p.replace(img_base_path_str, "").replace("\\", "/")
 
-
         embedding_path = str(Path(embedding_path).resolve())
 
-        clean = lambda d: inverse_path(str(d.resolve()))
-        missing_embeddings = map(clean, missing_embeddings)
-        missing_embeddings = list(missing_embeddings)
-        missing_embeddings = self.filter_embeddings_missing(missing_embeddings)
+        relative_path = lambda d: inverse_path(str(d.resolve()))
+
+        jpg_relative_path = list(map(relative_path, jpg_full_path))
+        missing_embeddings = self.filter_embeddings_missing(jpg_full_path, jpg_relative_path)
 
         self.pair_gen.pair_gen.embedding_path = Path(embedding_path)
-        logger.info("DeepFashion1::_build_missing_embeddings::encode_paths")
 
         if len(missing_embeddings) < 1:
             return
 
         c_size = 20_000
+
         if len(missing_embeddings) > c_size:
             missing_chunked = np.array_split(missing_embeddings, len(missing_embeddings) // c_size)
         else:
@@ -175,28 +175,26 @@ class DeepFashion1Dataset:
             self.pair_gen.pair_gen.encode_paths([chunk_missing], retrieve_paths_fn=lambda d: d,
                                                 assert_saving=True, skip_filter=True)
 
-    def filter_embeddings_missing(self, missing_embeddings):
-        missing_embeddings = flatten(missing_embeddings)
-        missing_embeddings = distinct(missing_embeddings)
-        npy_full_paths = map(lambda d: self.pair_gen.pair_gen.build_npy_path(d, suffix=".npy"), missing_embeddings)
-        npy_full_paths = list(npy_full_paths)
-        paths_with_npy_with_exist = list(zip(missing_embeddings, npy_full_paths))  # pack and check if embeddings exist
+    def filter_embeddings_missing(self, jpg_full_path, jpg_relative_path):
+        jpg_full_path = list(map(lambda x: str(x.resolve()), jpg_full_path))
+
+        npy_full_paths = list(
+            map(lambda d: self.pair_gen.pair_gen.build_npy_path(d, suffix=".npy"), jpg_relative_path)
+        )
+
+        paths_with_npy_with_exist = list(zip(jpg_full_path, jpg_relative_path, npy_full_paths))  # pack and check if embeddings exist
 
         paths_with_npy_with_not_exist = filter_not_exist(paths_with_npy_with_exist,
-                                                         not_exist=True, key=lambda d: d[1],
+                                                         not_exist=True, key=lambda d: d[2],
                                                          disable_output=False,
                                                          desc="Filter Missing Embeddings",
                                                          parallel=len(paths_with_npy_with_exist) > 1000)
 
-        paths_not_exist = map(lambda d: d[0], paths_with_npy_with_not_exist)
-        paths_not_exist = list(paths_not_exist)
+        jpg_path_not_exist = map(lambda d: d[:2], paths_with_npy_with_not_exist)
+        jpg_path_not_exist = list(jpg_path_not_exist)
 
-        image_base_path_str = str(self.pair_gen.pair_gen.image_base_path.resolve())
-        map_full_path = lambda p: str(Path(image_base_path_str + "/" + p).resolve())
+        return jpg_path_not_exist
 
-        paths_full_not_exist = map(map_full_path, paths_not_exist)
-        paths_full_not_exist = list(paths_full_not_exist)
-        return paths_full_not_exist
 
 if __name__ == "__main__":
     model = SimpleCNN.build((224, 224))
