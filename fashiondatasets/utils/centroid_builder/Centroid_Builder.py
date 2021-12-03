@@ -128,9 +128,9 @@ class CentroidBuilder:
                 if centroid is None:
                     continue
 
-                any_nan = tf.math.reduce_any(tf.math.is_nan(centroid))
+#                any_nan = tf.math.reduce_any(tf.math.is_nan(centroid))
 
-                assert not any_nan, "NaN in Centroid!"
+#                assert not any_nan, "NaN in Centroid!"
 
                 np.save(f_path, centroid)
 

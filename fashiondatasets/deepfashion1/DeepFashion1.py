@@ -3,12 +3,14 @@ from pathlib import Path
 from fashionnets.models.layer.Augmentation import compose_augmentations
 from fashionscrapper.utils.io import time_logger
 import numpy as np
+from fashionscrapper.utils.list import distinct, flatten
 
 from fashiondatasets.deepfashion1.helper.deep_fashion_1_pairs_generator import DeepFashion1PairsGenerator
 from fashiondatasets.own.helper.quad_to_ds import build_pairs_ds_fn
 from tqdm.auto import tqdm
 
 from fashiondatasets.utils.centroid_builder.Centroid_Builder import CentroidBuilder
+from fashiondatasets.utils.list import filter_not_exist
 from fashiondatasets.utils.logger.defaultLogger import defaultLogger
 from fashiondatasets.utils.mock.mock_augmentation import pass_trough
 from fashiondatasets.utils.mock.mock_feature_extractor import SimpleCNN
@@ -134,8 +136,6 @@ class DeepFashion1Dataset:
         embedding_path = kwargs.get("embedding_path", None)
         assert embedding_path, "embedding_path Required for CTL"
 
-        from fashionscrapper.utils.list import distinct
-
         not_existing_npys = a if is_triplet else a + n1
 
         not_existing_npys = distinct(not_existing_npys)
@@ -157,8 +157,7 @@ class DeepFashion1Dataset:
         clean = lambda d: inverse_path(str(d.resolve()))
         missing_embeddings = map(clean, missing_embeddings)
         missing_embeddings = list(missing_embeddings)
-
-        # encode_paths(missing_embeddings, retrieve_paths_fn)
+        missing_embeddings = self.filter_embeddings_missing(missing_embeddings)
 
         self.pair_gen.pair_gen.embedding_path = Path(embedding_path)
         logger.info("DeepFashion1::_build_missing_embeddings::encode_paths")
@@ -174,7 +173,29 @@ class DeepFashion1Dataset:
 
         for chunk_missing in missing_chunked:
             self.pair_gen.pair_gen.encode_paths([chunk_missing], retrieve_paths_fn=lambda d: d,
-                                                assert_saving=True)
+                                                assert_saving=True, skip_filter=True)
+
+    def filter_embeddings_missing(self, missing_embeddings):
+        missing_embeddings = flatten(missing_embeddings)
+        missing_embeddings = distinct(missing_embeddings)
+        npy_full_paths = map(lambda d: self.build_npy_path(d, suffix=".npy"), missing_embeddings)
+        npy_full_paths = list(npy_full_paths)
+        paths_with_npy_with_exist = list(zip(missing_embeddings, npy_full_paths))  # pack and check if embeddings exist
+
+        paths_with_npy_with_not_exist = filter_not_exist(paths_with_npy_with_exist,
+                                                         not_exist=True, key=lambda d: d[1],
+                                                         disable_output=False,
+                                                         desc="Filter Missing Embeddings")
+
+        paths_not_exist = map(lambda d: d[0], paths_with_npy_with_not_exist)
+        paths_not_exist = list(paths_not_exist)
+
+        image_base_path_str = str(self.pair_gen.pair_gen.image_base_path.resolve())
+        map_full_path = lambda p: str(Path(image_base_path_str + "/" + p).resolve())
+
+        paths_full_not_exist = map(map_full_path, paths_not_exist)
+        paths_full_not_exist = list(paths_full_not_exist)
+        return paths_full_not_exist
 
 if __name__ == "__main__":
     model = SimpleCNN.build((224, 224))

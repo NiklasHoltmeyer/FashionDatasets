@@ -124,7 +124,7 @@ class DeepFashion1PairsGenerator:
 
     @time_logger(name="DF::Encode Paths", header="Pair-Gen (Encode Paths)", footer="Pair-Gen [DONE]", padding_length=50,
                  logger=defaultLogger("fashiondataset_time_logger"), log_debug=False)
-    def encode_paths(self, pairs, retrieve_paths_fn, assert_saving=False):
+    def encode_paths(self, pairs, retrieve_paths_fn, assert_saving=False, skip_filter=False):
         self.logger.info("Encode Paths")
         if assert_saving:
             assert self.embedding_path, "assert_saving set, but no Embedding Path"
@@ -141,26 +141,32 @@ class DeepFashion1PairsGenerator:
         # paths = filter(lambda p: p not in encodings_keys, paths)
         paths = list(paths)
 
-        npy_full_paths = map(lambda d: self.build_npy_path(d, suffix=".npy"), paths)
-        npy_full_paths = list(npy_full_paths)
+        if not skip_filter:
+            npy_full_paths = map(lambda d: self.build_npy_path(d, suffix=".npy"), paths)
+            npy_full_paths = list(npy_full_paths)
 
-        paths_with_npy_with_exist = list(zip(paths, npy_full_paths))  # pack and check if embeddings exist
+            paths_with_npy_with_exist = list(zip(paths, npy_full_paths))  # pack and check if embeddings exist
 
-        paths_with_npy_with_not_exist = filter_not_exist(paths_with_npy_with_exist,
-                                                         not_exist=True, key=lambda d: d[1], disable_output=True)
+            paths_with_npy_with_not_exist = filter_not_exist(paths_with_npy_with_exist,
+                                                             not_exist=True, key=lambda d: d[1], disable_output=True)
 
-        paths_with_npy_with_exist = filter_not_exist(paths_with_npy_with_exist,
-                                                     not_exist=False, key=lambda d: d[1], disable_output=True)
+            paths_with_npy_with_exist = filter_not_exist(paths_with_npy_with_exist,
+                                                         not_exist=False, key=lambda d: d[1], disable_output=True)
 
-        # paths_with_npy_with_exist = filter(lambda d: d[1].exists(), paths_with_npy_with_exist)
-        # paths_with_npy_with_not_exist = filter(lambda d: d[1].exists(), paths_with_npy_with_exist)
+            # paths_with_npy_with_exist = filter(lambda d: d[1].exists(), paths_with_npy_with_exist)
+            # paths_with_npy_with_not_exist = filter(lambda d: d[1].exists(), paths_with_npy_with_exist)
 
-        # paths_with_npy_with_exist = list(paths_with_npy_with_exist)
-        # paths_with_npy_with_not_exist = list(paths_with_npy_with_not_exist)
-        paths_not_exist = map(lambda d: d[0], paths_with_npy_with_not_exist)
-        paths_not_exist = list(paths_not_exist)
-        paths_full_not_exist = map(map_full_path, paths_not_exist)
-        paths_full_not_exist = list(paths_full_not_exist)
+            # paths_with_npy_with_exist = list(paths_with_npy_with_exist)
+            # paths_with_npy_with_not_exist = list(paths_with_npy_with_not_exist)
+            paths_not_exist = map(lambda d: d[0], paths_with_npy_with_not_exist)
+            paths_not_exist = list(paths_not_exist)
+            paths_full_not_exist = map(map_full_path, paths_not_exist)
+            paths_full_not_exist = list(paths_full_not_exist)
+        else:
+            paths_full_not_exist = list(map(map_full_path, paths))
+            paths_not_exist = paths
+
+            paths_with_npy_with_exist = []
 
         if len(paths_full_not_exist) > 1:
             images = tf.data.Dataset.from_tensor_slices(paths_full_not_exist) \
