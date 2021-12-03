@@ -122,7 +122,6 @@ class DeepFashion1PairsGenerator:
 #    @time_logger(name="DF::Encode Paths", header="Pair-Gen (Encode Paths)", footer="Pair-Gen [DONE]", padding_length=50,
 #                 logger=defaultLogger("fashiondataset_time_logger"), log_debug=False)
     def encode_paths(self, pairs, retrieve_paths_fn, assert_saving=False, skip_filter=False):
-        self.logger.info("Encode Paths")
         if assert_saving:
             assert self.embedding_path, "assert_saving set, but no Embedding Path"
 
