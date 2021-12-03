@@ -132,8 +132,9 @@ class DeepFashion1PairsGenerator:
 
         # encodings_keys = self.batch_encodings.keys()
         paths = (map(retrieve_paths_fn, pairs))
-        paths = flatten(paths)
-        paths = distinct(paths)
+        if not skip_filter:
+            paths = flatten(paths)
+            paths = distinct(paths)
 
         # paths = filter(lambda p: p not in encodings_keys, paths)
         paths = list(paths)
