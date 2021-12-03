@@ -92,15 +92,12 @@ class DeepFashion1PairsGenerator:
 
         csv_path = Path(self.base_path, split + ".csv")
         if force or not csv_path.exists():
-            self.logger.debug("Pair-Gen Build")
-
             anchor_positive_negative_negatives = self.build(split, force_hard_sampling=force_hard_sampling,
                                                             validate=validate, **kwargs)
             quadruplets_df = pd.DataFrame(anchor_positive_negative_negatives,
                                           columns=["anchor", "positive", "negative1", "negative2"])
 
             quadruplets_df.to_csv(csv_path, index=False)
-            self.logger.debug("Pair-Gen Build [Done]")
 
         return pd.read_csv(csv_path, nrows=self.nrows).sample(frac=1).reset_index(drop=True)
 
@@ -463,7 +460,8 @@ class DeepFashion1PairsGenerator:
         if not DEV:
             assert success_ratio >= 88, f"{success_ratio:.2f}% < 88.00%"
 
-        logger.debug(f"Building Pairs Success Ratio: {success_ratio}")
+        if success_ratio < 95:
+            logger.debug(f"Building Pairs Success Ratio: {success_ratio}")
 
         return anchor_positive_negative_negatives
 
