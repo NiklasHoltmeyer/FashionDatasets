@@ -148,10 +148,14 @@ class DeepFashion1PairsGenerator:
             paths_with_npy_with_exist = list(zip(paths, npy_full_paths))  # pack and check if embeddings exist
 
             paths_with_npy_with_not_exist = filter_not_exist(paths_with_npy_with_exist,
-                                                             not_exist=True, key=lambda d: d[1], disable_output=True)
+                                                             not_exist=True, key=lambda d: d[1],
+                                                             disable_output=True,
+                                                             parallel=len(paths_with_npy_with_exist) > 1000)
 
             paths_with_npy_with_exist = filter_not_exist(paths_with_npy_with_exist,
-                                                         not_exist=False, key=lambda d: d[1], disable_output=True)
+                                                         not_exist=False, key=lambda d: d[1],
+                                                         disable_output=True,
+                                                         parallel=len(paths_with_npy_with_exist) > 1000)
 
             # paths_with_npy_with_exist = filter(lambda d: d[1].exists(), paths_with_npy_with_exist)
             # paths_with_npy_with_not_exist = filter(lambda d: d[1].exists(), paths_with_npy_with_exist)

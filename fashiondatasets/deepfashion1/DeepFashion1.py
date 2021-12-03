@@ -185,7 +185,8 @@ class DeepFashion1Dataset:
         paths_with_npy_with_not_exist = filter_not_exist(paths_with_npy_with_exist,
                                                          not_exist=True, key=lambda d: d[1],
                                                          disable_output=False,
-                                                         desc="Filter Missing Embeddings")
+                                                         desc="Filter Missing Embeddings",
+                                                         parallel=len(paths_with_npy_with_exist) > 1000)
 
         paths_not_exist = map(lambda d: d[0], paths_with_npy_with_not_exist)
         paths_not_exist = list(paths_not_exist)
