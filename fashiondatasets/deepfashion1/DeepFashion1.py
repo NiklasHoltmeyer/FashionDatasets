@@ -163,7 +163,7 @@ class DeepFashion1Dataset:
         if len(missing_embeddings) < 1:
             return
 
-        c_size = 20_000
+        c_size = 18_000
 
         if len(missing_embeddings) > c_size:
             missing_chunked = np.array_split(missing_embeddings, len(missing_embeddings) // c_size)

@@ -180,7 +180,7 @@ class DeepFashion1PairsGenerator:
             images = []
         embeddings = []
 
-        for batch in tqdm(images, desc="Predict Batch Images", disable=len(images) < 50):
+        for batch in tqdm(images, desc=f"Predict Batch Images (BS={self.batch_size})", disable=len(images) < 50):
             batch_embeddings = self.model.predict(batch)
             embeddings.extend(batch_embeddings)
 
