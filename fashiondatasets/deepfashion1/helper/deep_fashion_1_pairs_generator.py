@@ -189,9 +189,12 @@ class DeepFashion1PairsGenerator:
         batch_encodings = {}
 
         paths_not_exist_embedding_itter = list(zip(paths_not_exist, embeddings))
-        for p, model_embedding in tqdm(paths_not_exist_embedding_itter,
-                                       disable=len(paths_not_exist_embedding_itter) < 50,
-                                       desc=f"Encode Paths (Saving={self.embedding_path is not None})"):
+
+#        paths_not_exist_embedding_itter = tqdm(paths_not_exist_embedding_itter,
+#                                       disable=len(paths_not_exist_embedding_itter) < 5_000,
+#                                       desc=f"Encode Paths (Saving={self.embedding_path is not None})")
+
+        for p, model_embedding in paths_not_exist_embedding_itter:
             batch_encodings[p] = model_embedding
             if self.embedding_path:
                 npy_path = str(self.build_npy_path(p).resolve())

@@ -75,7 +75,7 @@ class DeepFashion1Dataset:
         map_full_paths = lambda lst: list(map(map_full_path, lst))
         load_values = lambda c: list(map_full_paths(df[c].values))
 
-        a, p, n1, n2 = [load_values(c) for c in tqdm(cols, f"{split}: Map full Paths")]
+        a, p, n1, n2 = [load_values(c) for c in cols]
         assert len(a) == len(p) and len(p) == len(n1) and len(n1) == len(n2)
 
         is_ctl = len(df.keys()) == 8
@@ -185,7 +185,7 @@ class DeepFashion1Dataset:
 
         paths_with_npy_with_not_exist = filter_not_exist(paths_with_npy_with_exist,
                                                          not_exist=True, key=lambda d: d[2],
-                                                         disable_output=False,
+                                                         disable_output=True,
                                                          desc="Filter Missing Embeddings",
                                                          parallel=len(paths_with_npy_with_exist) > 1000)
 
