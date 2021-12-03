@@ -178,7 +178,7 @@ class DeepFashion1Dataset:
     def filter_embeddings_missing(self, missing_embeddings):
         missing_embeddings = flatten(missing_embeddings)
         missing_embeddings = distinct(missing_embeddings)
-        npy_full_paths = map(lambda d: self.build_npy_path(d, suffix=".npy"), missing_embeddings)
+        npy_full_paths = map(lambda d: self.pair_gen.pair_gen.build_npy_path(d, suffix=".npy"), missing_embeddings)
         npy_full_paths = list(npy_full_paths)
         paths_with_npy_with_exist = list(zip(missing_embeddings, npy_full_paths))  # pack and check if embeddings exist
 
