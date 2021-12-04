@@ -11,7 +11,7 @@ from fashiondatasets.deepfashion1.helper.ExtractSplits import DF1_Split_Extracto
 from fashiondatasets.deepfashion1.helper.cbir_helper import build_gallery, build_queries, flatten_distinct_values, \
     save_batch_encodings, flatten_gallery
 from fashiondatasets.own.helper.mappings import preprocess_image
-
+from tensorflow import keras
 
 class DeepFashion1CBIR:
     def __init__(self, base_path, model, image_suffix="", split_keys=None, batch_size=64):
@@ -34,7 +34,11 @@ class DeepFashion1CBIR:
         self.image_base_path = Path(base_path, img_folder_name)
         self.full_path = lambda p: str(Path(self.image_base_path, p).resolve())
         self.batch_size = batch_size
-        self.model = model
+
+        if type(model) == str:
+            self.model = keras.models.load_model(model)
+        else:
+            self.model = model
 
     def bulk_embed(self, embedding_path, zip=False):
         embedding_path = Path(embedding_path)
