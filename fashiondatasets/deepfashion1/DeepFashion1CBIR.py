@@ -40,7 +40,7 @@ class DeepFashion1CBIR:
         else:
             self.model = model
 
-    def bulk_embed(self, embedding_path, zip=False):
+    def bulk_embed(self, embedding_path, zip_=False):
         embedding_path = Path(embedding_path)
         embedding_path.mkdir(parents=True, exist_ok=True)
 
@@ -76,7 +76,7 @@ class DeepFashion1CBIR:
 
         assert len(os.listdir(embedding_path)) == len(images_paths)
 
-        if zip:
+        if not zip_:
             return embedding_path
         return shutil.make_archive(embedding_path, 'zip', embedding_path)
 
