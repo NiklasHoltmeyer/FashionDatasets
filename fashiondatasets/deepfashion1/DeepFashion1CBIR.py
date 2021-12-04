@@ -4,8 +4,9 @@ from pathlib import Path
 
 import numpy as np
 import tensorflow as tf
+from fashiondatasets.deepfashion1.helper.deep_fashion_1_pairs_generator import DeepFashion1PairsGenerator
 from fashionnets.models.layer.Augmentation import compose_augmentations
-from fashionscrapper.utils.list import distinct
+from fashionscrapper.utils.list import distinct, flatten
 from tqdm.auto import tqdm
 
 from fashiondatasets.deepfashion1.helper.ExtractSplits import DF1_Split_Extractor
@@ -14,8 +15,11 @@ from fashiondatasets.deepfashion1.helper.cbir_helper import build_gallery, build
 from fashiondatasets.own.helper.mappings import preprocess_image
 from tensorflow import keras
 
+from fashiondatasets.utils.list import filter_not_exist
+
+
 class DeepFashion1CBIR:
-    def __init__(self, base_path, model, image_suffix="", split_keys=None, batch_size=64):
+    def __init__(self, base_path, model, embedding_path, image_suffix="", split_keys=None, batch_size=64):
         if split_keys is None:
             split_keys = ["val", "test"]  # <- default Splits for CBIR Benckmark according to the ReadMe
 
@@ -35,16 +39,19 @@ class DeepFashion1CBIR:
         self.image_base_path = Path(base_path, img_folder_name)
         self.full_path = lambda p: str(Path(self.image_base_path, p).resolve())
         self.batch_size = batch_size
-
+        self.pair_gen = DeepFashion1PairsGenerator(base_path=base_path,
+                                                   model=None, image_suffix="_256",
+                                                   augmentation=lambda d:d, embedding_path=embedding_path)
         if type(model) == str:
             self.model = keras.models.load_model(model)
         else:
             self.model = model
 
-    def bulk_embed(self, embedding_path, zip_=False):
-        embedding_path = Path(embedding_path)
-        embedding_path.mkdir(parents=True, exist_ok=True)
+        self.embedding_path = Path(embedding_path)
 
+        self.embedding_path.mkdir(parents=True, exist_ok=True)
+
+    def bulk_embed(self, zip_=False):
         images_paths = self.distinct_images()
         image_full_paths = list(map(self.full_path, images_paths))
 
@@ -75,13 +82,13 @@ class DeepFashion1CBIR:
             for p, model_embedding in zip(img_paths, embeddings):
                 batch_encodings[p] = model_embedding
 
-            save_batch_encodings(batch_encodings, embedding_path)
+            save_batch_encodings(batch_encodings, self.embedding_path)
 
-        assert len(os.listdir(embedding_path)) == len(images_paths)
+        assert len(os.listdir(self.embedding_path)) == len(images_paths)
 
         if not zip_:
-            return embedding_path
-        return shutil.make_archive(embedding_path, 'zip', embedding_path)
+            return self.embedding_path
+        return shutil.make_archive(self.embedding_path, 'zip', self.embedding_path)
 
     def distinct_images(self):
         gallery_flattened = flatten_distinct_values(self.gallery)
@@ -104,6 +111,13 @@ class DeepFashion1CBIR:
             del g_ids[idx]
 
         assert len(g_ids) == 0, "Gallery contains IDS which are not in Query"
+
+    def validate_npy_paths(self):
+        all_images = distinct(flatten(flatten([self.queries.values(), self.gallery.values()])))
+        npy_paths = [self.pair_gen.build_npy_path(x.replace("img/", ""), suffix=".npy") for x in all_images]
+        print(len(npy_paths))
+        missing_npy = filter_not_exist(npy_paths, not_exist=True)
+        assert len(missing_npy) == 0
 
 
 if __name__ == "__main__":

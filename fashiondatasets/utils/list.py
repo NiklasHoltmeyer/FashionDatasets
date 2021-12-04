@@ -8,7 +8,6 @@ from tqdm.contrib.concurrent import thread_map
 
 freeze_support()
 
-
 def random_range(n):
     range_lst = list(range(n))
     shuffle(range_lst)
