@@ -72,7 +72,7 @@ class DeepFashion1Dataset:
         img_base_path = Path(self.base_path, f"img{self.image_suffix}")
 
         if kwargs.get("force_skip_map_full", False):
-            map_full_path = lambda p: str(p.resolve())
+            map_full_path = lambda p: str(p.resolve()) if type(p) != str else p
         else:
             map_full_path = lambda p: str((img_base_path / p).resolve())
         map_full_paths = lambda lst: list(map(map_full_path, lst))
