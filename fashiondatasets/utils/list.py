@@ -5,7 +5,7 @@ from random import shuffle
 
 from fashionscrapper.utils.parallel_programming import calc_chunk_size
 from tqdm.contrib.concurrent import thread_map
-
+from tqdm.auto import tqdm
 freeze_support()
 
 def random_range(n):
@@ -17,13 +17,18 @@ def random_range(n):
 def flatten_dict(dict_):
     return {k: v for d in dict_ for k, v in d.items()}
 
-
-def parallel_map(lst, fn, desc=None, total=None, threads=None, disable_output=False):
+def parallel_map(lst, fn, parallel=True, desc=None, total=None, threads=None, disable_output=False):
     desc = "Parallel-Map" if desc is None else desc
     threads = threads if threads else os.cpu_count()
 
     total = total if total else len(lst)
     chunk_size = calc_chunk_size(n_workers=threads, len_iterable=total)
+
+    if not parallel:
+        itter = tqdm(lst,
+                     desc=f"{desc} ({threads} Threads)",
+                     disable=disable_output)
+        return list(map(fn, itter))
 
     r = thread_map(fn, lst, max_workers=threads, total=total,
                    chunksize=chunk_size, desc=f"{desc} ({threads} Threads)",

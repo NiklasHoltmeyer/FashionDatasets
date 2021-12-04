@@ -1,5 +1,8 @@
 from scipy.spatial import distance as distance_metric
 
+
+
+from fashiondatasets.utils.list import parallel_map
 def find_top_k(queries, gallery, most_similar, k=20):
     reverse = not most_similar
     distances = distance_metric.cdist(queries, gallery, "sqeuclidean")
