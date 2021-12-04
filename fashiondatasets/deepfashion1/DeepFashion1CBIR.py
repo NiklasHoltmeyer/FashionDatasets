@@ -4,6 +4,7 @@ from pathlib import Path
 
 import numpy as np
 import tensorflow as tf
+from fashionnets.models.layer.Augmentation import compose_augmentations
 from fashionscrapper.utils.list import distinct
 from tqdm.auto import tqdm
 
@@ -49,13 +50,15 @@ class DeepFashion1CBIR:
 
         image_chunks = np.array_split(list(zip(images_paths, image_full_paths)), 10)
 
+        augmentation = compose_augmentations()(False)
+
         for image_chunk in tqdm(image_chunks, desc="Build Encodings (Outer)"):
             img_paths, img_full_paths = list(zip(*image_chunk))
             img_paths, img_full_paths = list(img_paths), list(img_full_paths)
             assert len(img_paths) == len(img_full_paths)
 
             images = tf.data.Dataset.from_tensor_slices(img_full_paths) \
-                .map(preprocess_image((224, 224))) \
+                .map(preprocess_image((224, 224), augmentation=augmentation)) \
                 .batch(self.batch_size, drop_remainder=False) \
                 .prefetch(tf.data.AUTOTUNE)
 
