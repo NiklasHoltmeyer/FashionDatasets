@@ -71,8 +71,11 @@ class DeepFashion1Dataset:
         cols = ['anchor', 'positive', 'negative1', 'negative2']
         img_base_path = Path(self.base_path, f"img{self.image_suffix}")
 
-        map_full_path = lambda p: str((img_base_path / p).resolve())
-        map_full_paths = lambda lst: list(map(map_full_path, lst))
+        if kwargs.get("force_skip_map_full", False):
+            map_full_paths = lambda lst: lst
+        else:
+            map_full_path = lambda p: str((img_base_path / p).resolve())
+            map_full_paths = lambda lst: list(map(map_full_path, lst))
         load_values = lambda c: list(map_full_paths(df[c].values))
 
         a, p, n1, n2 = [load_values(c) for c in cols]
