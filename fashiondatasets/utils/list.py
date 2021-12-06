@@ -26,7 +26,7 @@ def parallel_map(lst, fn, parallel=True, desc=None, total=None, threads=None, di
 
     if not parallel:
         itter = tqdm(lst,
-                     desc=f"{desc} ({threads} Threads)",
+                     desc=desc,
                      total=total,
                      disable=disable_output)
         return list(map(fn, itter))

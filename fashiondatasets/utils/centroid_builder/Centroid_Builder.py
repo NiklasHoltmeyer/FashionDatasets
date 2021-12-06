@@ -161,7 +161,7 @@ if __name__ == "__main__":
 
     model = SimpleCNN.build((224, 224))
     m_augmentation = pass_trough()
-
+    assert False, "noch falsche Augmentation"
     pair_gen = DeepFashion1PairsGenerator(base_path, model, "_256",
                                           embedding_path=embedding_path, augmentation=lambda d: d)
     # splits = ["train", "val"]

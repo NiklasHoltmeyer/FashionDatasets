@@ -19,7 +19,7 @@ from fashiondatasets.utils.list import filter_not_exist
 
 
 class DeepFashion1CBIR:
-    def __init__(self, base_path, model, embedding_path, image_suffix="", split_keys=None, batch_size=64):
+    def __init__(self, base_path, model, embedding_path, augmentation=None, image_suffix="", split_keys=None, batch_size=64):
         if split_keys is None:
             split_keys = ["val", "test"]  # <- default Splits for CBIR Benckmark according to the ReadMe
 
@@ -39,9 +39,15 @@ class DeepFashion1CBIR:
         self.image_base_path = Path(base_path, img_folder_name)
         self.full_path = lambda p: str(Path(self.image_base_path, p).resolve())
         self.batch_size = batch_size
+
+        if augmentation:
+            self.augmentation = augmentation
+        else:
+            self.augmentation = compose_augmentations()(False)
+
         self.pair_gen = DeepFashion1PairsGenerator(base_path=base_path,
                                                    model=None, image_suffix="_256",
-                                                   augmentation=lambda d:d, embedding_path=embedding_path)
+                                                   augmentation=self.augmentation, embedding_path=embedding_path)
         if type(model) == str:
             self.model = keras.models.load_model(model)
         else:
@@ -118,6 +124,18 @@ class DeepFashion1CBIR:
         print(len(npy_paths))
         missing_npy = filter_not_exist(npy_paths, not_exist=True)
         assert len(missing_npy) == 0
+
+    def load_embeddings(self, data_dict):
+        image_paths = flatten(data_dict.values())
+
+        embedding_paths = [self.pair_gen.build_npy_path(x.replace("img/", ""), suffix=".npy") for x in image_paths]
+        embedding_paths = [str(x.resolve()) for x in embedding_paths]
+
+        embeddings = [np.load(x) for x in tqdm(embedding_paths, desc="Load Embeddings")]
+
+        assert len(embeddings) == len(image_paths)
+
+        return image_paths, embeddings
 
 
 if __name__ == "__main__":

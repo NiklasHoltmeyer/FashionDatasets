@@ -120,7 +120,7 @@ class DeepFashion1Dataset:
             splits = DeepFashion1PairsGenerator.splits()
 
         for split in splits:
-            force = split == "train" and force
+            #force = split == "train" and force
             force_hard_sampling = split == "train" and force_hard_sampling
 
             ds, n_items = self.load_split(split, is_triplet, force=force,
