@@ -12,15 +12,17 @@ tqdm.pandas()
 logger = defaultLogger("fashion_pair_gen")
 
 class Quadruplets:
-    def __init__(self, BASE_PATH, split, **kwargs):
-        self.df = self.load_as_df(BASE_PATH, split, **kwargs)
+    def __init__(self, base_path, **kwargs):
+        #self.df = self.load_as_df(BASE_PATH, split, **kwargs)
         self.kwargs = kwargs
-        self.split = split
+        self.df = None
+        self.split = kwargs.get("split", None)
+        self.base_path = base_path
 
     def __len__(self):
         return len(self.df)
 
-    def load_as_df(self, base_path, split=None, force=False, **kwargs):
+    def load_as_df(self, split=None, force=False, **kwargs):
         if split is None:
             split = self.split
 
@@ -28,7 +30,7 @@ class Quadruplets:
 
         csv_name = kwargs.get("csv_name", f"{split}.csv")
 
-        df_path = Path(base_path, csv_name)
+        df_path = Path(self.base_path, csv_name)
         nrows = kwargs.get("nrows", None)
 
         if df_path.exists() and force:
@@ -36,7 +38,6 @@ class Quadruplets:
 
         if not df_path.exists():
             from fashiondatasets.own.helper.build_quadruplets import build_split
-
             build_split(base_path, split)
 
         df = pd.read_csv(df_path, sep=";", nrows=nrows)
@@ -51,7 +52,7 @@ class Quadruplets:
 
         return df
 
-    def load_as_dataset(self, split=None):
+    def load_as_dataset(self, base_path, split=None, **kwargs):
         if split is None:
             split = self.split
 
@@ -60,12 +61,15 @@ class Quadruplets:
         self.kwargs["map_full_paths"] = True
 
         _format = self.kwargs.get("format", "")
+        _split = self.kwargs.pop("split", split)
         assert _format in ["quadruplet", "triplet"]
 
-        quads = self.df if self.df is not None else Quadruplets.load_as_df(base_path, split=split, **self.kwargs)
+        quads = self.df if self.df is not None else self.load_as_df(base_path=base_path, split=split, **self.kwargs)
 
         a, p, n1, n2 = quads["a_path"].values, quads["p_path"].values, quads["n1_path"].values, quads["n2_path"].values
         a_ds, p_ds = tf.data.Dataset.from_tensor_slices(a), tf.data.Dataset.from_tensor_slices(p)
+
+        n_items = len(a)
 
         if "triplet" in _format:
             random_choice = lambda d: choice([d[0], d[1]])
@@ -75,11 +79,11 @@ class Quadruplets:
             n = list(n)
 
             n_ds = tf.data.Dataset.from_tensor_slices(n)
-            return tf.data.Dataset.zip((a_ds, p_ds, n_ds))
+            return n_items, tf.data.Dataset.zip((a_ds, p_ds, n_ds))
 
         if "quadruplet" in _format:
             n1_ds, n2_ds = tf.data.Dataset.from_tensor_slices(n1), tf.data.Dataset.from_tensor_slices(n2)
-            return tf.data.Dataset.zip((a_ds, p_ds, n1_ds, n2_ds))
+            return n_items, tf.data.Dataset.zip((a_ds, p_ds, n1_ds, n2_ds))
 
         raise Exception('Unknown Format! Supported Formats {"quadruplet", "triplet"}')
 
@@ -140,15 +144,15 @@ class Quadruplets:
 
 
 if __name__ == "__main__":
-    base_path = f"F:\workspace\datasets\own_256"
+    base_path = f"F:\workspace\datasets\own"
 
     settings = {
         "format": "triplet",
         "resolve_paths": True,
-        "BASE_PATH": base_path,
+        "base_path": base_path,
         "split": "test"
     }
 
-    df = Quadruplets(**settings).load_as_df(base_path, force=True)
+    df = Quadruplets(**settings).load_as_df(force=True, map_full_paths=True)
     print(df.head(1))
     print(len(df))

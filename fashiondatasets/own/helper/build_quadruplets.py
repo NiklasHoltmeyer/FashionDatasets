@@ -111,7 +111,7 @@ def build_quadruplets(entries_helper):
     logger.info(f"Errors: {errors}")
     logger.info(f"Success: {n_successful} {(100 * n_successful) / (errors + n_successful)}%")
 
-def unzip_quadruplets_nb(entries_helper, quadruplet, base_path=""):
+def unzip_quadruplets_nb(entries_helper, quadruplet, base_path="", image_base_path=""):
     # {'anchor': {'_id': 50371, 'img': 0}, 'positive': {'_id': 50371, 'img': 3}, 'negatives': [{'_id': 87380, 'img': 0},
     # {'_id': 97536, 'img': 2}]}
 
@@ -122,7 +122,9 @@ def unzip_quadruplets_nb(entries_helper, quadruplet, base_path=""):
         entry = entries_helper.entries_by_id[_id]
         row = {"id": _id, **entry["images"][img_id], "category": entry["category"]}
         row = {f"{header}_{k}": v for (k, v) in row.items()}
-        row[f"{header}_path"] = row[f"{header}_path"].replace(base_path, "")
+        row[f"{header}_path"] = row[f"{header}_path"].replace(base_path, "")\
+            .replace(image_base_path, "") \
+            .replace(os.sep, "/")
         # dicts[0]["a_path"].replace(BP, "")
         return row
 
@@ -133,11 +135,15 @@ def unzip_quadruplets_nb(entries_helper, quadruplet, base_path=""):
     return flatten_dict(items_img)
 
 
-def to_csv(entries_helper, base_path, quadruplets, file_name="quadruplet_full.csv"):
+def to_csv(entries_helper, base_path, image_base_path, quadruplets, file_name="quadruplet_full.csv"):
     df_path = Path(base_path, file_name)
-    dicts = map(lambda x: unzip_quadruplets_nb(entries_helper, x, str(base_path)), quadruplets)
+    dicts = map(lambda x: unzip_quadruplets_nb(entries_helper, x, base_path=str(base_path), image_base_path=image_base_path), quadruplets)
     dicts = list(dicts)
     quadruplets_df = pd.DataFrame(dicts, columns=dicts[0].keys())
+
+    drop_cols = list(filter(lambda d: "path" not in d, dicts[0].keys()))
+
+    quadruplets_df = quadruplets_df.drop(columns=drop_cols)
 
     quadruplets_df.to_csv(df_path, sep=";", index=False)
     logger.debug(f"Saved Quadruplets to {df_path}")
@@ -220,15 +226,15 @@ def build_split(base_path, split):
     shuffle(split_entries)
     entries_helper = EntriesHelper(split_entries)
     quadruplets = build_quadruplets(entries_helper)
-    to_csv(entries_helper, base_path, quadruplets, file_name=f"{split}.csv")
+    to_csv(entries_helper=entries_helper, base_path=base_path,
+           quadruplets=quadruplets, image_base_path=base_path,file_name=f"{split}.csv")
 
 if __name__ == "__main__":
-    BP, target = "F:\\workspace\\datasets\\own", r"F:\workspace\datasets\own_256"
-    base_path = target
+    base_path = r"F:\workspace\datasets\own_256"
 
     split_entries = SplitLoader(base_path).load_entries()
     for split, split_entries in split_entries.items():
-        build_split(base_path, split)
+        build_split(base_path=base_path, split=split)
 
 
 
