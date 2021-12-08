@@ -126,7 +126,7 @@ class DeepFashion1CBIR:
         assert len(missing_npy) == 0
 
     def load_embeddings(self, data_dict):
-        image_paths = flatten(data_dict.values())
+        image_paths = distinct(flatten(data_dict.values()))
 
         embedding_paths = [self.pair_gen.build_npy_path(x.replace("img/", ""), suffix=".npy") for x in image_paths]
         embedding_paths = [str(x.resolve()) for x in embedding_paths]

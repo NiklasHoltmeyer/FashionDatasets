@@ -1,8 +1,9 @@
 from scipy.spatial import distance as distance_metric
 import numpy as np
 
-
 from fashiondatasets.utils.list import parallel_map
+
+
 def find_top_k(queries, gallery, most_similar, k=20):
     reverse = not most_similar
     distances = distance_metric.cdist(queries, gallery, "sqeuclidean")
@@ -36,7 +37,7 @@ def calculate_most_similar(query, gallery,
     for gallery_data in gallery:
         g_emb = embedding_key(gallery_data)
 
-        dist = np.linalg.norm(q_emb - g_emb) # euklidische distanz
+        dist = np.linalg.norm(q_emb - g_emb)  # euklidische distanz
         idx = idx_key(gallery_data)
 
         query_gallery_distances.append((idx, dist))
@@ -47,3 +48,15 @@ def calculate_most_similar(query, gallery,
     return idx_key(query), query_gallery_distances
 
 
+if __name__ == "__main__":
+    query = [
+        ("1", np.array([0, 0, 0]))
+    ]
+
+    gallery = [
+        (str(id_), np.array([id_] * 3)) for id_ in range(10)
+    ]
+
+    query, retrieved_results = (calculate_most_similar(query[0], gallery, embedding_key=lambda d: d[1], idx_key=lambda d: d[0],))
+    for result in retrieved_results:
+        print(result)

@@ -1,94 +1,22 @@
-# TODO just create this from scratch. hacked this down asap
-
-import copy
 import os
-from collections import defaultdict
-from multiprocessing.dummy import freeze_support
 from pathlib import Path
-from random import choice
 from random import shuffle
 
-import albumentations as A
 import numpy as np
 import pandas as pd
-from fashionscrapper.utils.io import Json_DB
+from fashiondatasets.own.Quadruplets import Quadruplets
+from fashiondatasets.own.helper.EntriesHelper import EntriesHelper
+from fashiondatasets.own.helper.split_helper import SplitLoader
+from fashiondatasets.utils.io import load_img, save_image
+from fashiondatasets.utils.list import flatten_dict
+from fashiondatasets.utils.logger.defaultLogger import defaultLogger
 from fashionscrapper.utils.list import flatten
 from fashionscrapper.utils.list import idx_self_reference, distinct
 from fashionscrapper.utils.parallel_programming import calc_chunk_size
 from tqdm.auto import tqdm
 from tqdm.contrib.concurrent import thread_map
 
-from fashiondatasets.own.Quadruplets import Quadruplets
-from fashiondatasets.utils.io import load_img, save_image
-from fashiondatasets.utils.list import random_range, flatten_dict
-from fashiondatasets.utils.logger.defaultLogger import defaultLogger
-
 logger = defaultLogger("fashion_pair_gen")
-
-class EntriesHelper:
-    def __init__(self, entries):
-        self.entries_original = entries
-        self.entries = copy.deepcopy(entries)
-
-        self.random_all_ids = None
-        self.random_all_ids_lst = None
-        self.entries_by_category = None
-        self.entries_by_id = None
-        self.number_of_images_by_id = None
-        self.all_ids = None
-        self.id_imgs_mapping = None
-
-        self.load_data()
-
-    def _load_random_ids(self):
-        self.random_all_ids = copy.deepcopy(self.all_ids)
-        shuffle(self.random_all_ids)
-
-        self.random_all_ids_lst = [self.random_all_ids, copy.deepcopy(self.random_all_ids)]
-
-        self.random_id_hits = len(self.random_all_ids)
-
-    def _load_entries_by_cat(self):
-        _entries_by_id = copy.deepcopy(self.entries_by_id)
-
-        self.entries_by_category = defaultdict(lambda: [])
-        for _id, entry in _entries_by_id.items():
-            category = entry["category"]
-            self.entries_by_category[category].append(_id)
-
-        [shuffle(v) for k, v in self.entries_by_category.items()]
-
-        self.entries_by_category_lst = [self.entries_by_category,
-                                        copy.deepcopy(self.entries_by_category)]
-
-    def load_data(self):
-        self.entries_by_id = {e["id"]: {**e} for e in self.entries}
-        self.number_of_images_by_id = {e["id"]: len(e["images"]) for e in self.entries}
-        self.all_ids = [e for e in self.entries_by_id]
-
-        assert len(self.entries_by_id) == len(self.entries) == len(self.all_ids)
-        self.id_imgs_mapping = {_id: random_range(self.number_of_images_by_id[_id]) for _id in self.all_ids}
-
-        self._load_random_ids()
-        self._load_entries_by_cat()
-
-    def random_category(self, blacklist=None):
-        keys = list(self.entries_by_category.keys())
-
-        max_retries = 100
-
-        while True:
-            assert (max_retries := (max_retries - 1)) > 1, "MAX RETRIES random_category"
-            key = choice(keys)
-            if not blacklist or key not in blacklist:
-                return key
-
-    def get_random_all_ids_lst(self, negative_idx):
-        return self.random_all_ids_lst[negative_idx]
-
-    def get_entries_by_category_lst(self, negative_idx, cat_name):
-        return self.entries_by_category_lst[negative_idx][cat_name]
-
 
 def _random_references(num_idxs, max_retries=150):
     random_idxs = list(range(num_idxs))
@@ -110,7 +38,7 @@ def build_quadruplets(entries_helper):
         positive_anchors = _random_references(n_images)
         ap_pairs_distinct = []
         for ap_pairs in zip(anchors, positive_anchors):
-            if (ap_pairs[1], ap_pairs[0]) not in ap_pairs:
+            if (ap_pairs[1], ap_pairs[0]) not in ap_pairs_distinct:
                 ap_pairs_distinct.append(ap_pairs)
 
         return entry_id, [{"anchor": {"id": entry_id, "img": a}, "positive": {"id": entry_id, "img": p}} for (a, p) in
@@ -183,7 +111,6 @@ def build_quadruplets(entries_helper):
     logger.info(f"Errors: {errors}")
     logger.info(f"Success: {n_successful} {(100 * n_successful) / (errors + n_successful)}%")
 
-
 def unzip_quadruplets_nb(entries_helper, quadruplet, base_path=""):
     # {'anchor': {'_id': 50371, 'img': 0}, 'positive': {'_id': 50371, 'img': 3}, 'negatives': [{'_id': 87380, 'img': 0},
     # {'_id': 97536, 'img': 2}]}
@@ -206,8 +133,8 @@ def unzip_quadruplets_nb(entries_helper, quadruplet, base_path=""):
     return flatten_dict(items_img)
 
 
-def to_csv(entries_helper, base_path, quadruplets):
-    df_path = Path(base_path, "quadruplet_full.csv")
+def to_csv(entries_helper, base_path, quadruplets, file_name="quadruplet_full.csv"):
+    df_path = Path(base_path, file_name)
     dicts = map(lambda x: unzip_quadruplets_nb(entries_helper, x, str(base_path)), quadruplets)
     dicts = list(dicts)
     quadruplets_df = pd.DataFrame(dicts, columns=dicts[0].keys())
@@ -288,29 +215,28 @@ def transform_quads(base_path, target_path, transformer, validate=True):
 
     logger.info(f"{n_successful} / {len(jobs_validated)} = {100 * n_successful / len(jobs_validated)}%  Transformed")
 
+def build_split(base_path, split):
+    split_entries = SplitLoader(base_path).load_entries(splits=[split])[split]
+    shuffle(split_entries)
+    entries_helper = EntriesHelper(split_entries)
+    quadruplets = build_quadruplets(entries_helper)
+    to_csv(entries_helper, base_path, quadruplets, file_name=f"{split}.csv")
 
 if __name__ == "__main__":
     BP, target = "F:\\workspace\\datasets\\own", r"F:\workspace\datasets\own_256"
+    base_path = target
+
+    split_entries = SplitLoader(base_path).load_entries()
+    for split, split_entries in split_entries.items():
+        build_split(base_path, split)
 
 
-    def build_quads():
-        entries_path = Path(BP, "entries.json")
-        with Json_DB(entries_path) as entries_db:
-            entries = entries_db.all()
-            # ^ list of dicts. required keys: id, images, category
-            # images = [{"path": ...}]
-        shuffle(entries)
-        entries_helper = EntriesHelper(entries)
 
-        quadruplets = build_quadruplets(entries_helper)
-        to_csv(entries_helper, BP, quadruplets)
+#    freeze_support()
 
+#    transform = A.Compose([
+#        A.Resize(width=256, height=256),
+#        # A.RandomCrop(width=244, height=244),
+#    ])
 
-    freeze_support()
-
-    transform = A.Compose([
-        A.Resize(width=256, height=256),
-        # A.RandomCrop(width=244, height=244),
-    ])
-
-    transform_quads(BP, target, transform)
+#    transform_quads(BP, target, transform)

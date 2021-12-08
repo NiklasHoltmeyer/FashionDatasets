@@ -2,6 +2,7 @@ from collections import defaultdict
 from pathlib import Path
 
 import numpy as np
+from fashiondatasets.deepfashion2.helper.pairs.similar_embeddings import calculate_most_similar
 from fashionscrapper.utils.list import flatten, distinct
 
 from fashiondatasets.utils.list import parallel_map
@@ -35,6 +36,35 @@ def build_queries(splits):
 
 def flatten_distinct_values(dictionary):
     return distinct(flatten(dictionary.values()))
+
+#def remove_duplicate_embeddings(embeddings):
+#    len_embeddings = len(embeddings)
+#    d = defaultdict(lambda: [])
+#    for p, e in embeddings:
+#        d[p].append(e)
+
+#    d = {k: v for k, v in d.items()}
+
+#    identity_fn = lambda x: x
+
+#    d_distinct = {}
+
+#    for k, v in d.items():
+#        first_embedding = v.pop()
+#        if len(v) > 1: # just check if all embeddings are the same, if true remove duplicates
+#            distances = calculate_most_similar(
+                #first_embedding,
+                #v,
+                #embedding_key=identity_fn,
+                #idx_key=identity_fn,
+                #k=len_embeddings,
+                #most_similar=True
+#            )
+
+#            assert (sum([x[1] for x in distances[1]])) == 0.0
+
+#        d_distinct[k] = first_embedding
+#    return d_distinct
 
 
 def jpg_to_npy_path(embedding_path, img_path):
