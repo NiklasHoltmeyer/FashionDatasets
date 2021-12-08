@@ -18,6 +18,8 @@ class Quadruplets:
         self.df = None
         self.split = kwargs.get("split", None)
         self.base_path = base_path
+        if not (base_path.endswith("/") or base_path.endswith("\\")):
+            base_path += os.sep
 
     def __len__(self):
         return len(self.df)
@@ -52,7 +54,7 @@ class Quadruplets:
 
         return df
 
-    def load_as_dataset(self, base_path, split=None, **kwargs):
+    def load_as_dataset(self, split=None):
         if split is None:
             split = self.split
 
@@ -64,7 +66,7 @@ class Quadruplets:
         _split = self.kwargs.pop("split", split)
         assert _format in ["quadruplet", "triplet"]
 
-        quads = self.df if self.df is not None else self.load_as_df(base_path=base_path, split=split, **self.kwargs)
+        quads = self.df if self.df is not None else self.load_as_df(split=split, **self.kwargs)
 
         a, p, n1, n2 = quads["a_path"].values, quads["p_path"].values, quads["n1_path"].values, quads["n2_path"].values
         a_ds, p_ds = tf.data.Dataset.from_tensor_slices(a), tf.data.Dataset.from_tensor_slices(p)
@@ -101,9 +103,9 @@ class Quadruplets:
             return p
 
         if os.name == "nt":
-            map_path = lambda p: base_path + p
+            map_path = lambda p: base_path + "/" + p
         else:
-            map_path = lambda p: base_path + p.replace("\\", "/")
+            map_path = lambda p: base_path + "/" + p.replace("\\", "/")
 
         # Path(bp, p) doesnt work on Win.
 
@@ -150,9 +152,14 @@ if __name__ == "__main__":
         "format": "triplet",
         "resolve_paths": True,
         "base_path": base_path,
-        "split": "test"
+        "split": "test",
+        "map_full_paths": True,
     }
 
     df = Quadruplets(**settings).load_as_df(force=True, map_full_paths=True)
+    n_items, ds  =Quadruplets(**settings).load_as_dataset("test")
+    #load_as_dataset
     print(df.head(1))
     print(len(df))
+    print(list(ds.take(1))[0])
+    print(n_items)
