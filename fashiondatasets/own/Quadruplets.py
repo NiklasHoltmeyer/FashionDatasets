@@ -19,7 +19,7 @@ class Quadruplets:
         self.split = kwargs.get("split", None)
         self.base_path = base_path
         if not (base_path.endswith("/") or base_path.endswith("\\")):
-            base_path += os.sep
+            self.base_path += os.sep
 
     def __len__(self):
         return len(self.df)
@@ -40,13 +40,13 @@ class Quadruplets:
 
         if not df_path.exists():
             from fashiondatasets.own.helper.build_quadruplets import build_split
-            build_split(base_path, split)
+            build_split(self.base_path, split)
 
         df = pd.read_csv(df_path, sep=";", nrows=nrows)
 
         map_full_paths = kwargs.get("map_full_paths", False)
 
-        df = df if not map_full_paths else Quadruplets._map_full_paths(df, base_path)
+        df = df if not map_full_paths else Quadruplets._map_full_paths(df, self.base_path)
 
         if kwargs.get("validate_paths", False):
             logger.debug("Validate Paths")

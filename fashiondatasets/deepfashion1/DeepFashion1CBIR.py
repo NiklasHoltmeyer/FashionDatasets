@@ -90,7 +90,8 @@ class DeepFashion1CBIR:
 
             save_batch_encodings(batch_encodings, self.embedding_path)
 
-        assert len(os.listdir(self.embedding_path)) == len(images_paths)
+        assert len(os.listdir(self.embedding_path)) == len(images_paths), \
+            f"{len(os.listdir(self.embedding_path))} != {len(images_paths)}"
 
         if not zip_:
             return self.embedding_path
