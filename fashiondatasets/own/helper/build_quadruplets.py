@@ -110,8 +110,10 @@ def build_quadruplets(entries_helper):
             else:
                 errors += 1
 
-    logger.info(f"Errors: {errors}")
-    logger.info(f"Success: {n_successful} {(100 * n_successful) / (errors + n_successful)}%")
+    if errors > 0:
+        logger.info(f"Errors: {errors}")
+    if (100 * n_successful) / (errors + n_successful) < 90:
+        logger.info(f"Success: {n_successful} {(100 * n_successful) / (errors + n_successful)}%")
 
 def unzip_quadruplets_nb(entries_helper, quadruplet, base_path="", image_base_path=""):
     # {'anchor': {'_id': 50371, 'img': 0}, 'positive': {'_id': 50371, 'img': 3}, 'negatives': [{'_id': 87380, 'img': 0},
