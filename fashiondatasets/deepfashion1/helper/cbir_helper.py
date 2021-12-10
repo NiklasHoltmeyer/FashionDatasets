@@ -37,6 +37,8 @@ def build_queries(splits):
 def flatten_distinct_values(dictionary):
     return distinct(flatten(dictionary.values()))
 
+id_from_path = lambda p: p.split("/")[-2]
+
 #def remove_duplicate_embeddings(embeddings):
 #    len_embeddings = len(embeddings)
 #    d = defaultdict(lambda: [])

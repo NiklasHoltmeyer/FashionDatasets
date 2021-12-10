@@ -4,6 +4,8 @@ from pathlib import Path
 
 import numpy as np
 import tensorflow as tf
+from fashiondatasets.deepfashion2.helper.pairs.similar_embeddings import calculate_most_similar
+
 from fashiondatasets.deepfashion1.helper.deep_fashion_1_pairs_generator import DeepFashion1PairsGenerator
 from fashionnets.models.layer.Augmentation import compose_augmentations
 from fashionscrapper.utils.list import distinct, flatten
@@ -11,7 +13,7 @@ from tqdm.auto import tqdm
 
 from fashiondatasets.deepfashion1.helper.ExtractSplits import DF1_Split_Extractor
 from fashiondatasets.deepfashion1.helper.cbir_helper import build_gallery, build_queries, flatten_distinct_values, \
-    save_batch_encodings, flatten_gallery
+    save_batch_encodings, flatten_gallery, id_from_path
 from fashiondatasets.own.helper.mappings import preprocess_image
 from tensorflow import keras
 
@@ -19,7 +21,12 @@ from fashiondatasets.utils.list import filter_not_exist
 
 
 class DeepFashion1CBIR:
-    def __init__(self, base_path, model, embedding_path, augmentation=None, image_suffix="", split_keys=None, batch_size=64):
+    def __init__(self, base_path, model, embedding_path,
+                 augmentation=None,
+                 image_suffix="",
+                 split_keys=None,
+                 batch_size=64,
+                 disable_output=False):
         if split_keys is None:
             split_keys = ["val", "test"]  # <- default Splits for CBIR Benckmark according to the ReadMe
 
@@ -56,6 +63,7 @@ class DeepFashion1CBIR:
         self.embedding_path = Path(embedding_path)
 
         self.embedding_path.mkdir(parents=True, exist_ok=True)
+        self.disable_output = disable_output
 
     def bulk_embed(self, zip_=False):
         images_paths = self.distinct_images()
@@ -65,7 +73,7 @@ class DeepFashion1CBIR:
 
         augmentation = compose_augmentations()(False)
 
-        for image_chunk in tqdm(image_chunks, desc="Build Encodings (Outer)"):
+        for image_chunk in tqdm(image_chunks, desc="Build Encodings (Outer)", disable=self.disable_output):
             img_paths, img_full_paths = list(zip(*image_chunk))
             img_paths, img_full_paths = list(img_paths), list(img_full_paths)
             assert len(img_paths) == len(img_full_paths)
@@ -77,7 +85,7 @@ class DeepFashion1CBIR:
 
             embeddings = []
 
-            for batch in tqdm(images, desc="Build Encodings (Inner)"):
+            for batch in tqdm(images, desc="Build Encodings (Inner)", disable=self.disable_output):
                 batch_embeddings = self.model(batch)
                 embeddings.extend(batch_embeddings)
 
@@ -107,7 +115,7 @@ class DeepFashion1CBIR:
 
         return gallery_flattened + queries_flattened
 
-    def validate_query_image_in_gallery(self):
+    def validate_query_image_in_gallery(self) -> object:
         q_ids, _ = flatten_gallery(self.queries.items())
         g_ids, _ = flatten_gallery(self.gallery.items())
         q_ids = sorted(q_ids)
@@ -132,12 +140,46 @@ class DeepFashion1CBIR:
         embedding_paths = [self.pair_gen.build_npy_path(x.replace("img/", ""), suffix=".npy") for x in image_paths]
         embedding_paths = [str(x.resolve()) for x in embedding_paths]
 
-        embeddings = [np.load(x) for x in tqdm(embedding_paths, desc="Load Embeddings")]
+        embeddings = [np.load(x) for x in tqdm(embedding_paths, desc="Load Embeddings", disable=self.disable_output)]
 
         assert len(embeddings) == len(image_paths)
 
         return image_paths, embeddings
 
+    def walk_distances(self, debugging=True):
+        gallery_images, gallery_embeddings = self.load_embeddings(self.gallery)
+        queries_images, queries_embeddings = self.load_embeddings(self.queries)
+
+        gallery_img_embeddings = list(zip(gallery_images, gallery_embeddings))
+        queries_img_embeddings = list(zip(queries_images, queries_embeddings))
+
+        assert len(distinct([x[0] for x in gallery_img_embeddings])) == len(gallery_img_embeddings)
+        assert len(distinct([x[0] for x in queries_img_embeddings])) == len(queries_img_embeddings)
+
+        embedding_key = lambda d: d[1]
+        id_key = lambda d: d[0]
+        compare_id_fn = lambda a, b: id_from_path(a) == id_from_path(b) if debugging else None
+
+        calculate_dist = lambda q_data: calculate_most_similar(
+            q_data,
+            gallery_img_embeddings,
+            embedding_key=embedding_key,
+            id_key=id_key,
+            k=101,
+            most_similar=True,
+            compare_id_fn=compare_id_fn
+        )
+
+        for query_data in tqdm(queries_img_embeddings, desc="Calc Distances",
+                               total=len(queries_images), disable=self.disable_output):
+            q, retrieved_dist, hit_dist = calculate_dist(query_data)
+            yield {
+                "query": q,
+                "distances": {
+                    "retrieved": retrieved_dist,
+                    "matches": hit_dist,
+                }
+            }
 
 if __name__ == "__main__":
     base_path = r"F:\workspace\datasets\deep_fashion_1_256"  #
