@@ -51,8 +51,8 @@ def build_quadruplets(entries_helper):
 
         while not negative_id:
             #assert (max_retries := (max_retries - 1)) > 1, "Max Retries" # <- does not work on colab
-            max_retries = (max_retries - 1)
-            assert max_retries > 1, "Max Retries"
+            max_retries -= 1
+            assert max_retries > 1, "Max Retries" # walrus does not work on colab
 
             possible_item = entries_helper.entries_by_category[target_category].pop(0)
             if possible_item != anchor_id:

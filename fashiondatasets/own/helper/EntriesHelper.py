@@ -59,7 +59,9 @@ class EntriesHelper:
         max_retries = 100
 
         while True:
-            assert (max_retries := (max_retries - 1)) > 1, "MAX RETRIES random_category"
+            max_retries -= 1
+            assert max_retries > 1, "MAX RETRIES random_category" # walrus operator does not work on colab
+
             key = choice(keys)
             if not blacklist or key not in blacklist:
                 return key
