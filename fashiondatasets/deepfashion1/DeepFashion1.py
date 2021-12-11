@@ -72,10 +72,10 @@ class DeepFashion1Dataset:
             df = self.pair_gen.load(split, force=force, force_hard_sampling=force_hard_sampling,
                                     embedding_path=embedding_path, **kwargs)
             cols = ['anchor', 'positive', 'negative1', 'negative2']
+            img_base_path = Path(self.base_path, f"img{self.image_suffix}")
         else:
             cols = ['a_path', 'p_path', 'n1_path', 'n2_path']
-
-        img_base_path = Path(self.base_path, f"img{self.image_suffix}")
+            img_base_path = Path(self.base_path)
 
         if kwargs.get("force_skip_map_full", False):
             map_full_path = lambda p: str(p.resolve()) if type(p) != str else p
