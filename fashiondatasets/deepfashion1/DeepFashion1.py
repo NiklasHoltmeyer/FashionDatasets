@@ -82,7 +82,8 @@ class DeepFashion1Dataset:
         else:
             cols = ['a_path', 'p_path', 'n1_path', 'n2_path']
             img_base_path = Path(self.base_path)
-            df = Quadruplets._map_full_paths(df, img_base_path, add_file_ext=True)
+            img_base_path_str = str(img_base_path.resolve())
+            df = Quadruplets._map_full_paths(df, img_base_path_str, add_file_ext=True)
             map_full_path = lambda p: p
 
 
