@@ -65,8 +65,8 @@ class DeepFashion1Dataset:
         if self.is_ctl:
             assert embedding_path, "embedding_path Required for CTL"
 
-        df = self.pair_gen.load(split, force=force, force_hard_sampling=force_hard_sampling,
-                                embedding_path=embedding_path, **kwargs)
+        df = kwargs.get("df", self.pair_gen.load(split, force=force, force_hard_sampling=force_hard_sampling,
+                                embedding_path=embedding_path, **kwargs))
 
         cols = ['anchor', 'positive', 'negative1', 'negative2']
         img_base_path = Path(self.base_path, f"img{self.image_suffix}")

@@ -68,6 +68,12 @@ if __name__ == "__main__":
         (str(id_), np.array([id_] * 3)) for id_ in range(10)
     ]
 
+    print("Query")
+    print(query)
+
+    print("Gallery")
+    print(gallery)
+
     query, retrieved_results, hit_distances = (calculate_most_similar(query[0], gallery, embedding_key=lambda d: d[1], id_key=lambda d: d[0],))
     print(hit_distances)
     print("-")
