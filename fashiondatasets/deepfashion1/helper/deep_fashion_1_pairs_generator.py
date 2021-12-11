@@ -36,16 +36,18 @@ class DeepFashion1PairsGenerator:
                  nrows=None,
                  batch_size=64,
                  augmentation=None,
-                 embedding_path=None
+                 embedding_path=None,
+                 skip_build=False
                  ):
         self.base_path = base_path
         self.model = model
-        self.split_helper = DF1_Split_Extractor(self.base_path).load_helper()
+        if not skip_build:
+            self.split_helper = DF1_Split_Extractor(self.base_path).load_helper()
 
-        self.splits, self.cat_name_by_idxs, self.cat_idx_by_name, self.ids_by_cat_idx = [self.split_helper[k] for k in
-                                                                                         ['splits', 'cat_name_by_idxs',
-                                                                                          'cat_idx_by_name',
-                                                                                          'ids_by_cat_idx']]
+            self.splits, self.cat_name_by_idxs, self.cat_idx_by_name, self.ids_by_cat_idx = [self.split_helper[k] for k in
+                                                                                             ['splits', 'cat_name_by_idxs',
+                                                                                              'cat_idx_by_name',
+                                                                                              'ids_by_cat_idx']]
         img_folder_name = "img" + image_suffix
         self.image_base_path = Path(base_path, img_folder_name)
         self.nrows = nrows

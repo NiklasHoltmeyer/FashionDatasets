@@ -28,7 +28,8 @@ class DeepFashion1Dataset:
                  number_possibilities=32,
                  nrows=None,
                  batch_size=64,
-                 embedding_path=None):
+                 embedding_path=None,
+                 skip_build=False):
 
         self.base_path = base_path
         self.model = model
@@ -45,7 +46,8 @@ class DeepFashion1Dataset:
                                                   nrows=nrows,
                                                   batch_size=batch_size,
                                                   augmentation=augmentation,
-                                                  embedding_path=embedding_path
+                                                  embedding_path=embedding_path,
+                                                  skip_build=skip_build
                                                   )
 
         if generator_type == "apn":
