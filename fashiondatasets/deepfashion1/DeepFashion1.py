@@ -6,6 +6,7 @@ import numpy as np
 from fashionscrapper.utils.list import distinct, flatten
 
 from fashiondatasets.deepfashion1.helper.deep_fashion_1_pairs_generator import DeepFashion1PairsGenerator
+from fashiondatasets.own.Quadruplets import Quadruplets
 from fashiondatasets.own.helper.quad_to_ds import build_pairs_ds_fn
 from tqdm.auto import tqdm
 
@@ -67,6 +68,11 @@ class DeepFashion1Dataset:
         if self.is_ctl:
             assert embedding_path, "embedding_path Required for CTL"
 
+        if kwargs.get("force_skip_map_full", False):
+            map_full_path = lambda p: str(p.resolve()) if type(p) != str else p
+        else:
+            map_full_path = lambda p: str((img_base_path / p).resolve())
+
         df = kwargs.get("df", None)
         if df is None:
             df = self.pair_gen.load(split, force=force, force_hard_sampling=force_hard_sampling,
@@ -76,11 +82,10 @@ class DeepFashion1Dataset:
         else:
             cols = ['a_path', 'p_path', 'n1_path', 'n2_path']
             img_base_path = Path(self.base_path)
+            df = Quadruplets._map_full_paths(df, img_base_path, add_file_ext=True)
+            map_full_path = lambda p: p
 
-        if kwargs.get("force_skip_map_full", False):
-            map_full_path = lambda p: str(p.resolve()) if type(p) != str else p
-        else:
-            map_full_path = lambda p: str((img_base_path / p).resolve())
+
         map_full_paths = lambda lst: list(map(map_full_path, lst))
         load_values = lambda c: list(map_full_paths(df[c].values))
 
