@@ -59,18 +59,22 @@ class DeepFashion1Dataset:
                                             batch_size=batch_size)
             self.is_ctl = True
 
-#    @time_logger(name="Load_Split", header="DeepFashion-DS", footer="DeepFashion-DS [DONE]", padding_length=50,
-#                 logger=defaultLogger("fashiondataset_time_logger"), log_debug=False)
+    #    @time_logger(name="Load_Split", header="DeepFashion-DS", footer="DeepFashion-DS [DONE]", padding_length=50,
+    #                 logger=defaultLogger("fashiondataset_time_logger"), log_debug=False)
     def load_split(self, split, is_triplet, force, force_hard_sampling, **kwargs):
         embedding_path = kwargs.pop("embedding_path", None)
         assert split in DeepFashion1PairsGenerator.splits()
         if self.is_ctl:
             assert embedding_path, "embedding_path Required for CTL"
 
-        df = kwargs.get("df", self.pair_gen.load(split, force=force, force_hard_sampling=force_hard_sampling,
-                                embedding_path=embedding_path, **kwargs))
+        df = kwargs.get("df", None)
+        if df is None:
+            df = self.pair_gen.load(split, force=force, force_hard_sampling=force_hard_sampling,
+                                    embedding_path=embedding_path, **kwargs)
+            cols = ['anchor', 'positive', 'negative1', 'negative2']
+        else:
+            cols = ['a_path', 'p_path', 'n1_path', 'n2_path']
 
-        cols = ['anchor', 'positive', 'negative1', 'negative2']
         img_base_path = Path(self.base_path, f"img{self.image_suffix}")
 
         if kwargs.get("force_skip_map_full", False):
@@ -112,8 +116,8 @@ class DeepFashion1Dataset:
         else:
             return pair_builder(a, p, n1, n2), len(a)
 
-#    @time_logger(name="DF-DS::Load", header="DeepFashion-DS", footer="DeepFashion-DS [DONE]", padding_length=50,
-#                 logger=defaultLogger("fashiondataset_time_logger"), log_debug=False)
+    #    @time_logger(name="DF-DS::Load", header="DeepFashion-DS", footer="DeepFashion-DS [DONE]", padding_length=50,
+    #                 logger=defaultLogger("fashiondataset_time_logger"), log_debug=False)
     def load(self, is_triplet, force, force_hard_sampling, splits=None, **kwargs):
         datasets = {}
         embedding_path = kwargs.pop("embedding_path", None)
@@ -126,8 +130,8 @@ class DeepFashion1Dataset:
             dataframes = [None] * len(splits)
 
         for split, df in zip(splits, dataframes):
-            #force = split == "train" and force
-            #force_hard_sampling = split == "train" and force_hard_sampling
+            # force = split == "train" and force
+            # force_hard_sampling = split == "train" and force_hard_sampling
 
             ds, n_items = self.load_split(split, is_triplet, force=force,
                                           force_hard_sampling=force_hard_sampling,
@@ -173,7 +177,7 @@ class DeepFashion1Dataset:
             return
 
         n_chunks = 9
-        
+
         if len(missing_embeddings) > n_chunks:
             missing_chunked = np.array_split(missing_embeddings, n_chunks)
         else:
@@ -191,7 +195,8 @@ class DeepFashion1Dataset:
             map(lambda d: self.pair_gen.pair_gen.build_npy_path(d, suffix=".npy"), jpg_relative_path)
         )
 
-        paths_with_npy_with_exist = list(zip(jpg_full_path, jpg_relative_path, npy_full_paths))  # pack and check if embeddings exist
+        paths_with_npy_with_exist = list(
+            zip(jpg_full_path, jpg_relative_path, npy_full_paths))  # pack and check if embeddings exist
 
         paths_with_npy_with_not_exist = filter_not_exist(paths_with_npy_with_exist,
                                                          not_exist=True, key=lambda d: d[2],
@@ -222,4 +227,3 @@ if __name__ == "__main__":
     datasets = ds_loader.load(splits=["train", "val"],
                               is_triplet=True,
                               force=False, force_hard_sampling=False, embedding_path=embedding_path)
-
