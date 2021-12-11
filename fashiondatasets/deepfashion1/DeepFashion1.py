@@ -119,13 +119,17 @@ class DeepFashion1Dataset:
         if splits is None:
             splits = DeepFashion1PairsGenerator.splits()
 
-        for split in splits:
+        dataframes = kwargs.get("dataframes", None)
+        if dataframes is None:
+            dataframes = [None] * len(splits)
+
+        for split, df in zip(splits, dataframes):
             #force = split == "train" and force
             #force_hard_sampling = split == "train" and force_hard_sampling
 
             ds, n_items = self.load_split(split, is_triplet, force=force,
                                           force_hard_sampling=force_hard_sampling,
-                                          embedding_path=embedding_path, **kwargs)
+                                          embedding_path=embedding_path, df=df, **kwargs)
 
             if split == "val":
                 split = "validation"
