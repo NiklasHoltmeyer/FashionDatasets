@@ -210,7 +210,6 @@ class DeepFashion1Dataset:
 
         self.pair_gen.pair_gen.embedding_path = Path(embedding_path)
 
-        raise Exception("bla")
         if len(missing_embeddings) < 1:
             return
 
