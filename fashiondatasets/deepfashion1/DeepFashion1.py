@@ -139,6 +139,21 @@ class DeepFashion1Dataset:
                 return str(p.resolve())
 
             a = list(map(inverse_path, a))
+
+            #print(a, p, n1, n2)
+            print("a")
+            print(type(a))
+            print(a[0])
+            print("p")
+            print(type(p))
+            print(p[0])
+            print("n1")
+            print(type(n1))
+            print(n1[0])
+            print("n2")
+            print(type(n2))
+            print(n2[0])
+
             return pair_builder(a, p, n1, n2, ctls=ctls), len(a)
         else:
             return pair_builder(a, p, n1, n2), len(a)
