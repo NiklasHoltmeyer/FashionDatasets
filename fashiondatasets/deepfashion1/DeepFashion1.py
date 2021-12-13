@@ -125,6 +125,13 @@ class DeepFashion1Dataset:
             img_path = str(self.pair_gen.pair_gen.image_base_path.resolve())
             print(img_path)
             raise Exception(img_path)
+
+#            if self.is_ctl:
+#                self.pair_gen.pair_gen.relative_paths=False
+#            else:
+#                self.pair_gen.relative_paths = False
+
+
             def inverse_path(p):
                 p = str(p.resolve())
                 f_name = (p.replace(embedding_path_str, "")
