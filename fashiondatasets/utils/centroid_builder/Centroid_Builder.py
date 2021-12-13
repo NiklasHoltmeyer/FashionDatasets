@@ -119,7 +119,7 @@ class CentroidBuilder:
                                        embedding_path=embedding_path, **kwargs)
             nrows = None
         else:
-            nrows = 95_000
+            nrows = None
 
         print("kwargs", kwargs.get("nrows", None))
         print("kwargs", nrows)
