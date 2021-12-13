@@ -123,8 +123,6 @@ class DeepFashion1Dataset:
                 embedding_path_str = str(embedding_path.resolve())
 
             img_path = str(self.pair_gen.pair_gen.image_base_path.resolve())
-            print(img_path)
-            raise Exception(img_path)
 
             #            if self.is_ctl:
             #                self.pair_gen.pair_gen.relative_paths=False
