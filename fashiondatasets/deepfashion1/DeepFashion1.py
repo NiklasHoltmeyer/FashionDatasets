@@ -77,8 +77,8 @@ class DeepFashion1Dataset:
 
         pair_df = kwargs.pop("df", None)
         if pair_df is None:
-#            df = self.pair_gen.load(split, force=force, force_hard_sampling=force_hard_sampling,
-#                                    embedding_path=embedding_path, **kwargs)
+            #            df = self.pair_gen.load(split, force=force, force_hard_sampling=force_hard_sampling,
+            #                                    embedding_path=embedding_path, **kwargs)
             cols = ['anchor', 'positive', 'negative1', 'negative2']
             img_base_path = Path(self.base_path, f"img{self.image_suffix}")
         else:
@@ -88,7 +88,7 @@ class DeepFashion1Dataset:
             pair_df = Quadruplets._map_full_paths(pair_df, img_base_path_str, add_file_ext=True)
 
             if self.is_ctl:
-                self.pair_gen.pair_gen.relative_paths=False
+                self.pair_gen.pair_gen.relative_paths = False
             else:
                 self.pair_gen.relative_paths = False
 
@@ -126,11 +126,10 @@ class DeepFashion1Dataset:
             print(img_path)
             raise Exception(img_path)
 
-#            if self.is_ctl:
-#                self.pair_gen.pair_gen.relative_paths=False
-#            else:
-#                self.pair_gen.relative_paths = False
-
+            #            if self.is_ctl:
+            #                self.pair_gen.pair_gen.relative_paths=False
+            #            else:
+            #                self.pair_gen.relative_paths = False
 
             def inverse_path(p):
                 p = str(p.resolve())
@@ -185,20 +184,14 @@ class DeepFashion1Dataset:
         not_existing_npys = distinct(not_existing_npys)
         not_existing_npys_str = list(map(lambda d: str(d.resolve()), not_existing_npys))
 
-        jpg_full_path = list(map(self.pair_gen.pair_gen.build_jpg_path,not_existing_npys_str))
+        jpg_full_path = list(map(self.pair_gen.pair_gen.build_jpg_path, not_existing_npys_str))
         jpg_full_path = map(lambda p: Path(p), jpg_full_path)
         jpg_full_path = list(jpg_full_path)
-        print("111")
-        print(jpg_full_path[0])
-
 
         if type(self.pair_gen.pair_gen.image_base_path) == str:
             img_base_path_str = self.pair_gen.pair_gen.image_base_path
         else:
             img_base_path_str = str(self.pair_gen.pair_gen.image_base_path.resolve())
-
-        print("222")
-        print(img_base_path_str)
 
         def inverse_path(p):
             relative_path = p.replace(img_base_path_str, "").replace("\\", "/")
@@ -212,16 +205,10 @@ class DeepFashion1Dataset:
         relative_path = lambda d: inverse_path(str(d.resolve()))
 
         jpg_relative_path = list(map(relative_path, jpg_full_path))
-        print("333")
-        print(jpg_relative_path)
+
         missing_embeddings = self.filter_embeddings_missing(jpg_full_path, jpg_relative_path)
-        print("444")
-        print(missing_embeddings)
 
         self.pair_gen.pair_gen.embedding_path = Path(embedding_path)
-
-        print("555")
-        print(self.pair_gen.pair_gen.embedding_path)
 
         raise Exception("bla")
         if len(missing_embeddings) < 1:
