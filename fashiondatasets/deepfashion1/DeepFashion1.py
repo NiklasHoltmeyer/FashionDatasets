@@ -136,23 +136,18 @@ class DeepFashion1Dataset:
                           .replace("(-)", "/")
                           .replace(".npy", ".jpg"))
                 p = Path(img_path + os.sep + f_name)
+                return p
+
+            def path_to_str(p):
                 return str(p.resolve())
 
             a = list(map(inverse_path, a))
 
-            #print(a, p, n1, n2)
-            print("a")
-            print(type(a[0]))
-            print(a[0])
-            print("p")
-            print(type(p[0]))
-            print(p[0])
-            print("n1")
-            print(type(n1[0]))
-            print(n1[0])
-            print("n2")
-            print(type(n2[0]))
-            print(n2[0])
+
+            a = list(map(path_to_str, a))
+            p = list(map(path_to_str, p))
+            n1 = list(map(path_to_str, n1))
+            n2 = list(map(path_to_str, n2))
 
             return pair_builder(a, p, n1, n2, ctls=ctls), len(a)
         else:
