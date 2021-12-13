@@ -155,7 +155,6 @@ class DeepFashion1Dataset:
             if not isinstance(n2[0], str):
                 n2 = list(map(path_to_str, n2))
 
-
             return pair_builder(a, p, n1, n2, ctls=ctls), len(a)
         else:
             return pair_builder(a, p, n1, n2), len(a)

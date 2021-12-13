@@ -117,9 +117,12 @@ class CentroidBuilder:
             pairs_dataframe = self.pair_gen.load(split, force=force_hard_sampling, validate=validate,
                                        overwrite_embeddings=overwrite_embeddings,
                                        embedding_path=embedding_path, **kwargs)
+            nrows = None
+        else:
+            nrows = 95_000
 
 
-        if kwargs.get("nrows", None):
+        if kwargs.get("nrows", nrows):
             pairs_dataframe = pairs_dataframe.head(kwargs["nrows"])
 
         split_path = self.centroids_path / split
