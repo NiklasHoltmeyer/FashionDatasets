@@ -201,7 +201,11 @@ class DeepFashion1Dataset:
         print(img_base_path_str)
 
         def inverse_path(p):
-            return p.replace(img_base_path_str, "").replace("\\", "/")
+            relative_path = p.replace(img_base_path_str, "").replace("\\", "/")
+            if not relative_path[0] == ".":
+                return f".{relative_path}"
+            else:
+                return relative_path
 
         embedding_path = str(Path(embedding_path).resolve())
 
