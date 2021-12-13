@@ -121,6 +121,8 @@ class CentroidBuilder:
         else:
             nrows = 95_000
 
+        print("kwargs", kwargs.get("nrows", None))
+        print("kwargs", nrows)
 
         if kwargs.get("nrows", nrows):
             pairs_dataframe = pairs_dataframe.head(kwargs["nrows"])
