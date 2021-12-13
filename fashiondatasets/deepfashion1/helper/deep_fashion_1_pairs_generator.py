@@ -45,10 +45,12 @@ class DeepFashion1PairsGenerator:
         if not skip_build:
             self.split_helper = DF1_Split_Extractor(self.base_path).load_helper()
 
-            self.splits, self.cat_name_by_idxs, self.cat_idx_by_name, self.ids_by_cat_idx = [self.split_helper[k] for k in
-                                                                                             ['splits', 'cat_name_by_idxs',
+            self.splits, self.cat_name_by_idxs, self.cat_idx_by_name, self.ids_by_cat_idx = [self.split_helper[k] for k
+                                                                                             in
+                                                                                             ['splits',
+                                                                                              'cat_name_by_idxs',
                                                                                               'cat_idx_by_name',
-                                                                                                      'ids_by_cat_idx']]
+                                                                                              'ids_by_cat_idx']]
             img_folder_name = "img" + image_suffix
             self.image_base_path = Path(base_path, img_folder_name)
         else:
@@ -127,8 +129,8 @@ class DeepFashion1PairsGenerator:
         except:
             return False
 
-#    @time_logger(name="DF::Encode Paths", header="Pair-Gen (Encode Paths)", footer="Pair-Gen [DONE]", padding_length=50,
-#                 logger=defaultLogger("fashiondataset_time_logger"), log_debug=False)
+    #    @time_logger(name="DF::Encode Paths", header="Pair-Gen (Encode Paths)", footer="Pair-Gen [DONE]", padding_length=50,
+    #                 logger=defaultLogger("fashiondataset_time_logger"), log_debug=False)
     def encode_paths(self, pairs, retrieve_paths_fn, assert_saving=False, skip_filter=False):
         if assert_saving:
             assert self.embedding_path, "assert_saving set, but no Embedding Path"
@@ -198,9 +200,9 @@ class DeepFashion1PairsGenerator:
 
         paths_not_exist_embedding_itter = list(zip(paths_not_exist, embeddings))
 
-#        paths_not_exist_embedding_itter = tqdm(paths_not_exist_embedding_itter,
-#                                       disable=len(paths_not_exist_embedding_itter) < 5_000,
-#                                       desc=f"Encode Paths (Saving={self.embedding_path is not None})")
+        #        paths_not_exist_embedding_itter = tqdm(paths_not_exist_embedding_itter,
+        #                                       disable=len(paths_not_exist_embedding_itter) < 5_000,
+        #                                       desc=f"Encode Paths (Saving={self.embedding_path is not None})")
 
         for p, model_embedding in paths_not_exist_embedding_itter:
             batch_encodings[p] = model_embedding
@@ -237,11 +239,12 @@ class DeepFashion1PairsGenerator:
 
     def build_jpg_path(self, npy_full_path):
         print("0")
+        relative_path = npy_full_path.split(os.path.sep)[-1].replace(".npy", ".jpg").replace("(-)", "/")
         print(self.image_base_path)
-        print(npy_full_path)
-        print(self.image_base_path / npy_full_path.split(os.path.sep)[-1].replace(".npy", ".jpg").replace("(-)", "/"))
-        raise Exception("bla")
-        return self.image_base_path / npy_full_path.split(os.path.sep)[-1].replace(".npy", ".jpg").replace("(-)", "/")
+        print(relative_path)
+        print(os.path.join(self.image_base_path, relative_path))
+        raise Exception("os.path.join(self.image_base_path, relative_path)")
+        return os.path.join(self.image_base_path, relative_path)
 
     @staticmethod
     def is_valid_category(force_cat_level):
