@@ -240,7 +240,7 @@ class DeepFashion1PairsGenerator:
     def build_jpg_path(self, npy_full_path):
         relative_path = npy_full_path.split(os.path.sep)[-1].replace(".npy", ".jpg").replace("(-)", "/")
         if relative_path[0] != ".":
-            relative_path = f"./{relative_path}"
+            relative_path = f"./{relative_path}".replace("//", "/")
         return os.path.join(self.image_base_path, relative_path)
 
     @staticmethod
