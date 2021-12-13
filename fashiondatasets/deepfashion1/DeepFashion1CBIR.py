@@ -139,6 +139,9 @@ class DeepFashion1CBIR:
 
         embedding_paths = [self.pair_gen.build_npy_path(x.replace("img/", ""), suffix=".npy") for x in image_paths]
         embedding_paths = [str(x.resolve()) for x in embedding_paths]
+        if not Path(embedding_paths[0]).exists():
+            embedding_paths = [x.replace("(-)", "-") for x in embedding_paths]
+            assert Path(embedding_paths[0]).exists(), f"Could not find {embedding_paths[0]}"
 
         embeddings = [np.load(x) for x in tqdm(embedding_paths, desc="Load Embeddings", disable=self.disable_output)]
 
@@ -184,4 +187,8 @@ class DeepFashion1CBIR:
 if __name__ == "__main__":
     base_path = r"F:\workspace\datasets\deep_fashion_1_256"  #
 
-    cbir = DeepFashion1CBIR(base_path)
+    cbir = DeepFashion1CBIR(base_path, model=None,
+                            embedding_path="C:\\workspace\\emb_231_triplet_ctl_t_6", disable_output=False)
+
+    distance_walker = cbir.walk_distances()
+    print(list(distance_walker))
