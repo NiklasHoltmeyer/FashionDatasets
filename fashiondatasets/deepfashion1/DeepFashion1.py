@@ -143,11 +143,18 @@ class DeepFashion1Dataset:
 
             a = list(map(inverse_path, a))
 
+            if not isinstance(a[0], str):
+                a = list(map(path_to_str, a))
 
-            a = list(map(path_to_str, a))
-            p = list(map(path_to_str, p))
-            n1 = list(map(path_to_str, n1))
-            n2 = list(map(path_to_str, n2))
+            if not isinstance(p[0], str):
+                p = list(map(path_to_str, p))
+
+            if not isinstance(n1[0], str):
+                n1 = list(map(path_to_str, n1))
+
+            if not isinstance(n2[0], str):
+                n2 = list(map(path_to_str, n2))
+
 
             return pair_builder(a, p, n1, n2, ctls=ctls), len(a)
         else:
