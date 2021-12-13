@@ -186,7 +186,8 @@ class DeepFashion1Dataset:
         not_existing_npys_str = list(map(lambda d: str(d.resolve()), not_existing_npys))
 
         jpg_full_path = list(map(self.pair_gen.pair_gen.build_jpg_path,not_existing_npys_str))
-
+        jpg_full_path = map(lambda p: str(Path(p).resolve()), jpg_full_path)
+        jpg_full_path = list(jpg_full_path)
         print("111")
         print(jpg_full_path[0])
 
