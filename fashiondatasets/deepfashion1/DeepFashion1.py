@@ -55,6 +55,7 @@ class DeepFashion1Dataset:
             self.pair_gen = apn_pair_gen
             self.is_ctl = False
         elif generator_type == "ctl":
+            assert model, "Model required for CTL"
             self.pair_gen = CentroidBuilder(apn_pair_gen, embedding_path, model=model,
                                             augmentation=augmentation,
                                             batch_size=batch_size)
@@ -73,24 +74,40 @@ class DeepFashion1Dataset:
         else:
             map_full_path = lambda p: str((img_base_path / p).resolve())
 
-        df = kwargs.get("df", None)
-        if df is None:
-            df = self.pair_gen.load(split, force=force, force_hard_sampling=force_hard_sampling,
-                                    embedding_path=embedding_path, **kwargs)
+        pair_df = kwargs.pop("df", None)
+        if pair_df is None:
+#            df = self.pair_gen.load(split, force=force, force_hard_sampling=force_hard_sampling,
+#                                    embedding_path=embedding_path, **kwargs)
             cols = ['anchor', 'positive', 'negative1', 'negative2']
             img_base_path = Path(self.base_path, f"img{self.image_suffix}")
         else:
             cols = ['a_path', 'p_path', 'n1_path', 'n2_path']
             img_base_path = Path(self.base_path)
             img_base_path_str = str(img_base_path.resolve())
-            df = Quadruplets._map_full_paths(df, img_base_path_str, add_file_ext=True)
+            pair_df = Quadruplets._map_full_paths(pair_df, img_base_path_str, add_file_ext=True)
+
+            if self.is_ctl:
+                self.pair_gen.pair_gen.relative_paths=False
+            else:
+                self.pair_gen.relative_paths = False
+
             map_full_path = lambda p: p
 
+        df = self.pair_gen.load(split,
+                                force=force,
+                                force_hard_sampling=force_hard_sampling,
+                                embedding_path=embedding_path,
+                                pairs_dataframe=pair_df,
+                                **kwargs)
 
+        print(pair_df.head(1))
+        print(df.head(1))
         map_full_paths = lambda lst: list(map(map_full_path, lst))
         load_values = lambda c: list(map_full_paths(df[c].values))
 
         a, p, n1, n2 = [load_values(c) for c in cols]
+        print(a[0])
+        exit(0)
         assert len(a) == len(p) and len(p) == len(n1) and len(n1) == len(n2)
 
         is_ctl = len(df.keys()) == 8
@@ -110,9 +127,10 @@ class DeepFashion1Dataset:
             img_path = str(self.pair_gen.pair_gen.image_base_path.resolve())
 
             def inverse_path(p):
+                p = str(p.resolve())
                 f_name = (p.replace(embedding_path_str, "")
                           .replace("\\", "/")
-                          .replace("-", "/")
+                          .replace("(-)", "/")
                           .replace(".npy", ".jpg"))
                 p = Path(img_path + "/" + f_name)
                 return str(p.resolve())
@@ -159,8 +177,10 @@ class DeepFashion1Dataset:
 
         not_existing_npys = a if is_triplet else a + n1
         not_existing_npys = distinct(not_existing_npys)
+        not_existing_npys_str = list(map(lambda d: str(d.resolve()), not_existing_npys))
 
-        jpg_full_path = list(map(self.pair_gen.pair_gen.build_jpg_path, not_existing_npys))
+        jpg_full_path = list(map(self.pair_gen.pair_gen.build_jpg_path,not_existing_npys_str))
+
 
         if type(self.pair_gen.pair_gen.image_base_path) == str:
             img_base_path_str = self.pair_gen.pair_gen.image_base_path

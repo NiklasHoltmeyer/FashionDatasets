@@ -37,7 +37,8 @@ class DeepFashion1PairsGenerator:
                  batch_size=64,
                  augmentation=None,
                  embedding_path=None,
-                 skip_build=False
+                 skip_build=False,
+                 relative_paths=True,
                  ):
         self.base_path = base_path
         self.model = model
@@ -60,6 +61,9 @@ class DeepFashion1PairsGenerator:
         self.augmentation = augmentation
 
         self.embedding_path = Path(embedding_path)
+        self.ds_base_path_str = str(Path(self.embedding_path.parent).resolve())
+
+        self.relative_paths = relative_paths
 
         if not model:
             logger.error("WARNING " * 72)
@@ -217,19 +221,23 @@ class DeepFashion1PairsGenerator:
 
         return batch_encodings
 
-    def build_npy_path(self, img_relative_path, suffix=""):
+    def build_npy_path(self, img_relative_path, suffix="", relative_path=True):
         assert self.embedding_path
 
+        if not self.relative_paths:
+            img_relative_path = img_relative_path.replace(self.ds_base_path_str, "")
+
         f_name = img_relative_path.replace(".jpg", suffix) \
-            .replace(os.path.sep, "-") \
-            .replace("/", "-")
+            .replace(os.path.sep, "(-)") \
+            .replace("/", "(-)")
 
-        f_name = f_name[0].replace("-", "") + f_name[1:]  # replace leading - if exist
-
+        f_name = f_name[0].replace("(-)", "") + f_name[1:]  # replace leading - if exist
+        print(self.embedding_path / f_name)
+        exit(0)
         return self.embedding_path / f_name
 
     def build_jpg_path(self, npy_full_path):
-        return self.image_base_path / npy_full_path.split(os.path.sep)[-1].replace(".npy", ".jpg").replace("-", "/")
+        return self.image_base_path / npy_full_path.split(os.path.sep)[-1].replace(".npy", ".jpg").replace("(-)", "/")
 
     @staticmethod
     def is_valid_category(force_cat_level):

@@ -11,7 +11,7 @@ from fashiondatasets.utils.mock.mock_augmentation import pass_trough
 from fashiondatasets.utils.mock.mock_feature_extractor import SimpleCNN
 from fashionscrapper.utils.io import time_logger
 from tqdm.auto import tqdm
-
+import pandas as pd
 from fashiondatasets.deepfashion1.helper.deep_fashion_1_pairs_generator import DeepFashion1PairsGenerator
 from fashiondatasets.own.helper.mappings import preprocess_image
 
@@ -33,9 +33,12 @@ class CentroidBuilder:
 
         self.centroids_path = Path(centroids_path)
         self.centroids_path.mkdir(exist_ok=True, parents=True)
+        self.centroids_path_str = str(self.centroids_path.resolve())
 
         self.augmentation = augmentation
         self.model = model
+
+        self.image_base_path_str = str(self.pair_gen.image_base_path.resolve())
 
         if not model:
             logger.error("WARNING " * 72)
@@ -44,8 +47,11 @@ class CentroidBuilder:
         elif not augmentation:
             raise Exception("Augmentation missing")
 
-    def build_centroid(self, images):
-        map_full_path = lambda p: str((self.pair_gen.image_base_path / p).resolve())
+    def build_centroid(self, images, map_identity=False):
+        if map_identity:
+            map_full_path = lambda p: p
+        else:
+            map_full_path = lambda p: str((self.pair_gen.image_base_path / p).resolve())
 
         paths = list(images)
         #        npy_full_paths = map(self.pair_gen.build_npy_path, paths)
@@ -96,15 +102,25 @@ class CentroidBuilder:
 
 #    @time_logger(name="Pair-GEN(CTL)::Load", header="Pair-Gen (CTL)", footer="Pair-Gen (CTL) [DONE]", padding_length=50,
 #                 logger=defaultLogger("fashiondataset_time_logger"), log_debug=False)
-    def load(self, split, force=False, force_hard_sampling=False, validate=False, overwrite_embeddings=False, **kwargs):
+    def load(self, split,
+             force=False,
+             force_hard_sampling=False,
+             validate=False,
+             overwrite_embeddings=False,
+             pairs_dataframe=None,
+             **kwargs):
         embedding_path = kwargs.pop("embedding_path", None)
 
-        pairs_dataframe = self.pair_gen.load(split, force=force_hard_sampling, validate=validate,
-                                   overwrite_embeddings=overwrite_embeddings,
-                                   embedding_path=embedding_path, **kwargs)
+        map_identity = pairs_dataframe is not None
 
-        if DEV:
-            pairs_dataframe = pairs_dataframe.head(32)
+        if pairs_dataframe is None:
+            pairs_dataframe = self.pair_gen.load(split, force=force_hard_sampling, validate=validate,
+                                       overwrite_embeddings=overwrite_embeddings,
+                                       embedding_path=embedding_path, **kwargs)
+
+
+        if kwargs.get("nrows", None):
+            pairs_dataframe = pairs_dataframe.head(kwargs["nrows"])
 
         split_path = self.centroids_path / split
         split_path.mkdir(parents=True, exist_ok=True)
@@ -123,7 +139,7 @@ class CentroidBuilder:
 
             if force or not Path(f_path_full).exists():
                 f_path = str((split_path / p_id).resolve())
-                centroid = self.build_centroid(imgs)
+                centroid = self.build_centroid(imgs, map_identity=map_identity)
 
                 if centroid is None:
                     continue
@@ -149,7 +165,6 @@ class CentroidBuilder:
             pairs_dataframe[k] = pairs_dataframe[k].map(lambda i: self.pair_gen.build_npy_path(i, suffix=".npy"))
         pairs_dataframe.to_csv(Path(self.pair_gen.base_path, split + "_ctl.csv"), index=False)
         return pairs_dataframe
-
 
 def average_vectors(list_of_vectors, axis=0):
     return np.sum(np.array(list_of_vectors), axis=0) / len(list_of_vectors)
