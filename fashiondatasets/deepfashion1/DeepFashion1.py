@@ -140,6 +140,8 @@ class DeepFashion1Dataset:
 
             def path_to_str(p):
                 return str(p.resolve())
+            if isinstance(a[0], str):
+                a = list(map(lambda p: Path(p), a))
 
             a = list(map(inverse_path, a))
 
