@@ -115,6 +115,12 @@ class DeepFashion1Dataset:
             cols_ctl = [x + "_ctl" for x in cols]
             ctls = [df[c].values for c in cols_ctl]
 
+            print(a)
+            print("--")
+            print(n1)
+            print(embedding_path)
+            raise Exception(embedding_path)
+
             self._build_missing_embeddings(is_triplet, a, n1, embedding_path=embedding_path, **kwargs)
 
             if type(embedding_path) == str:
