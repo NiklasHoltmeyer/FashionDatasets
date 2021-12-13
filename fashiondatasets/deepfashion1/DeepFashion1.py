@@ -196,13 +196,15 @@ class DeepFashion1Dataset:
 
         not_existing_npys = a if is_triplet else a + n1
         not_existing_npys = distinct(not_existing_npys)
+        if isinstance(not_existing_npys[0], str):
+            not_existing_npys = list(map(lambda p: Path(p), not_existing_npys))
         not_existing_npys_str = list(map(lambda d: str(d.resolve()), not_existing_npys))
 
         jpg_full_path = list(map(self.pair_gen.pair_gen.build_jpg_path, not_existing_npys_str))
         jpg_full_path = map(lambda p: Path(p), jpg_full_path)
         jpg_full_path = list(jpg_full_path)
 
-        if type(self.pair_gen.pair_gen.image_base_path) == str:
+        if isinstance(self.pair_gen.pair_gen.image_base_path, str):
             img_base_path_str = self.pair_gen.pair_gen.image_base_path
         else:
             img_base_path_str = str(self.pair_gen.pair_gen.image_base_path.resolve())
