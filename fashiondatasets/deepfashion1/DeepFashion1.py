@@ -100,14 +100,11 @@ class DeepFashion1Dataset:
                                 pairs_dataframe=pair_df,
                                 **kwargs)
 
-        print(pair_df.head(1))
-        print(df.head(1))
         map_full_paths = lambda lst: list(map(map_full_path, lst))
         load_values = lambda c: list(map_full_paths(df[c].values))
 
         a, p, n1, n2 = [load_values(c) for c in cols]
-        print(a[0])
-        exit(0)
+
         assert len(a) == len(p) and len(p) == len(n1) and len(n1) == len(n2)
 
         is_ctl = len(df.keys()) == 8

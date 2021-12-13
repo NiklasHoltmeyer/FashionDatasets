@@ -232,8 +232,7 @@ class DeepFashion1PairsGenerator:
             .replace("/", "(-)")
 
         f_name = f_name[0].replace("(-)", "") + f_name[1:]  # replace leading - if exist
-        print(self.embedding_path / f_name)
-        exit(0)
+
         return self.embedding_path / f_name
 
     def build_jpg_path(self, npy_full_path):
