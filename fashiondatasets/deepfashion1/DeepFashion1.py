@@ -1,3 +1,4 @@
+import os
 from pathlib import Path
 
 from fashionnets.models.layer.Augmentation import compose_augmentations
@@ -129,7 +130,7 @@ class DeepFashion1Dataset:
                           .replace("\\", "/")
                           .replace("(-)", "/")
                           .replace(".npy", ".jpg"))
-                p = Path(img_path + "/" + f_name)
+                p = Path(img_path + os.sep + f_name)
                 return str(p.resolve())
 
             a = list(map(inverse_path, a))
