@@ -236,6 +236,10 @@ class DeepFashion1PairsGenerator:
         return self.embedding_path / f_name
 
     def build_jpg_path(self, npy_full_path):
+        print("0")
+        print(self.image_base_path)
+        print(self.image_base_path / npy_full_path.split(os.path.sep)[-1].replace(".npy", ".jpg").replace("(-)", "/"))
+        raise Exception("bla")
         return self.image_base_path / npy_full_path.split(os.path.sep)[-1].replace(".npy", ".jpg").replace("(-)", "/")
 
     @staticmethod
