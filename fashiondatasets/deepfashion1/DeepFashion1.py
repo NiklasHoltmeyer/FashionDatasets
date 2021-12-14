@@ -76,7 +76,7 @@ class DeepFashion1Dataset:
             map_full_path = lambda p: str((img_base_path / p).resolve())
 
         pair_df = kwargs.pop("df", None)
-        if False: #pair_df is None: #1312
+        if False:  # pair_df is None: #1312
             #            df = self.pair_gen.load(split, force=force, force_hard_sampling=force_hard_sampling,
             #                                    embedding_path=embedding_path, **kwargs)
             cols = ['anchor', 'positive', 'negative1', 'negative2']
@@ -103,11 +103,11 @@ class DeepFashion1Dataset:
             df = pair_df
         else:
             df = self.pair_gen.load(split,
-                                force=force,
-                                force_hard_sampling=force_hard_sampling,
-                                embedding_path=embedding_path,
-                                pairs_dataframe=pair_df,
-                                **kwargs)
+                                    force=force,
+                                    force_hard_sampling=force_hard_sampling,
+                                    embedding_path=embedding_path,
+                                    pairs_dataframe=pair_df,
+                                    **kwargs)
 
         df = unzip_df(df, can_be_none=False)
 
@@ -153,6 +153,7 @@ class DeepFashion1Dataset:
 
             def path_to_str(p):
                 return str(p.resolve())
+
             if isinstance(a[0], str):
                 a = list(map(lambda p: Path(p), a))
 
@@ -277,6 +278,7 @@ class DeepFashion1Dataset:
 
         return jpg_path_not_exist
 
+
 def unzip_df(df, sep=";", can_be_none=False):
     if can_be_none and df is None:
         return df
@@ -304,11 +306,6 @@ def unzip_df(df, sep=";", can_be_none=False):
     assert len(df) == df_len, f"Len(df, prep unzipping): {df_len} != Len(df){len(df)}"
 
     return df
-
-
-
-
-
 
 
 if __name__ == "__main__":
