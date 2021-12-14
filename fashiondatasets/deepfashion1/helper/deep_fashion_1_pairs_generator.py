@@ -444,8 +444,7 @@ class DeepFashion1PairsGenerator:
 
     def build(self, split, force_hard_sampling, validate=True, **kwargs):
         force_cat_level = 2
-        print(self.splits)
-        print(type(self.splits))
+
         split_data, ids_by_cat_idx = self.splits[split], self.ids_by_cat_idx[split]
 
         anchor_positives = self.build_anchor_positives(split_data, force_cat_level, **kwargs)
