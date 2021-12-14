@@ -282,10 +282,12 @@ def unzip_df(df, sep=";", can_be_none=False):
     if df is None:
         raise Exception(f"Nullpointer Unzip DF. can_be_nun={can_be_none}")
 
-    keys = df.keys()
+    keys = df.keys().values
 
     if len(keys) != 1:
         return df
+
+    keys = keys[0]
 
     df_len = len(df)
 
