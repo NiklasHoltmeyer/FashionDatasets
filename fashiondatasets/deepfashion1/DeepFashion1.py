@@ -105,6 +105,9 @@ class DeepFashion1Dataset:
         map_full_paths = lambda lst: list(map(map_full_path, lst))
         load_values = lambda c: list(map_full_paths(df[c].values))
 
+        print(df.keys())
+        print(df.head(1))
+
         a, p, n1, n2 = [load_values(c) for c in cols]
 
         assert len(a) == len(p) and len(p) == len(n1) and len(n1) == len(n2)
