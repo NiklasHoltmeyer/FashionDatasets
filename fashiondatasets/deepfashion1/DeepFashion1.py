@@ -292,7 +292,7 @@ def unzip_df(df, sep=";", can_be_none=False):
     df_len = len(df)
 
     cols = keys.split(sep)
-    values = [x.split(sep) for x in df.values()]
+    values = [x.split(sep) for x in df.values]
 
     df = pd.DataFrame(values, columns=cols)
 
