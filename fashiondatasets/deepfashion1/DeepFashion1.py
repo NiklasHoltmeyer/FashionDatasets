@@ -76,7 +76,7 @@ class DeepFashion1Dataset:
             map_full_path = lambda p: str((img_base_path / p).resolve())
 
         pair_df = kwargs.pop("df", None)
-        if pair_df is None:
+        if True: #pair_df is None: #1312
             #            df = self.pair_gen.load(split, force=force, force_hard_sampling=force_hard_sampling,
             #                                    embedding_path=embedding_path, **kwargs)
             cols = ['anchor', 'positive', 'negative1', 'negative2']
@@ -85,7 +85,8 @@ class DeepFashion1Dataset:
             cols = ['a_path', 'p_path', 'n1_path', 'n2_path']
             img_base_path = Path(self.base_path)
             img_base_path_str = str(img_base_path.resolve())
-            pair_df = Quadruplets._map_full_paths(pair_df, img_base_path_str, add_file_ext=True)
+            if pair_df:
+                pair_df = Quadruplets._map_full_paths(pair_df, img_base_path_str, add_file_ext=True)
 
             if self.is_ctl:
                 self.pair_gen.pair_gen.relative_paths = False
