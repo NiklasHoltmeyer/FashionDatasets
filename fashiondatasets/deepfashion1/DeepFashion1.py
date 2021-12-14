@@ -76,7 +76,7 @@ class DeepFashion1Dataset:
             map_full_path = lambda p: str((img_base_path / p).resolve())
 
         pair_df = kwargs.pop("df", None)
-        if True: #pair_df is None: #1312
+        if False: #pair_df is None: #1312
             #            df = self.pair_gen.load(split, force=force, force_hard_sampling=force_hard_sampling,
             #                                    embedding_path=embedding_path, **kwargs)
             cols = ['anchor', 'positive', 'negative1', 'negative2']
