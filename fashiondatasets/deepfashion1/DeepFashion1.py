@@ -94,7 +94,8 @@ class DeepFashion1Dataset:
                 self.pair_gen.relative_paths = False
 
             map_full_path = lambda p: p
-
+        print(df.keys())
+        print(df.head(1))
         df = self.pair_gen.load(split,
                                 force=force,
                                 force_hard_sampling=force_hard_sampling,
