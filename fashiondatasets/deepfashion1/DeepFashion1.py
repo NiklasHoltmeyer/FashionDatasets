@@ -5,7 +5,7 @@ from fashionnets.models.layer.Augmentation import compose_augmentations
 from fashionscrapper.utils.io import time_logger
 import numpy as np
 from fashionscrapper.utils.list import distinct, flatten
-
+import pandas as pd
 from fashiondatasets.deepfashion1.helper.deep_fashion_1_pairs_generator import DeepFashion1PairsGenerator
 from fashiondatasets.own.Quadruplets import Quadruplets
 from fashiondatasets.own.helper.quad_to_ds import build_pairs_ds_fn
@@ -85,8 +85,12 @@ class DeepFashion1Dataset:
             cols = ['a_path', 'p_path', 'n1_path', 'n2_path']
             img_base_path = Path(self.base_path)
             img_base_path_str = str(img_base_path.resolve())
+
+            pair_df = unzip_df(pair_df, can_be_none=True)
+
             if pair_df is not None:
                 pair_df = Quadruplets._map_full_paths(pair_df, img_base_path_str, add_file_ext=True)
+                pair_df = unzip_df(pair_df, can_be_none=True)
 
             if self.is_ctl:
                 self.pair_gen.pair_gen.relative_paths = False
@@ -102,6 +106,8 @@ class DeepFashion1Dataset:
                                 embedding_path=embedding_path,
                                 pairs_dataframe=pair_df,
                                 **kwargs)
+
+        df = unzip_df(df, can_be_none=False)
 
         map_full_paths = lambda lst: list(map(map_full_path, lst))
         load_values = lambda c: list(map_full_paths(df[c].values))
@@ -268,6 +274,34 @@ class DeepFashion1Dataset:
         jpg_path_not_exist = list(jpg_path_not_exist)
 
         return jpg_path_not_exist
+
+def unzip_df(df, sep=";", can_be_none=False):
+    if can_be_none and df is None:
+        return df
+
+    if df is None:
+        raise Exception(f"Nullpointer Unzip DF. can_be_nun={can_be_none}")
+
+    keys = df.keys()
+
+    if len(keys) != 1:
+        return df
+
+    df_len = len(df)
+
+    cols = keys.split(sep)
+    values = [x.split(sep) for x in df.values()]
+
+    df = pd.DataFrame(values, columns=cols)
+
+    assert len(df) == df_len, f"Len(df, prep unzipping): {df_len} != Len(df){len(df)}"
+
+    return df
+
+
+
+
+
 
 
 if __name__ == "__main__":
