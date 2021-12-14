@@ -98,9 +98,11 @@ class DeepFashion1Dataset:
                 self.pair_gen.relative_paths = False
 
             map_full_path = lambda p: p
-        print(pair_df.keys())
-        print(pair_df.head(1))
-        df = self.pair_gen.load(split,
+
+        if not self.is_ctl and pair_df is not None:
+            df = pair_df
+        else:
+            df = self.pair_gen.load(split,
                                 force=force,
                                 force_hard_sampling=force_hard_sampling,
                                 embedding_path=embedding_path,
