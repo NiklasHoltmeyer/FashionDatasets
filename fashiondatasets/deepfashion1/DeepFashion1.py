@@ -295,15 +295,7 @@ def unzip_df(df, sep=";", can_be_none=False):
 
     assert all([len(x) == 1 for x in df.values]), "Shape of Rows / Col does not match"
 
-    print("0")
-    print(df.values[0][0])
-    print(type(df.values[0][0]))
-    print(type(df.values[0][0].split(";")))
-    print((df.values[0][0].split(";")))
-
-    raise Exception("Nope")
-
-    values = [x[0].split(";").split(sep) for x in df.values]
+    values = [row[0].split(sep) for row in df.values]
 
     df = pd.DataFrame(values, columns=cols)
 
