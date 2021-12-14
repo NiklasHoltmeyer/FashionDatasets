@@ -242,7 +242,7 @@ class DeepFashion1Dataset:
         if len(missing_embeddings) < 1:
             return
 
-        n_chunks = 12
+        n_chunks = 25
 
         if len(missing_embeddings) > n_chunks:
             missing_chunked = np.array_split(missing_embeddings, n_chunks)
