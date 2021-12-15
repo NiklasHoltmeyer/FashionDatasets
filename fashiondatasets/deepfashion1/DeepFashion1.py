@@ -244,7 +244,7 @@ class DeepFashion1Dataset:
 
         n_chunks = len(missing_embeddings) // 300
         n_chunks = int(n_chunks)
-        print("n_chunks wäre", n_chunks)
+        print("n_chunks wäre", n_chunks, "len(missing)", len(missing_embeddings))
         n_chunks = 30
 
         if len(missing_embeddings) > n_chunks:
