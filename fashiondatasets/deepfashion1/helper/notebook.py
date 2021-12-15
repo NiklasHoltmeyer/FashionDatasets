@@ -14,13 +14,16 @@ def calc_top_k_from_distances(results):
     top_20 = map_top_k
 
     top_100 = lambda r: map_top_k(r, k=100)
+    top_50 = lambda r: map_top_k(r, k=50)
 
     top_20_value = 100 * sum(map(top_20, _result)) / len(_result)
+    top_50_value = 100 * sum(map(top_50, _result)) / len(_result)
     top_100_value = 100 * sum(map(top_100, _result)) / len(_result)
 
     top_values = {
         "embedding_path": results["embedding_path"],
         "top_20": top_20_value,
+        "top_50": top_50_value,
         "top_100": top_100_value
     }
 
