@@ -242,10 +242,10 @@ class DeepFashion1Dataset:
         if len(missing_embeddings) < 1:
             return
 
-        n_chunks = len(missing_embeddings) // 300
+        n_chunks = len(missing_embeddings) / 150
         n_chunks = int(n_chunks)
         print("n_chunks wäre", n_chunks, "len(missing)", len(missing_embeddings))
-        n_chunks = 30
+        n_chunks = 100
 
         if len(missing_embeddings) > n_chunks:
             missing_chunked = np.array_split(missing_embeddings, n_chunks)
@@ -253,7 +253,7 @@ class DeepFashion1Dataset:
             missing_chunked = [missing_embeddings]
 
         logger.warning("_build_missing_embeddings::encode_paths")
-        for chunk_missing in missing_chunked:
+        for chunk_missing in tqdm(missing_chunked, desc="encode paths", disable=len(missing_chunked[0]) > 49):
             self.pair_gen.pair_gen.encode_paths([chunk_missing], retrieve_paths_fn=lambda d: d,
                                                 assert_saving=True, skip_filter=True)
 
