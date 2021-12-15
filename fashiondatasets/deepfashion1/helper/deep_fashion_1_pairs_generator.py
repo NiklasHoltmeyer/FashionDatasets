@@ -131,7 +131,9 @@ class DeepFashion1PairsGenerator:
 
     #    @time_logger(name="DF::Encode Paths", header="Pair-Gen (Encode Paths)", footer="Pair-Gen [DONE]", padding_length=50,
     #                 logger=defaultLogger("fashiondataset_time_logger"), log_debug=False)
-    def encode_paths(self, pairs, retrieve_paths_fn, assert_saving=False, skip_filter=False):
+    def encode_paths(self, pairs, retrieve_paths_fn,
+                     assert_saving=False, skip_filter=False,
+                     disable_output=False):
         if assert_saving:
             assert self.embedding_path, "assert_saving set, but no Embedding Path"
 
@@ -190,7 +192,8 @@ class DeepFashion1PairsGenerator:
             images = []
         embeddings = []
 
-        for batch in tqdm(images, desc=f"Predict Batch Images (BS={self.batch_size})", disable=len(images) < 50):
+        for batch in tqdm(images, desc=f"Predict Batch Images (BS={self.batch_size})",
+                          disable=len(images) < 50 or disable_output):
             batch_embeddings = self.model.predict(batch)
             embeddings.extend(batch_embeddings)
 
