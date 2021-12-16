@@ -313,7 +313,7 @@ if __name__ == "__main__":
     ds_loader = DeepFashion1Dataset(base_path=base_path,
                                     image_suffix="_256",
                                     model=model,
-                                    nrows=80,
+                                    nrows=1,
                                     augmentation=compose_augmentations()(False),
                                     generator_type="ctl",
                                     embedding_path=embedding_path)
@@ -321,3 +321,12 @@ if __name__ == "__main__":
     datasets = ds_loader.load(splits=["train", "val"],
                               is_triplet=True,
                               force=False, force_hard_sampling=False, embedding_path=embedding_path)
+
+    for c in (list(datasets["train"]["dataset"].take(1))[0]):
+        print(c)
+    #.take(1))[0]
+
+
+#Quad -> A::jpg_path N1::npy_path Cp::npy_path C_n1::npy_path C_n2::npy_path
+#Tripl -> A::jpg_path Cp::npy_path Cn::npy_path
+
