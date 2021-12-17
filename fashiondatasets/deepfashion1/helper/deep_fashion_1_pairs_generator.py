@@ -166,7 +166,7 @@ class DeepFashion1PairsGenerator:
 
         for batch_paths, batch in tqdm(zip(images_paths_batched, images),
                                        desc=f"Predict Batch Images (BS={self.batch_size})",
-                                       disable=len(images) < 50 or disable_output):
+                                       disable=len(image_paths) < 50 or disable_output):
             batch_embeddings = self.model.predict(batch)
 
             for img_path, embedding in zip(batch_paths, batch_embeddings):
