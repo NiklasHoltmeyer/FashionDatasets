@@ -111,27 +111,25 @@ class CentroidBuilder:
              **kwargs):
         embedding_path = kwargs.pop("embedding_path", None)
 
-        map_identity = pairs_dataframe is not None
-
-        if pairs_dataframe is None:
-            pairs_dataframe = self.pair_gen.load(split, force=force_hard_sampling, validate=validate,
-                                       overwrite_embeddings=overwrite_embeddings,
-                                       embedding_path=embedding_path, **kwargs)
-
-        if kwargs.get("nrows", None):
-            pairs_dataframe = pairs_dataframe.head(kwargs["nrows"])
+        map_identity, pairs_dataframe = self.read_pairs_dataframe(embedding_path, force_hard_sampling, kwargs,
+                                                                  overwrite_embeddings, pairs_dataframe, split,
+                                                                  validate)
 
         split_path = self.centroids_path / split
         split_path.mkdir(parents=True, exist_ok=True)
 
-        imgs_by_id = defaultdict(lambda: [])
+        self.build_centroids(force, map_identity, pairs_dataframe, split_path)
 
-        distinct_imgs = distinct(flatten(pairs_dataframe.values))
-        retrieve_id = lambda d: d.split("/")[-2]
-        for img in distinct_imgs:
-            p_id = retrieve_id(img)
-            imgs_by_id[p_id].append(img)
+        self.build_ctl_dataframe(pairs_dataframe, split_path)
+        pairs_dataframe.to_csv(Path(self.pair_gen.base_path, split + "_ctl.csv"), index=False)
+        return pairs_dataframe
 
+    def build_centroids(self, force, map_identity, pairs_dataframe, split_path):
+        imgs_by_id = self.group_imgs_by_id_from_dataframe(pairs_dataframe)
+        for f_path, centroid in self.walk_centroids(split_path, imgs_by_id, force, map_identity):
+            np.save(f_path, centroid)
+
+    def walk_centroids(self, split_path, imgs_by_id, force, map_identity):
         for p_id, imgs in tqdm(imgs_by_id.items(), desc=f"Build Centroids (force={force}, BS={self.batch_size})"):
             f_path = str((split_path / p_id).resolve())
             f_path_full = f_path + ".npy"
@@ -140,30 +138,39 @@ class CentroidBuilder:
                 f_path = str((split_path / p_id).resolve())
                 centroid = self.build_centroid(imgs, map_identity=map_identity)
 
-                if centroid is None:
-                    continue
+                if centroid:
+                    yield f_path, centroid
 
-#                any_nan = tf.math.reduce_any(tf.math.is_nan(centroid))
-
-#                assert not any_nan, "NaN in Centroid!"
-
-                np.save(f_path, centroid)
-
-                if DEV:
-                    try:
-                        validate_embedding(f_path + ".npy")
-                    except Exception as e:
-                        logger.error(centroid)
-                        raise e
-
+    def build_ctl_dataframe(self, pairs_dataframe, split_path):
         split_path = str(split_path.resolve())
         map_npy_path = lambda _id: os.path.join(split_path, _id + ".npy")
+        self.build_ctl_columns(map_npy_path, pairs_dataframe)
 
+    def build_ctl_columns(self, map_npy_path, pairs_dataframe):
         for k in pairs_dataframe.keys():
             pairs_dataframe[k + "_ctl"] = pairs_dataframe[k].map(lambda i: i.split("/")[-2]).map(map_npy_path)
             pairs_dataframe[k] = pairs_dataframe[k].map(lambda i: self.pair_gen.build_npy_path(i, suffix=".npy"))
-        pairs_dataframe.to_csv(Path(self.pair_gen.base_path, split + "_ctl.csv"), index=False)
-        return pairs_dataframe
+
+    def read_pairs_dataframe(self, embedding_path, force_hard_sampling, kwargs, overwrite_embeddings, pairs_dataframe,
+                             split, validate):
+        map_identity = pairs_dataframe is not None
+        if pairs_dataframe is None:
+            pairs_dataframe = self.pair_gen.load(split, force=force_hard_sampling, validate=validate,
+                                                 overwrite_embeddings=overwrite_embeddings,
+                                                 embedding_path=embedding_path, **kwargs)
+        if kwargs.get("nrows", None):
+            pairs_dataframe = pairs_dataframe.head(kwargs["nrows"])
+        return map_identity, pairs_dataframe
+
+    def group_imgs_by_id_from_dataframe(self, pairs_dataframe):
+        imgs_by_id = defaultdict(lambda: [])
+        distinct_imgs = distinct(flatten(pairs_dataframe.values))
+        retrieve_id = lambda d: d.split("/")[-2]
+        for img in distinct_imgs:
+            p_id = retrieve_id(img)
+            imgs_by_id[p_id].append(img)
+        return imgs_by_id
+
 
 def average_vectors(list_of_vectors, axis=0):
     return np.sum(np.array(list_of_vectors), axis=0) / len(list_of_vectors)
