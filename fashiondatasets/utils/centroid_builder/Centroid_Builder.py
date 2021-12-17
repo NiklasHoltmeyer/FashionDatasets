@@ -26,6 +26,8 @@ assert np is not None or True
 
 logger = defaultLogger("fashion_centroid_builder")
 
+pd.options.mode.chained_assignment = None
+
 class CentroidBuilder:
     def __init__(self, pair_generator, centroids_path, model, augmentation, batch_size=64):
         self.pair_gen = pair_generator
