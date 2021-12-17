@@ -133,24 +133,90 @@ class DeepFashion1PairsGenerator:
     #                 logger=defaultLogger("fashiondataset_time_logger"), log_debug=False)
     def encode_paths(self, pairs, retrieve_paths_fn,
                      assert_saving=False, skip_filter=False,
-                     disable_output=False):
+                     disable_output=False, return_encodings=True):
         if assert_saving:
             assert self.embedding_path, "assert_saving set, but no Embedding Path"
 
+        map_full_path, paths = self.retrieve_paths_from_pairs(pairs, retrieve_paths_fn, skip_filter)
+
+        paths, paths_full_not_exist, paths_not_exist, paths_with_npy_with_exist = self.filter_encoding_paths(
+            map_full_path, paths, skip_filter)
+
+        images = self.image_dataset_from_full_paths(paths_full_not_exist)
+
+        if not return_encodings:
+            for img_path, embedding in self.walk_embeddings(paths_not_exist, images, disable_output):
+                npy_path = str(self.build_npy_path(img_path).resolve())
+                np.save(npy_path, embedding)
+            return
+
+        embeddings = []
+
+        for batch_embeddings in self.walk_embeddings(images, disable_output):
+            embeddings.extend(batch_embeddings)
+
+        assert len(embeddings) == len(paths_full_not_exist), f"{len(embeddings)} {len(paths)}"
+
+        batch_encodings = self.embed_from_full_path(embeddings, paths_not_exist, paths_with_npy_with_exist)
+
+        return batch_encodings
+
+    def walk_embeddings(self, image_paths, images, disable_output):
+        for batch in tqdm(images, desc=f"Predict Batch Images (BS={self.batch_size})",
+                          disable=len(images) < 50 or disable_output):
+            batch_embeddings = self.model.predict(batch)
+            batch_paths = image_paths[:self.batch_size]
+            for img_path, embedding in zip(batch_paths, batch_embeddings):
+                yield img_path, embedding
+
+    def embed_from_full_path(self, embeddings, paths_not_exist, paths_with_npy_with_exist):
+        batch_encodings = {}
+        paths_not_exist_embedding_itter = list(zip(paths_not_exist, embeddings))
+        for p, model_embedding in paths_not_exist_embedding_itter:
+            batch_encodings[p] = model_embedding
+            if self.embedding_path:
+                npy_path = str(self.build_npy_path(p).resolve())
+                # if not any(np.isnan(model_embedding)):
+                np.save(npy_path, model_embedding)
+        #                if DEV:
+        #                    validate_embedding(npy_path + ".npy")
+        for img_path, data in self.walk_embedding_from_paths(paths_with_npy_with_exist):
+            batch_encodings[img_path] = data
+        return batch_encodings
+
+    def walk_embedding_from_paths(self, paths_with_npy_with_exist):
+        paths_with_npy_with_exist_itter = list(paths_with_npy_with_exist)
+        for img_path, npy_path in tqdm(paths_with_npy_with_exist_itter,
+                                       disable=len(paths_with_npy_with_exist_itter) < 50,
+                                       desc="Load Embeddings"):
+            data = np.load(npy_path)
+            yield img_path, data
+
+
+    def retrieve_paths_from_pairs(self, pairs, retrieve_paths_fn, skip_filter):
         image_base_path_str = str(self.image_base_path.resolve())
         map_full_path = lambda p: str(Path(image_base_path_str + "/" + p).resolve())
         # str((self.image_base_path / p).resolve())
-
         # encodings_keys = self.batch_encodings.keys()
         paths = (map(retrieve_paths_fn, pairs))
         paths = flatten(paths)
-
         if not skip_filter:
             paths = distinct(paths)
-
         # paths = filter(lambda p: p not in encodings_keys, paths)
         paths = list(paths)
+        return map_full_path, paths
 
+    def image_dataset_from_full_paths(self, paths_full_not_exist):
+        if len(paths_full_not_exist) > 1:
+            images = tf.data.Dataset.from_tensor_slices(paths_full_not_exist) \
+                .map(preprocess_image((224, 224), augmentation=self.augmentation)) \
+                .batch(self.batch_size, drop_remainder=False) \
+                .prefetch(tf.data.AUTOTUNE)
+        else:
+            images = []
+        return images
+
+    def filter_encoding_paths(self, map_full_path, paths, skip_filter):
         if not skip_filter:
             npy_full_paths = map(lambda d: self.build_npy_path(d, suffix=".npy"), paths)
             npy_full_paths = list(npy_full_paths)
@@ -182,49 +248,7 @@ class DeepFashion1PairsGenerator:
             paths_not_exist = paths
 
             paths_with_npy_with_exist = []
-
-        if len(paths_full_not_exist) > 1:
-            images = tf.data.Dataset.from_tensor_slices(paths_full_not_exist) \
-                .map(preprocess_image((224, 224), augmentation=self.augmentation)) \
-                .batch(self.batch_size, drop_remainder=False) \
-                .prefetch(tf.data.AUTOTUNE)
-        else:
-            images = []
-        embeddings = []
-
-        for batch in tqdm(images, desc=f"Predict Batch Images (BS={self.batch_size})",
-                          disable=len(images) < 50 or disable_output):
-            batch_embeddings = self.model.predict(batch)
-            embeddings.extend(batch_embeddings)
-
-        assert len(embeddings) == len(paths_full_not_exist), f"{len(embeddings)} {len(paths)}"
-
-        batch_encodings = {}
-
-        paths_not_exist_embedding_itter = list(zip(paths_not_exist, embeddings))
-
-        #        paths_not_exist_embedding_itter = tqdm(paths_not_exist_embedding_itter,
-        #                                       disable=len(paths_not_exist_embedding_itter) < 5_000,
-        #                                       desc=f"Encode Paths (Saving={self.embedding_path is not None})")
-
-        for p, model_embedding in paths_not_exist_embedding_itter:
-            batch_encodings[p] = model_embedding
-            if self.embedding_path:
-                npy_path = str(self.build_npy_path(p).resolve())
-                # if not any(np.isnan(model_embedding)):
-                np.save(npy_path, model_embedding)
-
-                if DEV:
-                    validate_embedding(npy_path + ".npy")
-
-        paths_with_npy_with_exist_itter = list(paths_with_npy_with_exist)
-        for img_path, npy_path in tqdm(paths_with_npy_with_exist_itter,
-                                       disable=len(paths_with_npy_with_exist_itter) < 50,
-                                       desc="Load Embeddings"):
-            data = np.load(npy_path)
-            batch_encodings[img_path] = data
-
-        return batch_encodings
+        return paths, paths_full_not_exist, paths_not_exist, paths_with_npy_with_exist
 
     def build_npy_path(self, img_relative_path, suffix="", relative_path=True):
         assert self.embedding_path

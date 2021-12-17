@@ -242,16 +242,10 @@ class DeepFashion1Dataset:
         if len(missing_embeddings) < 1:
             return
 
-        n_chunks = 500
+        self.pair_gen.pair_gen.encode_paths([missing_embeddings], retrieve_paths_fn=lambda d: d,
+                                            assert_saving=True, skip_filter=True, disable_output=True,
+                                            return_encodings=False)
 
-        if len(missing_embeddings) > n_chunks:
-            missing_chunked = np.array_split(missing_embeddings, n_chunks)
-        else:
-            missing_chunked = [missing_embeddings]
-
-        for chunk_missing in tqdm(missing_chunked, desc="_build_missing_embeddings::encode_paths"):
-            self.pair_gen.pair_gen.encode_paths([chunk_missing], retrieve_paths_fn=lambda d: d,
-                                                assert_saving=True, skip_filter=True, disable_output=True)
 
     def filter_embeddings_missing(self, jpg_full_path, jpg_relative_path):
         jpg_full_path = list(map(lambda x: str(x.resolve()), jpg_full_path))
