@@ -166,8 +166,11 @@ class DeepFashion1PairsGenerator:
                           disable=len(images) < 50 or disable_output):
             batch_embeddings = self.model.predict(batch)
             batch_paths = image_paths[:self.batch_size]
+
             for img_path, embedding in zip(batch_paths, batch_embeddings):
                 yield img_path, embedding
+
+            del image_paths[:self.batch_size]
 
     def embed_from_full_path(self, embeddings, paths_not_exist, paths_with_npy_with_exist):
         batch_encodings = {}
