@@ -138,7 +138,7 @@ class CentroidBuilder:
                 f_path = str((split_path / p_id).resolve())
                 centroid = self.build_centroid(imgs, map_identity=map_identity)
 
-                if centroid:
+                if centroid is not None:
                     yield f_path, centroid
 
     def build_ctl_dataframe(self, pairs_dataframe, split_path):
