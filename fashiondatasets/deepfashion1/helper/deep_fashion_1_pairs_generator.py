@@ -18,7 +18,7 @@ from fashiondatasets.own.helper.mappings import preprocess_image
 
 import numpy as np
 
-from fashiondatasets.utils.list import filter_not_exist
+from fashiondatasets.utils.list import filter_not_exist, group_list
 
 assert tf is not None or True  # PyCharm removes the Imports, even tho the Function/Classes are used
 assert preprocess_image is not None or True  # PyCharm removes the Imports, even tho the Function/Classes are used
@@ -162,15 +162,15 @@ class DeepFashion1PairsGenerator:
         return batch_encodings
 
     def walk_embeddings(self, image_paths, images, disable_output):
-        for batch in tqdm(images, desc=f"Predict Batch Images (BS={self.batch_size})",
-                          disable=len(images) < 50 or disable_output):
+        images_paths_batched = list(group_list(image_paths, self.batch_size))
+
+        for batch_paths, batch in tqdm(zip(images_paths_batched, images),
+                                       desc=f"Predict Batch Images (BS={self.batch_size})",
+                                       disable=len(images) < 50 or disable_output):
             batch_embeddings = self.model.predict(batch)
-            batch_paths = image_paths[:self.batch_size]
 
             for img_path, embedding in zip(batch_paths, batch_embeddings):
                 yield img_path, embedding
-
-            del image_paths[:self.batch_size]
 
     def embed_from_full_path(self, embeddings, paths_not_exist, paths_with_npy_with_exist):
         batch_encodings = {}
@@ -194,7 +194,6 @@ class DeepFashion1PairsGenerator:
                                        desc="Load Embeddings"):
             data = np.load(npy_path)
             yield img_path, data
-
 
     def retrieve_paths_from_pairs(self, pairs, retrieve_paths_fn, skip_filter):
         image_base_path_str = str(self.image_base_path.resolve())

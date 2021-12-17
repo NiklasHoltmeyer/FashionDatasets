@@ -13,6 +13,9 @@ def random_range(n):
     shuffle(range_lst)
     return range_lst
 
+def group_list(l, group_size):
+    for i in range(0, len(l), group_size):
+        yield l[i:i + group_size]
 
 def flatten_dict(dict_):
     return {k: v for d in dict_ for k, v in d.items()}
