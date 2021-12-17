@@ -148,7 +148,7 @@ class CentroidBuilder:
 
     def build_ctl_columns(self, map_npy_path, pairs_dataframe):
         for k in pairs_dataframe.keys():
-            pairs_dataframe[k + "_ctl"] = pairs_dataframe[k].map(lambda i: i.split("/")[-2]).map(map_npy_path)
+            pairs_dataframe[k + "_ctl"] = pairs_dataframe[k].map(lambda i: map_npy_path(i.split("/")[-2]))
             pairs_dataframe[k] = pairs_dataframe[k].map(lambda i: self.pair_gen.build_npy_path(i, suffix=".npy"))
 
     def read_pairs_dataframe(self, embedding_path, force_hard_sampling, kwargs, overwrite_embeddings, pairs_dataframe,
