@@ -235,6 +235,7 @@ class DeepFashion1Dataset:
 
         jpg_relative_path = list(map(relative_path, jpg_full_path))
 
+        logger.debug(f"filter::missing_embeddings ({len(jpg_full_path)})")
         missing_embeddings = self.filter_embeddings_missing(jpg_full_path, jpg_relative_path)
 
         self.pair_gen.pair_gen.embedding_path = Path(embedding_path)
@@ -242,6 +243,7 @@ class DeepFashion1Dataset:
         if len(missing_embeddings) < 1:
             return
 
+        logger.debug(f"filter::encode ({len(missing_embeddings)})")
         self.pair_gen.pair_gen.encode_paths([missing_embeddings], retrieve_paths_fn=lambda d: d,
                                             assert_saving=True, skip_filter=True, disable_output=True,
                                             return_encodings=False)

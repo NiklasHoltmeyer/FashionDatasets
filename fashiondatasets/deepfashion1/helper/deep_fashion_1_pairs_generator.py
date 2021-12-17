@@ -136,8 +136,13 @@ class DeepFashion1PairsGenerator:
                      disable_output=False, return_encodings=True):
         if assert_saving:
             assert self.embedding_path, "assert_saving set, but no Embedding Path"
+        if not return_encodings:
+            logger.debug(f"retrieve_paths_from_pairs {len(pairs)}")
 
         map_full_path, paths = self.retrieve_paths_from_pairs(pairs, retrieve_paths_fn, skip_filter)
+
+        if not return_encodings:
+            logger.debug(f"filter_encoding_paths {len(paths)}")
 
         paths, paths_full_not_exist, paths_not_exist, paths_with_npy_with_exist = self.filter_encoding_paths(
             map_full_path, paths, skip_filter)
@@ -145,6 +150,7 @@ class DeepFashion1PairsGenerator:
         images = self.image_dataset_from_full_paths(paths_full_not_exist)
 
         if not return_encodings:
+            logger.debug(f"walk_embeddings {len(images)}")
             for img_path, embedding in self.walk_embeddings(paths_not_exist, images, disable_output):
                 npy_path = str(self.build_npy_path(img_path).resolve())
                 np.save(npy_path, embedding)
