@@ -126,7 +126,7 @@ class DeepFashion1Dataset:
             ctls = [df[c].values for c in cols_ctl]
 
             self._build_missing_embeddings(is_triplet, a, n1, embedding_path=embedding_path, **kwargs)
-
+            logger.debug("_build_missing_embeddings[DONE]")
             if type(embedding_path) == str:
                 embedding_path_str = embedding_path
             else:
@@ -151,6 +151,7 @@ class DeepFashion1Dataset:
             def path_to_str(p):
                 return str(p.resolve())
 
+            logger.debug("inverse Paths")
             if isinstance(a[0], str):
                 a = list(map(lambda p: Path(p), a))
 
@@ -167,7 +168,7 @@ class DeepFashion1Dataset:
 
             if not isinstance(n2[0], str):
                 n2 = list(map(path_to_str, n2))
-
+            logger.debug("inverse Paths")
             return pair_builder(a, p, n1, n2, ctls=ctls), len(a)
         else:
             return pair_builder(a, p, n1, n2), len(a)

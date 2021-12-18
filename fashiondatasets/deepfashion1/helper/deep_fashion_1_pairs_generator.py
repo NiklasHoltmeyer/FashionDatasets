@@ -183,6 +183,9 @@ class DeepFashion1PairsGenerator:
             for img_path, embedding in zip(batch_paths, batch_embeddings):
                 yield img_path, embedding
 
+        if not disable_output:
+            logger.debug(f"walk_embeddings::batching [DONE]")
+
     def embed_from_full_path(self, embeddings, paths_not_exist, paths_with_npy_with_exist):
         batch_encodings = {}
         paths_not_exist_embedding_itter = list(zip(paths_not_exist, embeddings))
