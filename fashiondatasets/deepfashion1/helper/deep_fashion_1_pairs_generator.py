@@ -151,7 +151,7 @@ class DeepFashion1PairsGenerator:
 
         if not return_encodings:
             logger.debug(f"walk_embeddings {len(images)}")
-            for img_path, embedding in self.walk_embeddings(paths_not_exist, images, disable_output):
+            for img_path, embedding in self.walk_embeddings(paths_not_exist, images, disable_output=False):
                 npy_path = str(self.build_npy_path(img_path).resolve())
                 np.save(npy_path, embedding)
             return
@@ -169,7 +169,9 @@ class DeepFashion1PairsGenerator:
 
     def walk_embeddings(self, image_paths, images, disable_output):
         images_paths_batched = list(group_list(image_paths, self.batch_size))
-
+        if not disable_output:
+            logger.debug(f"walk_embeddings::batching {len(images)}=={len(images_paths_batched)} {len(images)==len(images_paths_batched)}")
+        #paths_not_exist, images, disable_output
         for batch_paths, batch in tqdm(zip(images_paths_batched, images),
                                        desc=f"Predict Batch Images (BS={self.batch_size})",
                                        disable=len(image_paths) < 50 or disable_output):
