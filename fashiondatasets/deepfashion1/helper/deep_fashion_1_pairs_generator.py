@@ -168,6 +168,8 @@ class DeepFashion1PairsGenerator:
         return batch_encodings
 
     def walk_embeddings(self, image_paths, images, disable_output):
+        if not disable_output:
+            logger.debug(f"walk_embeddings::batching")
         images_paths_batched = list(group_list(image_paths, self.batch_size))
         if not disable_output:
             logger.debug(f"walk_embeddings::batching {len(images)}=={len(images_paths_batched)} {len(images)==len(images_paths_batched)}")
