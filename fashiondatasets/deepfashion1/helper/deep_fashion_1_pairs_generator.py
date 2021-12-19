@@ -147,11 +147,14 @@ class DeepFashion1PairsGenerator:
         paths, paths_full_not_exist, paths_not_exist, paths_with_npy_with_exist = self.filter_encoding_paths(
             map_full_path, paths, skip_filter)
 
-        images = self.image_dataset_from_full_paths(paths_full_not_exist)
+        batch_size_modifier = 1.0 if return_encodings else 0.5
+
+        images = self.image_dataset_from_full_paths(paths_full_not_exist, batch_size_modifier=batch_size_modifier)
 
         if not return_encodings:
             logger.debug(f"walk_embeddings {len(images)}")
-            for img_path, embedding in self.walk_embeddings(paths_not_exist, images, disable_output=False):
+            for img_path, embedding in self.walk_embeddings(paths_not_exist, images,
+                                                            disable_output=False, batch_size_modifier=batch_size_modifier):
                 npy_path = str(self.build_npy_path(img_path).resolve())
                 np.save(npy_path, embedding)
             return
@@ -167,15 +170,16 @@ class DeepFashion1PairsGenerator:
 
         return batch_encodings
 
-    def walk_embeddings(self, image_paths, images, disable_output):
+    def walk_embeddings(self, image_paths, images, disable_output, batch_size_modifier=1.0):
         if not disable_output:
             logger.debug(f"walk_embeddings::batching")
-        images_paths_batched = list(group_list(image_paths, self.batch_size))
+        bs = int(batch_size_modifier * self.batch_size)
+        images_paths_batched = list(group_list(image_paths, bs))
         if not disable_output:
             logger.debug(f"walk_embeddings::batching {len(images)}=={len(images_paths_batched)} {len(images)==len(images_paths_batched)}")
         #paths_not_exist, images, disable_output
         for batch_paths, batch in tqdm(zip(images_paths_batched, images),
-                                       desc=f"Predict Batch Images (BS={self.batch_size})",
+                                       desc=f"Predict Batch Images (BS={bs})",
                                        disable=len(image_paths) < 50 or disable_output,
                                        total=len(images_paths_batched)):
             batch_embeddings = self.model.predict(batch)
@@ -222,11 +226,11 @@ class DeepFashion1PairsGenerator:
         paths = list(paths)
         return map_full_path, paths
 
-    def image_dataset_from_full_paths(self, paths_full_not_exist):
+    def image_dataset_from_full_paths(self, paths_full_not_exist, batch_size_modifier=1.0):
         if len(paths_full_not_exist) > 1:
             images = tf.data.Dataset.from_tensor_slices(paths_full_not_exist) \
                 .map(preprocess_image((224, 224), augmentation=self.augmentation)) \
-                .batch(self.batch_size, drop_remainder=False) \
+                .batch(int(self.batch_size * batch_size_modifier), drop_remainder=False) \
                 .prefetch(tf.data.AUTOTUNE)
         else:
             images = []
