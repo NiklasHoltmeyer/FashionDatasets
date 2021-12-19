@@ -18,7 +18,7 @@ from fashiondatasets.utils.mock.mock_augmentation import pass_trough
 from fashiondatasets.utils.mock.mock_feature_extractor import SimpleCNN
 
 logger = defaultLogger("fashion_pair_gen")
-
+logger.warning("Läuft")
 
 class DeepFashion1Dataset:
     def __init__(self,
