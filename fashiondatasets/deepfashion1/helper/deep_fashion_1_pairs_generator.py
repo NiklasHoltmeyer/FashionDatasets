@@ -146,7 +146,7 @@ class DeepFashion1PairsGenerator:
 
         if not return_encodings:
             for img_path, embedding in self.walk_embeddings(paths_not_exist, images,
-                                                            disable_output=False):
+                                                            disable_output=disable_output):
                 npy_path = str(self.build_npy_path(img_path).resolve())
                 np.save(npy_path, embedding)
             return
