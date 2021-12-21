@@ -1,6 +1,7 @@
 import os
 import random
 import shutil
+from collections import defaultdict
 from pathlib import Path
 
 import pandas as pd
@@ -168,7 +169,7 @@ class DeepFashion1PairsGenerator:
         if not disable_output:
             logger.debug(f"walk_embeddings::batching")
 
-        #paths_not_exist, images, disable_output
+        # paths_not_exist, images, disable_output
         for batch_paths, batch in tqdm(zip(images_paths_batched, images),
                                        desc=f"Predict Batch Images (BS={self.batch_size})",
                                        disable=len(image_paths) < 50 or disable_output,
@@ -321,6 +322,7 @@ class DeepFashion1PairsGenerator:
                 enumerate((zip(anchor_positives, image_source))),
                 desc="Sample Possible Negative1's",
                 total=n_ap_pairs):
+            target_img_source = "positive"  # <- force every (negative) image to be from shop
             random_possibilities = ids_by_cat_idx[cat_idxs]
             n_samples = min((self.number_possibilities + 20), len(random_possibilities))
             possible_negatives = random.sample(random_possibilities, n_samples)
@@ -351,7 +353,7 @@ class DeepFashion1PairsGenerator:
                                                                                   desc="Sample Possible Negative2's",
                                                                                   total=n_apn_pairs):
             n_p_id = n_img.split("/")[-2]
-
+            target_img_source = "positive"  # <- force every (negative) image to be from shop
             r_cat = random_cat_gen(ap_cat_idx)
             possible_ids = ids_by_cat_idx[r_cat]
             n_samples = min((self.number_possibilities + 20), len(possible_ids))
@@ -652,8 +654,6 @@ if __name__ == "__main__":
     model = SimpleCNN.build((224, 224))
 
     augmentation = lambda d: d
-    gen = DeepFashion1PairsGenerator(base_path, model, "_256", augmentation=augmentation)
-    gen.embedding_path = r"F:\workspace\datasets\deep_fashion_1_256\embeddings"
-    gen.embedding_path = Path(gen.embedding_path)
-    gen.encode_paths([x], retrieve_paths_fn=lambda d: d)
-    print("wuhu")
+    gen = DeepFashion1PairsGenerator(base_path, model, "_256", augmentation=augmentation, embedding_path=r"F:\workspace\datasets\deep_fashion_1_256\embeddings")
+    #gen.encode_paths([x], retrieve_paths_fn=lambda d: d)
+
