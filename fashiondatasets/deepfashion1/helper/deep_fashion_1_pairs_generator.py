@@ -387,7 +387,7 @@ class DeepFashion1PairsGenerator:
         image_paths_from_pair = lambda d: [d[2], *d[-1]]
         apn_possibilities_all = list(self.walk_anchor_positive_negative_possibilities(anchor_positives,
                                                                                       ids_by_cat_idx, force_cat_level))
-        n_chunks = len(apn_possibilities_all) // 15_000
+        n_chunks = len(apn_possibilities_all) // 5_000
         apn_possibilities_chunked = np.array_split(apn_possibilities_all, n_chunks)
         apns = []
         is_none, not_none, len_one = 0, 0, 0

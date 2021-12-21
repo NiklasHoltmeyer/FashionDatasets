@@ -246,7 +246,7 @@ class DeepFashion1Dataset:
         logger.debug(f"filter::encode ({len(missing_embeddings)})")
 
 
-        n_chunks = 500
+        n_chunks = 1_000
 
         for missing_chunk in tqdm(np.array_split(missing_embeddings, n_chunks), desc="encode::missing (outer)", total=n_chunks):
             self.pair_gen.pair_gen.encode_paths([missing_chunk], retrieve_paths_fn=lambda d: d,
