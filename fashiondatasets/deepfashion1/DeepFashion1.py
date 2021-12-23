@@ -156,7 +156,11 @@ class DeepFashion1Dataset:
             if isinstance(a[0], str):
                 a = list(map(lambda p: Path(p), a))
 
+            if isinstance(n1[0], str):
+                n1 = list(map(lambda p: Path(p), n1))
+
             a = list(map(inverse_path, a))
+            n1 = list(map(inverse_path, n1))
 
             if not isinstance(a[0], str):
                 a = list(map(path_to_str, a))
@@ -326,7 +330,7 @@ if __name__ == "__main__":
                                     embedding_path=embedding_path)
 
     datasets = ds_loader.load(splits=["train", "val"],
-                              is_triplet=True,
+                              is_triplet=False,
                               force=False, force_hard_sampling=False, embedding_path=embedding_path)
 
     for c in (list(datasets["train"]["dataset"].take(1))[0]):
