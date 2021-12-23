@@ -124,8 +124,9 @@ class DeepFashion1Dataset:
             cols_ctl = [x + "_ctl" for x in cols]
             ctls = [df[c].values for c in cols_ctl]
 
-            self._build_missing_embeddings(is_triplet, a, n1, embedding_path=embedding_path, **kwargs)
-            logger.debug("_build_missing_embeddings[DONE]")
+            #self._build_missing_embeddings(is_triplet, a, n1, embedding_path=embedding_path, **kwargs)
+            #^ A, N1 are not passed as npy - so the func is no longer required
+            #logger.debug("_build_missing_embeddings[DONE]")
             if type(embedding_path) == str:
                 embedding_path_str = embedding_path
             else:
