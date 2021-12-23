@@ -124,8 +124,10 @@ class DeepFashion1Dataset:
             cols_ctl = [x + "_ctl" for x in cols]
             ctls = [df[c].values for c in cols_ctl]
 
-            self._build_missing_embeddings(is_triplet, a, n1, embedding_path=embedding_path, **kwargs)
-            logger.debug("_build_missing_embeddings[DONE]")
+            #self._build_missing_embeddings(is_triplet, n1, embedding_path=embedding_path, **kwargs)
+            # one Image (A) has to be calculated - for back prop. to walk
+            # N1 is not required as NPY since network (currently) only works on Centroids besides  the anchor
+            #logger.debug("_build_missing_embeddings[DONE]")
             if type(embedding_path) == str:
                 embedding_path_str = embedding_path
             else:
@@ -203,12 +205,16 @@ class DeepFashion1Dataset:
 
         return datasets
 
-    def _build_missing_embeddings(self, is_triplet, a, n1, **kwargs):
+    def _build_missing_embeddings(self, is_triplet, n1, **kwargs):
         embedding_path = kwargs.get("embedding_path", None)
         assert embedding_path, "embedding_path Required for CTL"
 
-        not_existing_npys = a if is_triplet else a + n1
+        if is_triplet: # Triplet -> A is already passed as Image therfore the network will predict a no matter what (back prop. does not work without data following throught the network)
+            return
+
+        not_existing_npys = n1
         not_existing_npys = distinct(not_existing_npys)
+
         if isinstance(not_existing_npys[0], str):
             not_existing_npys = list(map(lambda p: Path(p), not_existing_npys))
         not_existing_npys_str = list(map(lambda d: str(d.resolve()), not_existing_npys))
