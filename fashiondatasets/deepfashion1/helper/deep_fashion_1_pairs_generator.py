@@ -388,6 +388,8 @@ class DeepFashion1PairsGenerator:
         apn_possibilities_all = list(self.walk_anchor_positive_negative_possibilities(anchor_positives,
                                                                                       ids_by_cat_idx, force_cat_level))
         n_chunks = len(apn_possibilities_all) // 5_000
+        n_chunks = max(n_chunks, 1)
+
         apn_possibilities_chunked = np.array_split(apn_possibilities_all, n_chunks)
         apns = []
         is_none, not_none, len_one = 0, 0, 0
@@ -433,6 +435,8 @@ class DeepFashion1PairsGenerator:
                                                                       force_cat_level))
 
         n_chunks = len(apnn_possibilities_all) // 15_000
+        n_chunks = max(n_chunks, 1)
+
         apnn_possibilities_chunked = np.array_split(apnn_possibilities_all, n_chunks)
 
         apnns = []
