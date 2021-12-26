@@ -154,7 +154,7 @@ class DeepFashion1PairsGenerator:
 
         embeddings = []
 
-        for batch_embeddings in self.walk_embeddings(images, disable_output):
+        for batch_embeddings in self.walk_embeddings(paths_not_exist, images, disable_output=disable_output):
             embeddings.extend(batch_embeddings)
 
         assert len(embeddings) == len(paths_full_not_exist), f"{len(embeddings)} {len(paths)}"
