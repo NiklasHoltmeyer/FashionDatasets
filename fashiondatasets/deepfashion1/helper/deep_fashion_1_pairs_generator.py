@@ -201,7 +201,7 @@ class DeepFashion1PairsGenerator:
     def walk_embedding_from_paths(self, paths_with_npy_with_exist):
         paths_with_npy_with_exist_itter = list(paths_with_npy_with_exist)
         for img_path, npy_path in tqdm(paths_with_npy_with_exist_itter,
-                                       disable=len(paths_with_npy_with_exist_itter) < 50,
+                                       disable=len(paths_with_npy_with_exist_itter) < 25_000,
                                        desc="Load Embeddings"):
             data = np.load(npy_path)
             yield img_path, data
