@@ -68,11 +68,11 @@ class DeepFashion1PairsGenerator:
 
         self.relative_paths = relative_paths
 
-        if not model:
-            logger.error("WARNING " * 72)
-            logger.error("Model is None. Will only build Random Pairs!")
-            logger.error("WARNING" * 72)
-        elif not augmentation:
+#        if not model:
+#            logger.error("WARNING " * 72)
+#            logger.error("Model is None. Will only build Random Pairs!")
+#            logger.error("WARNING" * 72)
+        if not augmentation:
             raise Exception("Augmentation missing")
 
         self.logger = defaultLogger()
@@ -167,8 +167,8 @@ class DeepFashion1PairsGenerator:
     def walk_embeddings(self, image_paths, images, disable_output):
         images_paths_batched = list(group_list(image_paths, self.batch_size))
 
-        if not disable_output:
-            logger.debug(f"walk_embeddings::batching")
+#        if not disable_output:
+#            logger.debug(f"walk_embeddings::batching")
 
         # paths_not_exist, images, disable_output
         for batch_paths, batch in tqdm(zip(images_paths_batched, images),
@@ -180,8 +180,8 @@ class DeepFashion1PairsGenerator:
             for img_path, embedding in zip(batch_paths, batch_embeddings):
                 yield img_path, embedding
 
-        if not disable_output:
-            logger.debug(f"walk_embeddings::batching [DONE]")
+#        if not disable_output:
+#            logger.debug(f"walk_embeddings::batching [DONE]")
 
     def embed_from_full_path(self, embeddings, paths_not_exist, paths_with_npy_with_exist):
         batch_encodings = {}
@@ -399,7 +399,7 @@ class DeepFashion1PairsGenerator:
                                                                       f"(BS: {self.batch_size}. C: {n_chunks})"):
             if force_hard_sampling:
                 assert self.model
-                logger.info("build_anchor_positive_negatives::encode_paths")
+#                logger.info("build_anchor_positive_negatives::encode_paths")
                 batch_encodings = self.encode_paths(apn_possibilities, image_paths_from_pair)
 
                 for pair_id, ap_cat_idx, a_img, p_img, n_possibilities in apn_possibilities:
