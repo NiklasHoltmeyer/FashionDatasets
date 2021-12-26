@@ -441,11 +441,12 @@ class DeepFashion1PairsGenerator:
         apnn_possibilities_chunked = np.array_split(apnn_possibilities_all, n_chunks)
 
         apnns = []
+        if force_hard_sampling:
+            assert self.model
+
         for apnn_possibilities in tqdm(apnn_possibilities_chunked, desc=f"Build APNN "
                                                                         f"(BS: {self.batch_size}. C: {n_chunks})"):
             if force_hard_sampling:
-                assert self.model
-                logger.info("build_anchor_positive_negative_negatives::encode_paths")
                 batch_encodings = self.encode_paths(apnn_possibilities, image_paths_from_pair)
 
                 for a, p, n, n2_possibilities in apnn_possibilities:
