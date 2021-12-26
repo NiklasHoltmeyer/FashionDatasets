@@ -68,12 +68,12 @@ class DeepFashion1Dataset:
         assert split in DeepFashion1PairsGenerator.splits()
         if self.is_ctl:
             assert embedding_path, "embedding_path Required for CTL"
-
+        logger.debug("load_split 1")
         if kwargs.get("force_skip_map_full", False):
             map_full_path = lambda p: str(p.resolve()) if type(p) != str else p
         else:
             map_full_path = lambda p: str((img_base_path / p).resolve())
-
+        logger.debug("load_split 2")
         pair_df = kwargs.pop("df", None)
         if pair_df is None:
             #            df = self.pair_gen.load(split, force=force, force_hard_sampling=force_hard_sampling,
@@ -86,7 +86,7 @@ class DeepFashion1Dataset:
             img_base_path_str = str(img_base_path.resolve())
 
             pair_df = unzip_df(pair_df, can_be_none=True)
-
+            logger.debug("load_split 2.5")
             if pair_df is not None:
                 pair_df = Quadruplets._map_full_paths(pair_df, img_base_path_str, add_file_ext=True)
                 pair_df = unzip_df(pair_df, can_be_none=True)
@@ -97,7 +97,7 @@ class DeepFashion1Dataset:
                 self.pair_gen.relative_paths = False
 
             map_full_path = lambda p: p
-
+        logger.debug("load_split 3")
         if not self.is_ctl and pair_df is not None:
             df = pair_df
         else:
@@ -107,7 +107,7 @@ class DeepFashion1Dataset:
                                     embedding_path=embedding_path,
                                     pairs_dataframe=pair_df,
                                     **kwargs)
-
+        logger.debug("load_split 4")
         df = unzip_df(df, can_be_none=False)
 
         map_full_paths = lambda lst: list(map(map_full_path, lst))
@@ -116,7 +116,7 @@ class DeepFashion1Dataset:
         a, p, n1, n2 = [load_values(c) for c in cols]
 
         assert len(a) == len(p) and len(p) == len(n1) and len(n1) == len(n2)
-
+        logger.debug("load_split 5")
         is_ctl = len(df.keys()) == 8
         pair_builder = build_pairs_ds_fn(is_triplet, is_ctl)
 
