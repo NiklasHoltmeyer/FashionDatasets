@@ -3,6 +3,7 @@ import pickle
 from pathlib import Path
 
 from fashiondatasets.deepfashion1.DeepFashion1CBIR import DeepFashion1CBIR
+from tqdm.auto import tqdm
 
 def map_top_k(result, k=20):
     matches = result["distances"]["matches"]
@@ -79,19 +80,16 @@ def calc_top_k_from_embeddings(base_path, embedding_path, idx=None, pickle_resul
 
 def load_distances(embedding_path):
     distance_paths = [x[1] for x in distances_existence_filtered(embedding_path, exist=True)]
-    d = []
-    for d_p in distance_paths:
+
+    for d_p in tqdm(distance_paths, desc="Load Distances"):
         with open(d_p, "rb") as f:
             data = pickle.load(f)
-            d.append(data)
-    return d
+            yield data
 
 def load_results(embedding_path, verbose=False):
-    distances = load_distances(embedding_path)
-
     results = []
 
-    for distance in distances:
+    for distance in load_distances(embedding_path):
         top_values = calc_top_k_from_distances(distance)
 
         if verbose:
